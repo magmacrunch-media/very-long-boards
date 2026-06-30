@@ -81,6 +81,8 @@ public partial class Main : Node3D
     // Near miss
     private float _nearMissTimer = 0f;
     private int _nearMissCombo = 0;
+    private Label _nearMissLabel;
+    private float _nearMissDisplayTimer = 0f;
 
     // Pause
     private Label _pauseLabel;
@@ -837,8 +839,12 @@ public partial class Main : Node3D
     private void UpdateNearMiss(float dt)
     {
         _nearMissTimer -= dt;
+        _nearMissDisplayTimer -= dt;
         if (_nearMissTimer <= 0f)
             _nearMissCombo = 0;
+
+        if (_nearMissDisplayTimer <= 0f && _nearMissLabel != null)
+            _nearMissLabel.Text = "";
 
         float playerZ = _playerDistance;
         float px = _playerX;
@@ -855,9 +861,15 @@ public partial class Main : Node3D
             {
                 _nearMissCombo++;
                 _nearMissTimer = 1.5f;
+                _nearMissDisplayTimer = 0.8f;
                 int bonus = 50 * _nearMissCombo;
-                _playerSpeed += 0.02f;  // small speed boost
-                GD.Print($"Near miss! x{ _nearMissCombo} +{bonus} speed boost");
+                _playerSpeed += 0.02f;
+                if (_nearMissLabel != null)
+                {
+                    _nearMissLabel.Text = $"NEAR MISS! x{_nearMissCombo} +{bonus}";
+                    _nearMissLabel.Modulate = _nearMissCombo > 2 ?
+                        new Color(1f, 0.3f, 0.5f) : new Color(1f, 0.85f, 0.3f);
+                }
                 break;
             }
         }
@@ -1033,6 +1045,17 @@ public partial class Main : Node3D
         _countdownLabel.AnchorLeft = 0.5f; _countdownLabel.AnchorTop = 0.35f;
         _countdownLabel.AnchorRight = 0.5f; _countdownLabel.AnchorBottom = 0.35f;
         _countdownLabel.OffsetLeft = -50; _countdownLabel.OffsetRight = 50;
+
+        // Near-miss label
+        _nearMissLabel = new Label();
+        _nearMissLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _nearMissLabel.AddThemeFontSizeOverride("font_size", 16);
+        _nearMissLabel.Text = "";
+        _nearMissLabel.Modulate = new Color(1f, 0.85f, 0.3f);
+        canvas.AddChild(_nearMissLabel);
+        _nearMissLabel.AnchorLeft = 0.5f; _nearMissLabel.AnchorTop = 0.7f;
+        _nearMissLabel.AnchorRight = 0.5f; _nearMissLabel.AnchorBottom = 0.7f;
+        _nearMissLabel.OffsetLeft = -100; _nearMissLabel.OffsetRight = 100;
     }
 
     // ── Camera ───────────────────────────────────
