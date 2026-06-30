@@ -423,6 +423,18 @@ public partial class Main : Node3D
             AddRoadSign(z, offset, rng);
         }
 
+        // New England houses
+        for (int i = 0; i < 8; i++)
+        {
+            float z = 150f + i * 200f + rng.RandfRange(0f, 50f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (12f + rng.RandfRange(0f, 8f));
+            AddHouse(z, offset, rng);
+        }
+
+        // Bridge section (guard rails closer together)
+        AddBridge(800f);
+
         UpdateSceneryPositions();
     }
 
@@ -531,6 +543,76 @@ public partial class Main : Node3D
         sign.AddChild(board);
         AddChild(sign);
         _scenery.Add(new SceneryItem { Node = sign, WorldZ = z, OffsetX = offset });
+    }
+
+    private void AddHouse(float z, float offset, RandomNumberGenerator rng)
+    {
+        var house = new Node3D();
+        var wallColors = new[] {
+            new Color(0.9f, 0.88f, 0.8f),
+            new Color(0.85f, 0.75f, 0.6f),
+            new Color(0.7f, 0.85f, 0.75f),
+            new Color(0.8f, 0.7f, 0.65f),
+        };
+        var roofColors = new[] {
+            new Color(0.4f, 0.12f, 0.1f),
+            new Color(0.25f, 0.2f, 0.15f),
+            new Color(0.3f, 0.3f, 0.32f),
+        };
+        var wallCol = wallColors[rng.RandiRange(0, 3)];
+        var roofCol = roofColors[rng.RandiRange(0, 2)];
+
+        var body = MakeBox(new Vector3(2.5f, 1.8f, 2f), wallCol);
+        body.Position = new Vector3(0, 0.9f, 0);
+        house.AddChild(body);
+
+        var roof = MakeBox(new Vector3(2.8f, 0.15f, 2.3f), roofCol);
+        roof.Position = new Vector3(0, 1.85f, 0);
+        house.AddChild(roof);
+        var roofPeak = MakeBox(new Vector3(2.8f, 0.6f, 0.1f), roofCol);
+        roofPeak.Position = new Vector3(0, 2.15f, 0);
+        house.AddChild(roofPeak);
+
+        var door = MakeBox(new Vector3(0.4f, 0.8f, 0.05f), new Color(0.35f, 0.2f, 0.1f));
+        door.Position = new Vector3(0, 0.4f, 1.02f);
+        house.AddChild(door);
+
+        foreach (var wp in new[] { new Vector3(-0.7f, 1.1f, 1.02f), new Vector3(0.7f, 1.1f, 1.02f) })
+        {
+            var win = MakeBox(new Vector3(0.4f, 0.4f, 0.03f), new Color(0.7f, 0.85f, 0.95f, 0.8f));
+            win.Position = wp;
+            house.AddChild(win);
+        }
+
+        AddChild(house);
+        _scenery.Add(new SceneryItem { Node = house, WorldZ = z, OffsetX = offset });
+    }
+
+    private void AddBridge(float z)
+    {
+        var bridge = new Node3D();
+        var woodCol = new Color(0.4f, 0.3f, 0.2f);
+        var railCol = new Color(0.5f, 0.5f, 0.5f);
+
+        var deck = MakeBox(new Vector3(RoadW + 1f, 0.15f, 6f), woodCol);
+        deck.Position = new Vector3(0, -0.1f, 3f);
+        bridge.AddChild(deck);
+
+        for (float side = -1f; side <= 1f; side += 2f)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                var post = MakeCylinder(0.03f, 1f, railCol);
+                post.Position = new Vector3(side * (RoadW / 2f + 0.3f), 0.5f, i * 1.5f);
+                bridge.AddChild(post);
+            }
+            var rail = MakeBox(new Vector3(0.04f, 0.04f, 5.5f), railCol);
+            rail.Position = new Vector3(side * (RoadW / 2f + 0.3f), 0.8f, 2.5f);
+            bridge.AddChild(rail);
+        }
+
+        AddChild(bridge);
+        _scenery.Add(new SceneryItem { Node = bridge, WorldZ = z, OffsetX = 0f });
     }
 
     private void UpdateSceneryPositions()
