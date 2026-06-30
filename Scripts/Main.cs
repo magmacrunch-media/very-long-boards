@@ -90,6 +90,8 @@ public partial class Main : Node3D
     private Label _charLabel;
     private Label _bestLabel;
     private Label _courseLabel;
+    private TextureRect _progressBar;
+    private ColorRect _progressFill;
 
     public override void _Ready()
     {
@@ -435,6 +437,12 @@ public partial class Main : Node3D
         // Bridge section (guard rails closer together)
         AddBridge(800f);
 
+        // Distance markers every 500m
+        for (float mz = 500f; mz < CourseLength; mz += 500f)
+        {
+            AddDistanceMarker(mz);
+        }
+
         UpdateSceneryPositions();
     }
 
@@ -613,6 +621,22 @@ public partial class Main : Node3D
 
         AddChild(bridge);
         _scenery.Add(new SceneryItem { Node = bridge, WorldZ = z, OffsetX = 0f });
+    }
+
+    private void AddDistanceMarker(float z)
+    {
+        var marker = new Node3D();
+        var post = MakeCylinder(0.03f, 0.8f, new Color(0.8f, 0.8f, 0.7f));
+        post.Position = new Vector3(0, 0.4f, 0);
+        marker.AddChild(post);
+
+        // Small sign with distance
+        var sign = MakeBox(new Vector3(0.3f, 0.2f, 0.03f), new Color(0.9f, 0.9f, 0.8f));
+        sign.Position = new Vector3(0, 0.85f, 0);
+        marker.AddChild(sign);
+
+        AddChild(marker);
+        _scenery.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = RoadW / 2f + 0.5f });
     }
 
     private void UpdateSceneryPositions()
@@ -913,6 +937,24 @@ public partial class Main : Node3D
         _pauseLabel.AnchorLeft = 0.5f; _pauseLabel.AnchorTop = 0.4f;
         _pauseLabel.AnchorRight = 0.5f; _pauseLabel.AnchorBottom = 0.4f;
         _pauseLabel.OffsetLeft = -100; _pauseLabel.OffsetRight = 100;
+
+        // Progress bar (bottom center)
+        var progressBg = new ColorRect();
+        progressBg.Color = new Color(0, 0, 0, 0.4f);
+        progressBg.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
+        progressBg.AnchorTop = 0.96f;
+        progressBg.OffsetTop = 0;
+        progressBg.OffsetBottom = 0;
+        canvas.AddChild(progressBg);
+
+        _progressFill = new ColorRect();
+        _progressFill.Color = new Color(0.2f, 0.85f, 0.4f, 0.8f);
+        _progressFill.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
+        _progressFill.AnchorTop = 0.96f;
+        _progressFill.AnchorRight = 0f;
+        _progressFill.OffsetTop = 0;
+        _progressFill.OffsetBottom = 0;
+        canvas.AddChild(_progressFill);
     }
 
     // ── Camera ───────────────────────────────────
@@ -1075,6 +1117,9 @@ public partial class Main : Node3D
             float bSecs = _bestTime % 60f;
             _bestLabel.Text = $"Best: {bMins}:{bSecs:00.0}";
         }
+        // Progress bar
+        float progress = Mathf.Clamp(_playerDistance / CourseLength, 0f, 1f);
+        _progressFill.AnchorRight = progress;
     }
 
     private void ShowFinish()
