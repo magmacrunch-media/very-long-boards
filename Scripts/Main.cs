@@ -137,10 +137,14 @@ public partial class Main : Node3D
 
     private void CreateTerrain()
     {
+        // Asphalt road
         _roadMesh = MakeMesh(new Color(0.35f, 0.35f, 0.38f));
+        // Road center line (white-yellow)
         _lineCenterMesh = MakeMesh(new Color(0.85f, 0.85f, 0.72f));
+        // Road edge lines
         _lineEdgeLMesh = MakeMesh(new Color(0.8f, 0.8f, 0.68f));
         _lineEdgeRMesh = MakeMesh(new Color(0.8f, 0.8f, 0.68f));
+        // Grass
         _groundMesh = MakeMesh(new Color(0.24f, 0.5f, 0.18f));
         AddChild(_roadMesh);
         AddChild(_lineCenterMesh);
@@ -409,6 +413,29 @@ public partial class Main : Node3D
                 new Color(0.6f, 0.4f, 0.8f)    // purple
             }[rng.RandiRange(0, 3)];
             AddSceneryMesh(z, offset, MakeSphere(0.04f, flowerCol));
+        }
+
+        // Ferns and bushes (low greenery near road)
+        for (int i = 0; i < 40; i++)
+        {
+            float z = rng.RandfRange(-20f, 800f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (4.5f + rng.RandfRange(0f, 4f));
+            float size = 0.15f + rng.RandfRange(0f, 0.25f);
+            var bushCol = new Color(0.18f + rng.RandfRange(0, 0.08f), 0.42f + rng.RandfRange(0, 0.1f), 0.12f);
+            AddSceneryMesh(z, offset, MakeSphere(size, bushCol));
+        }
+
+        // Logs (fallen tree trunks)
+        for (int i = 0; i < 10; i++)
+        {
+            float z = rng.RandfRange(50f, 700f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (5f + rng.RandfRange(0f, 5f));
+            float length = 0.8f + rng.RandfRange(0f, 1.2f);
+            var log = MakeCylinder(0.06f, length, new Color(0.3f, 0.2f, 0.1f));
+            log.Rotation = new Vector3(0, rng.RandfRange(0, Mathf.Pi), Mathf.Pi / 2f);
+            AddSceneryMesh(z, offset, log);
         }
 
         // Mailbox (one iconic detail)
