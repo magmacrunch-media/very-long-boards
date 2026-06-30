@@ -253,16 +253,63 @@ public class SceneryManager
     private void AddHouse(float z, float offset, RandomNumberGenerator rng)
     {
         var house = new Node3D();
-        var walls = new[] { new Color(0.9f, 0.88f, 0.8f), new Color(0.85f, 0.75f, 0.6f), new Color(0.7f, 0.85f, 0.75f) };
-        var roofs = new[] { new Color(0.4f, 0.12f, 0.1f), new Color(0.25f, 0.2f, 0.15f) };
-        var w = walls[rng.RandiRange(0, 2)];
-        var r = roofs[rng.RandiRange(0, 1)];
+        var wallColors = new[] {
+            new Color(0.92f, 0.9f, 0.82f),  // white clapboard
+            new Color(0.88f, 0.78f, 0.62f),  // cream
+            new Color(0.72f, 0.87f, 0.78f),  // sage green
+            new Color(0.82f, 0.72f, 0.67f),  // beige
+        };
+        var roofColors = new[] {
+            new Color(0.42f, 0.13f, 0.1f),   // dark red shingles
+            new Color(0.28f, 0.22f, 0.18f),  // dark brown
+            new Color(0.35f, 0.35f, 0.38f),  // grey
+        };
+        var w = wallColors[rng.RandiRange(0, 3)];
+        var r = roofColors[rng.RandiRange(0, 2)];
 
-        house.AddChild(MakeBox(new Vector3(2.5f, 1.8f, 2f), w, new Vector3(0, 0.9f, 0)));
-        house.AddChild(MakeBox(new Vector3(2.8f, 0.15f, 2.3f), r, new Vector3(0, 1.85f, 0)));
-        house.AddChild(MakeBox(new Vector3(0.4f, 0.8f, 0.05f), new Color(0.35f, 0.2f, 0.1f), new Vector3(0, 0.4f, 1.02f)));
-        house.AddChild(MakeBox(new Vector3(0.4f, 0.4f, 0.03f), new Color(0.7f, 0.85f, 0.95f), new Vector3(-0.7f, 1.1f, 1.02f)));
-        house.AddChild(MakeBox(new Vector3(0.4f, 0.4f, 0.03f), new Color(0.7f, 0.85f, 0.95f), new Vector3(0.7f, 1.1f, 1.02f)));
+        // Materials
+        var wallMat = new StandardMaterial3D();
+        wallMat.AlbedoColor = w;
+        wallMat.Roughness = 0.85f;
+        wallMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        var roofMat = new StandardMaterial3D();
+        roofMat.AlbedoColor = r;
+        roofMat.Roughness = 0.9f;
+        roofMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        var doorMat = new StandardMaterial3D();
+        doorMat.AlbedoColor = new Color(0.38f, 0.22f, 0.12f);
+        doorMat.Roughness = 0.7f;
+
+        var winMat = new StandardMaterial3D();
+        winMat.AlbedoColor = new Color(0.72f, 0.87f, 0.97f, 0.85f);
+        winMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        winMat.EmissionEnabled = true;
+        winMat.Emission = new Color(0.08f, 0.06f, 0.03f);
+
+        // Main body
+        AddBoxTo(house, new Vector3(2.5f, 1.8f, 2f), wallMat, new Vector3(0, 0.9f, 0));
+        // Roof
+        AddBoxTo(house, new Vector3(2.8f, 0.15f, 2.3f), roofMat, new Vector3(0, 1.85f, 0));
+        AddBoxTo(house, new Vector3(2.8f, 0.6f, 0.12f), roofMat, new Vector3(0, 2.15f, 0));
+        // Door
+        AddBoxTo(house, new Vector3(0.42f, 0.85f, 0.06f), doorMat, new Vector3(0, 0.42f, 1.02f));
+        // Door handle
+        var handleMat = new StandardMaterial3D();
+        handleMat.AlbedoColor = new Color(0.7f, 0.65f, 0.3f);
+        handleMat.Metallic = 0.4f;
+        AddBoxTo(house, new Vector3(0.04f, 0.04f, 0.04f), handleMat, new Vector3(0.12f, 0.45f, 1.06f));
+        // Windows
+        foreach (var wp in new[] { new Vector3(-0.7f, 1.15f, 1.02f), new Vector3(0.7f, 1.15f, 1.02f) })
+        {
+            AddBoxTo(house, new Vector3(0.42f, 0.42f, 0.03f), winMat, wp);
+            // Window frame
+            var frameMat = new StandardMaterial3D();
+            frameMat.AlbedoColor = new Color(0.9f, 0.88f, 0.8f);
+            AddBoxTo(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, 0.22f, 0.01f));
+            AddBoxTo(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, -0.22f, 0.01f));
+        }
 
         _main.AddChild(house);
         Items.Add(new SceneryItem { Node = house, WorldZ = z, OffsetX = offset });
@@ -460,5 +507,17 @@ public class SceneryManager
         mesh.Rotation = rotation;
         _main.AddChild(mesh);
         Items.Add(new SceneryItem { Node = mesh, WorldZ = z, OffsetX = offset });
+    }
+
+    private MeshInstance3D AddBoxTo(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new BoxMesh();
+        mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
     }
 }
