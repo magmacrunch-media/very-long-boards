@@ -4,7 +4,20 @@ using System.Collections.Generic;
 public partial class Main : Node3D
 {
     private enum GameState { Title, Riding, Finished }
+    private enum CarlType { Office, Party, Dark }
     private GameState _state = GameState.Title;
+    private CarlType _carl = CarlType.Office;
+    private static readonly string[] CarlNames = { "Office Carl", "Party Carl", "Dark Carl" };
+    private static readonly Color[] CarlShirtColors = {
+        new Color(0.55f, 0.18f, 0.18f),  // Office: dress shirt red
+        new Color(0.2f, 0.15f, 0.6f),    // Party: loud purple
+        new Color(0.1f, 0.1f, 0.12f)     // Dark: black
+    };
+    private static readonly Color[] CarlPantsColors = {
+        new Color(0.2f, 0.24f, 0.32f),   // Office: slacks
+        new Color(0.9f, 0.4f, 0.1f),     // Party: orange
+        new Color(0.08f, 0.08f, 0.1f)    // Dark: black
+    };
     private float _timer = 0f;
     private float _bestTime = 0f;
     private float _finishTime = 0f;
@@ -26,6 +39,8 @@ public partial class Main : Node3D
     private CharacterBody3D _player;
     private Node3D _cameraMount;
     private Node3D _skaterRoot;
+    private MeshInstance3D _shirtMesh;
+    private MeshInstance3D _pantsMesh;
     private float _playerSpeed = 0f;
     private float _playerX = 0f;
     private float _playerDistance = 0f;
@@ -144,52 +159,106 @@ public partial class Main : Node3D
         _skaterRoot = new Node3D();
         _player.AddChild(_skaterRoot);
 
-        var deck = MakeBox(new Vector3(1.6f, 0.05f, 0.6f), new Color(0.45f, 0.22f, 0.05f));
-        deck.Position = new Vector3(0, 0.12f, 0);
+        // ── Board: long in Z (direction of motion), narrow in X ──
+        // Deck
+        var deck = MakeBox(new Vector3(0.7f, 0.05f, 1.8f), new Color(0.42f, 0.2f, 0.05f));
+        deck.Position = new Vector3(0, 0.13f, 0);
         _skaterRoot.AddChild(deck);
 
+        // Grip tape
+        var grip = MakeBox(new Vector3(0.65f, 0.02f, 1.6f), new Color(0.15f, 0.15f, 0.15f));
+        grip.Position = new Vector3(0, 0.165f, 0);
+        _skaterRoot.AddChild(grip);
+
+        // Nose/tail kick (angled tips)
+        var noseKick = MakeBox(new Vector3(0.55f, 0.04f, 0.2f), new Color(0.42f, 0.2f, 0.05f));
+        noseKick.Position = new Vector3(0, 0.18f, 0.9f);
+        noseKick.Rotation = new Vector3(0.25f, 0, 0);
+        _skaterRoot.AddChild(noseKick);
+
+        var tailKick = MakeBox(new Vector3(0.55f, 0.04f, 0.2f), new Color(0.42f, 0.2f, 0.05f));
+        tailKick.Position = new Vector3(0, 0.18f, -0.9f);
+        tailKick.Rotation = new Vector3(-0.25f, 0, 0);
+        _skaterRoot.AddChild(tailKick);
+
+        // Trucks (metal axle assemblies)
+        var truckCol = new Color(0.5f, 0.5f, 0.52f);
+        var truckF = MakeBox(new Vector3(0.6f, 0.04f, 0.12f), truckCol);
+        truckF.Position = new Vector3(0, 0.08f, 0.55f);
+        _skaterRoot.AddChild(truckF);
+        var truckR = MakeBox(new Vector3(0.6f, 0.04f, 0.12f), truckCol);
+        truckR.Position = new Vector3(0, 0.08f, -0.55f);
+        _skaterRoot.AddChild(truckR);
+
+        // Wheels (4 wheels, on truck axles)
+        var wheelCol = new Color(0.12f, 0.12f, 0.12f);
         foreach (var pos in new[] {
-            new Vector3(-0.55f, 0.04f, 0.22f), new Vector3(0.55f, 0.04f, 0.22f),
-            new Vector3(-0.55f, 0.04f, -0.22f), new Vector3(0.55f, 0.04f, -0.22f) })
+            new Vector3(-0.32f, 0.04f, 0.55f), new Vector3(0.32f, 0.04f, 0.55f),
+            new Vector3(-0.32f, 0.04f, -0.55f), new Vector3(0.32f, 0.04f, -0.55f) })
         {
-            var wheel = MakeCylinder(0.06f, 0.08f, new Color(0.12f, 0.12f, 0.12f));
+            var wheel = MakeCylinder(0.06f, 0.08f, wheelCol);
             wheel.Position = pos;
             wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
             _skaterRoot.AddChild(wheel);
         }
 
-        var pantsCol = new Color(0.2f, 0.22f, 0.3f);
-        var legL = MakeBox(new Vector3(0.14f, 0.3f, 0.14f), pantsCol);
-        legL.Position = new Vector3(-0.12f, 0.32f, 0);
-        _skaterRoot.AddChild(legL);
-        var legR = MakeBox(new Vector3(0.14f, 0.3f, 0.14f), pantsCol);
-        legR.Position = new Vector3(0.12f, 0.32f, 0);
-        _skaterRoot.AddChild(legR);
+        // ── Skater body — facing right (+X), standard footing ──
+        // Rotate the body group 90° so skater faces +X
+        var bodyGroup = new Node3D();
+        bodyGroup.Rotation = new Vector3(0, Mathf.Pi / 2f, 0);
+        _skaterRoot.AddChild(bodyGroup);
 
-        var body = MakeBox(new Vector3(0.28f, 0.45f, 0.4f), new Color(0.55f, 0.18f, 0.18f));
-        body.Position = new Vector3(0, 0.7f, 0);
-        _skaterRoot.AddChild(body);
+        // Shoes (on the board)
+        var shoeCol = new Color(0.15f, 0.15f, 0.15f);
+        // Front foot (left) — toward -Z of board (forward in world)
+        var shoeL = MakeBox(new Vector3(0.14f, 0.06f, 0.25f), shoeCol);
+        shoeL.Position = new Vector3(-0.1f, 0.19f, -0.3f);
+        bodyGroup.AddChild(shoeL);
+        // Back foot (right) — toward +Z of board (back in world)
+        var shoeR = MakeBox(new Vector3(0.14f, 0.06f, 0.25f), shoeCol);
+        shoeR.Position = new Vector3(0.1f, 0.19f, 0.25f);
+        bodyGroup.AddChild(shoeR);
 
-        var skinCol = new Color(0.9f, 0.8f, 0.62f);
-        var armL = MakeBox(new Vector3(0.08f, 0.32f, 0.08f), skinCol);
-        armL.Position = new Vector3(-0.22f, 0.75f, 0);
-        armL.Rotation = new Vector3(0, 0, 0.15f);
-        _skaterRoot.AddChild(armL);
-        var armR = MakeBox(new Vector3(0.08f, 0.32f, 0.08f), skinCol);
-        armR.Position = new Vector3(0.22f, 0.75f, 0);
-        armR.Rotation = new Vector3(0, 0, -0.15f);
-        _skaterRoot.AddChild(armR);
+        // Legs (jeans)
+        _pantsMesh = MakeBox(new Vector3(0.14f, 0.32f, 0.14f), CarlPantsColors[(int)_carl]);
+        _pantsMesh.Position = new Vector3(-0.1f, 0.38f, -0.25f);
+        _pantsMesh.Rotation = new Vector3(0.1f, 0, 0);
+        bodyGroup.AddChild(_pantsMesh);
+        var legR = MakeBox(new Vector3(0.14f, 0.32f, 0.14f), CarlPantsColors[(int)_carl]);
+        legR.Position = new Vector3(0.1f, 0.38f, 0.2f);
+        legR.Rotation = new Vector3(-0.1f, 0, 0);
+        bodyGroup.AddChild(legR);
 
+        // Torso (t-shirt)
+        _shirtMesh = MakeBox(new Vector3(0.32f, 0.42f, 0.3f), CarlShirtColors[(int)_carl]);
+        _shirtMesh.Position = new Vector3(0, 0.72f, -0.05f);
+        bodyGroup.AddChild(_shirtMesh);
+
+        // Arms (skin, slightly out for balance)
+        var skinCol = new Color(0.88f, 0.78f, 0.6f);
+        var armL = MakeBox(new Vector3(0.08f, 0.3f, 0.08f), skinCol);
+        armL.Position = new Vector3(-0.22f, 0.78f, -0.05f);
+        armL.Rotation = new Vector3(0, 0, 0.2f);
+        bodyGroup.AddChild(armL);
+        var armR = MakeBox(new Vector3(0.08f, 0.3f, 0.08f), skinCol);
+        armR.Position = new Vector3(0.22f, 0.78f, -0.05f);
+        armR.Rotation = new Vector3(0, 0, -0.2f);
+        bodyGroup.AddChild(armR);
+
+        // Head
         var head = MakeBox(new Vector3(0.24f, 0.24f, 0.24f), skinCol);
-        head.Position = new Vector3(0, 1.08f, 0);
-        _skaterRoot.AddChild(head);
-        var hair = MakeBox(new Vector3(0.26f, 0.08f, 0.26f), new Color(0.32f, 0.2f, 0.1f));
-        hair.Position = new Vector3(0, 1.22f, 0);
-        _skaterRoot.AddChild(hair);
+        head.Position = new Vector3(0, 1.06f, -0.05f);
+        bodyGroup.AddChild(head);
 
+        // Hair
+        var hair = MakeBox(new Vector3(0.26f, 0.07f, 0.26f), new Color(0.3f, 0.18f, 0.08f));
+        hair.Position = new Vector3(0, 1.2f, -0.05f);
+        bodyGroup.AddChild(hair);
+
+        // Collision
         var col = new CollisionShape3D();
         var shape = new BoxShape3D();
-        shape.Size = new Vector3(0.6f, 1.3f, 1.6f);
+        shape.Size = new Vector3(0.7f, 1.3f, 1.8f);
         col.Shape = shape;
         col.Position = new Vector3(0, 0.65f, 0);
         _player.AddChild(col);
@@ -228,82 +297,154 @@ public partial class Main : Node3D
         var rng = new RandomNumberGenerator();
         rng.Seed = 42;
 
-        // Pine trees
-        for (int i = 0; i < 120; i++)
+        var trunkCol = new Color(0.32f, 0.2f, 0.1f);
+        var pineCol = new Color(0.12f, 0.28f, 0.1f);
+        var pineCol2 = new Color(0.14f, 0.32f, 0.1f);
+        var leafCol = new Color(0.28f, 0.52f, 0.18f);
+
+        // Pine trees (close to road, dense)
+        for (int i = 0; i < 100; i++)
         {
             float z = rng.RandfRange(-80f, 900f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
-            float offset = side * (6f + rng.RandfRange(0f, 18f));
-            float h = 4f + rng.RandfRange(0f, 6f);
-
-            var tree = new Node3D();
-            var trunk = MakeCylinder(0.04f, h * 0.45f, new Color(0.32f, 0.2f, 0.1f));
-            trunk.Position = new Vector3(0, h * 0.22f, 0);
-            tree.AddChild(trunk);
-
-            for (int j = 0; j < 3; j++)
-            {
-                float t = j / 3f;
-                float lh = h * 0.25f;
-                float lr = (1f - t * 0.4f) * h * 0.22f;
-                var foliage = MakeCylinder(lr, lh, new Color(0.12f, 0.28f + rng.RandfRange(0, 0.08f), 0.1f));
-                foliage.Position = new Vector3(0, h * 0.35f + j * lh * 0.6f, 0);
-                tree.AddChild(foliage);
-            }
-            AddChild(tree);
-            _scenery.Add(new SceneryItem { Node = tree, WorldZ = z, OffsetX = offset });
+            float offset = side * (5.5f + rng.RandfRange(0f, 12f));
+            float h = 5f + rng.RandfRange(0f, 7f);
+            AddTree(z, offset, h, true, rng);
         }
 
-        // Deciduous trees
+        // Pine trees (further back, taller)
         for (int i = 0; i < 50; i++)
         {
             float z = rng.RandfRange(-80f, 900f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
-            float offset = side * (7f + rng.RandfRange(0f, 15f));
-            float h = 5f + rng.RandfRange(0f, 5f);
-
-            var tree = new Node3D();
-            var trunk = MakeCylinder(0.05f, h * 0.5f, new Color(0.3f, 0.18f, 0.08f));
-            trunk.Position = new Vector3(0, h * 0.25f, 0);
-            tree.AddChild(trunk);
-
-            var foliage = new MeshInstance3D();
-            var sphereMesh = new SphereMesh();
-            sphereMesh.Radius = h * 0.25f;
-            sphereMesh.Height = h * 0.4f;
-            foliage.Mesh = sphereMesh;
-            var mat = new StandardMaterial3D();
-            mat.AlbedoColor = new Color(0.25f + rng.RandfRange(0, 0.1f), 0.5f + rng.RandfRange(0, 0.1f), 0.15f);
-            foliage.MaterialOverride = mat;
-            foliage.Position = new Vector3(0, h * 0.65f, 0);
-            tree.AddChild(foliage);
-
-            AddChild(tree);
-            _scenery.Add(new SceneryItem { Node = tree, WorldZ = z, OffsetX = offset });
+            float offset = side * (18f + rng.RandfRange(0f, 25f));
+            float h = 8f + rng.RandfRange(0f, 10f);
+            AddTree(z, offset, h, true, rng);
         }
 
-        // Rocks
-        for (int i = 0; i < 25; i++)
+        // Deciduous trees
+        for (int i = 0; i < 40; i++)
+        {
+            float z = rng.RandfRange(-80f, 900f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (7f + rng.RandfRange(0f, 18f));
+            float h = 5f + rng.RandfRange(0f, 5f);
+            AddTree(z, offset, h, false, rng);
+        }
+
+        // Rocks (roadside)
+        for (int i = 0; i < 20; i++)
         {
             float z = rng.RandfRange(-50f, 800f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
-            float offset = side * (4.5f + rng.RandfRange(0f, 6f));
-            float size = 0.15f + rng.RandfRange(0f, 0.35f);
-
-            var rock = new MeshInstance3D();
-            var mesh = new SphereMesh();
-            mesh.Radius = size;
-            mesh.Height = size * 1.2f;
-            rock.Mesh = mesh;
-            var mat = new StandardMaterial3D();
-            mat.AlbedoColor = new Color(0.45f, 0.43f, 0.4f);
-            rock.MaterialOverride = mat;
-            rock.Rotation = new Vector3(rng.RandfRange(0, 0.3f), rng.RandfRange(0, 3f), 0);
-            AddChild(rock);
-            _scenery.Add(new SceneryItem { Node = rock, WorldZ = z, OffsetX = offset });
+            float offset = side * (4.5f + rng.RandfRange(0f, 4f));
+            float size = 0.12f + rng.RandfRange(0f, 0.3f);
+            AddSceneryMesh(z, offset, MakeSphere(size, new Color(0.45f, 0.43f, 0.4f)),
+                new Vector3(rng.RandfRange(0, 0.3f), rng.RandfRange(0, 3f), 0));
         }
 
+        // Stumps
+        for (int i = 0; i < 15; i++)
+        {
+            float z = rng.RandfRange(-30f, 700f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (5f + rng.RandfRange(0f, 6f));
+            float h = 0.15f + rng.RandfRange(0f, 0.2f);
+            AddSceneryMesh(z, offset, MakeCylinder(0.15f, h, new Color(0.35f, 0.22f, 0.1f)));
+        }
+
+        // Wildflowers (small colored dots near road edge)
+        for (int i = 0; i < 60; i++)
+        {
+            float z = rng.RandfRange(-30f, 800f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (4.2f + rng.RandfRange(0f, 3f));
+            var flowerCol = new Color[] {
+                new Color(0.9f, 0.85f, 0.2f),  // yellow
+                new Color(0.9f, 0.4f, 0.5f),   // pink
+                new Color(0.8f, 0.8f, 0.85f),  // white
+                new Color(0.6f, 0.4f, 0.8f)    // purple
+            }[rng.RandiRange(0, 3)];
+            AddSceneryMesh(z, offset, MakeSphere(0.04f, flowerCol));
+        }
+
+        // Mailbox (one iconic detail)
+        AddMailbox(60f, 1f);
+        AddMailbox(350f, -1f);
+        AddMailbox(700f, 1f);
+
         UpdateSceneryPositions();
+    }
+
+    private void AddTree(float z, float offset, float h, bool isPine, RandomNumberGenerator rng)
+    {
+        var tree = new Node3D();
+        var trunk = MakeCylinder(0.05f, h * 0.45f, new Color(0.32f, 0.2f, 0.1f));
+        trunk.Position = new Vector3(0, h * 0.22f, 0);
+        tree.AddChild(trunk);
+
+        if (isPine)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                float t = j / 4f;
+                float lh = h * 0.2f;
+                float lr = (1f - t * 0.35f) * h * 0.2f;
+                var col = new Color(0.1f + rng.RandfRange(0, 0.06f), 0.26f + rng.RandfRange(0, 0.1f), 0.08f);
+                var foliage = MakeCylinder(lr, lh, col);
+                foliage.Position = new Vector3(0, h * 0.32f + j * lh * 0.55f, 0);
+                tree.AddChild(foliage);
+            }
+        }
+        else
+        {
+            var foliage = MakeSphere(h * 0.24f, new Color(0.24f + rng.RandfRange(0, 0.12f), 0.48f + rng.RandfRange(0, 0.12f), 0.14f));
+            foliage.Position = new Vector3(0, h * 0.62f, 0);
+            tree.AddChild(foliage);
+        }
+
+        AddChild(tree);
+        _scenery.Add(new SceneryItem { Node = tree, WorldZ = z, OffsetX = offset });
+    }
+
+    private void AddSceneryMesh(float z, float offset, MeshInstance3D mesh, Vector3 rotation = default)
+    {
+        mesh.Rotation = rotation;
+        AddChild(mesh);
+        _scenery.Add(new SceneryItem { Node = mesh, WorldZ = z, OffsetX = offset });
+    }
+
+    private MeshInstance3D MakeSphere(float radius, Color color)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new SphereMesh();
+        mesh.Radius = radius;
+        mesh.Height = radius * 2f;
+        m.Mesh = mesh;
+        var mat = new StandardMaterial3D();
+        mat.AlbedoColor = color;
+        m.MaterialOverride = mat;
+        return m;
+    }
+
+    private void AddMailbox(float z, float side)
+    {
+        var box = new Node3D();
+        // Post
+        var post = MakeCylinder(0.03f, 0.8f, new Color(0.35f, 0.22f, 0.1f));
+        post.Position = new Vector3(0, 0.4f, 0);
+        box.AddChild(post);
+        // Box
+        var mail = MakeBox(new Vector3(0.2f, 0.15f, 0.3f), new Color(0.2f, 0.2f, 0.7f));
+        mail.Position = new Vector3(0, 0.85f, 0);
+        box.AddChild(mail);
+        // Flag
+        var flag = MakeBox(new Vector3(0.02f, 0.12f, 0.02f), new Color(0.8f, 0.1f, 0.1f));
+        flag.Position = new Vector3(0.12f, 0.9f, 0);
+        box.AddChild(flag);
+
+        AddChild(box);
+        _scenery.Add(new SceneryItem { Node = box, WorldZ = z, OffsetX = side * 5f });
     }
 
     private void UpdateSceneryPositions()
@@ -317,6 +458,9 @@ public partial class Main : Node3D
         }
     }
 
+    private Label _subtitleLabel;
+    private Label _charLabel;
+
     // ── UI ───────────────────────────────────────
 
     private void CreateUI()
@@ -324,49 +468,68 @@ public partial class Main : Node3D
         var canvas = new CanvasLayer();
         AddChild(canvas);
 
+        // HUD panel (top left)
         var panel = new PanelContainer();
         panel.AnchorLeft = 0; panel.AnchorTop = 0;
         panel.AnchorRight = 0; panel.AnchorBottom = 0;
         panel.OffsetLeft = 16; panel.OffsetTop = 12;
         panel.OffsetRight = 260; panel.OffsetBottom = 140;
-
         var ps = new StyleBoxFlat();
         ps.BgColor = new Color(0, 0, 0, 0.55f);
         ps.CornerRadiusTopLeft = 6; ps.CornerRadiusTopRight = 6;
         ps.CornerRadiusBottomLeft = 6; ps.CornerRadiusBottomRight = 6;
         panel.AddThemeStyleboxOverride("panel", ps);
-
         var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 6);
-
         _speedLabel = new Label();
         _speedLabel.AddThemeFontSizeOverride("font_size", 22);
         _speedLabel.Text = "0 km/h";
         vbox.AddChild(_speedLabel);
-
         _distLabel = new Label();
         _distLabel.AddThemeFontSizeOverride("font_size", 16);
         _distLabel.Text = "0 m";
         vbox.AddChild(_distLabel);
-
         _timerLabel = new Label();
         _timerLabel.AddThemeFontSizeOverride("font_size", 16);
         _timerLabel.Text = "0:00.0";
         vbox.AddChild(_timerLabel);
-
         panel.AddChild(vbox);
         canvas.AddChild(panel);
 
+        // Title
         _titleLabel = new Label();
         _titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        _titleLabel.AddThemeFontSizeOverride("font_size", 32);
+        _titleLabel.AddThemeFontSizeOverride("font_size", 36);
         _titleLabel.Text = "VERY LONG BOARDS";
         _titleLabel.Modulate = new Color(1f, 0.18f, 0.61f);
         canvas.AddChild(_titleLabel);
-        _titleLabel.AnchorLeft = 0.5f; _titleLabel.AnchorTop = 0.1f;
-        _titleLabel.AnchorRight = 0.5f; _titleLabel.AnchorBottom = 0.1f;
-        _titleLabel.OffsetLeft = -220; _titleLabel.OffsetRight = 220;
+        _titleLabel.AnchorLeft = 0.5f; _titleLabel.AnchorTop = 0.08f;
+        _titleLabel.AnchorRight = 0.5f; _titleLabel.AnchorBottom = 0.08f;
+        _titleLabel.OffsetLeft = -240; _titleLabel.OffsetRight = 240;
 
+        // Subtitle: "A Carl Spatski Game"
+        _subtitleLabel = new Label();
+        _subtitleLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _subtitleLabel.AddThemeFontSizeOverride("font_size", 16);
+        _subtitleLabel.Text = "A Carl Spatski Game";
+        _subtitleLabel.Modulate = new Color(0.7f, 0.7f, 0.8f);
+        canvas.AddChild(_subtitleLabel);
+        _subtitleLabel.AnchorLeft = 0.5f; _subtitleLabel.AnchorTop = 0.15f;
+        _subtitleLabel.AnchorRight = 0.5f; _subtitleLabel.AnchorBottom = 0.15f;
+        _subtitleLabel.OffsetLeft = -140; _subtitleLabel.OffsetRight = 140;
+
+        // Character select
+        _charLabel = new Label();
+        _charLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _charLabel.AddThemeFontSizeOverride("font_size", 14);
+        _charLabel.Text = "< Office Carl >";
+        _charLabel.Modulate = new Color(0.9f, 0.85f, 0.6f);
+        canvas.AddChild(_charLabel);
+        _charLabel.AnchorLeft = 0.5f; _charLabel.AnchorTop = 0.22f;
+        _charLabel.AnchorRight = 0.5f; _charLabel.AnchorBottom = 0.22f;
+        _charLabel.OffsetLeft = -120; _charLabel.OffsetRight = 120;
+
+        // Prompt
         _promptLabel = new Label();
         _promptLabel.HorizontalAlignment = HorizontalAlignment.Center;
         _promptLabel.AddThemeFontSizeOverride("font_size", 18);
@@ -409,14 +572,26 @@ public partial class Main : Node3D
         {
             case GameState.Title:
                 UpdateCamera();
+                if (Input.IsActionJustPressed("move_left"))
+                {
+                    _carl = (CarlType)(((int)_carl + 2) % 3);
+                    _charLabel.Text = $"< {CarlNames[(int)_carl]} >";
+                }
+                if (Input.IsActionJustPressed("move_right"))
+                {
+                    _carl = (CarlType)(((int)_carl + 1) % 3);
+                    _charLabel.Text = $"< {CarlNames[(int)_carl]} >";
+                }
                 if (Input.IsActionJustPressed("kick_off"))
                 {
-                    GD.Print("KICK OFF!");
+                    GD.Print($"KICK OFF as {CarlNames[(int)_carl]}!");
                     _state = GameState.Riding;
                     _kicked = true;
                     _playerSpeed = 0.3f;
                     _timer = 0f;
                     _titleLabel.Text = "";
+                    _subtitleLabel.Text = "";
+                    _charLabel.Text = "";
                     _promptLabel.Text = "";
                 }
                 break;
@@ -504,6 +679,8 @@ public partial class Main : Node3D
         if (_skaterRoot != null) _skaterRoot.Rotation = Vector3.Zero;
         _titleLabel.Modulate = new Color(1f, 0.18f, 0.61f);
         _titleLabel.Text = "VERY LONG BOARDS";
+        _subtitleLabel.Text = "A Carl Spatski Game";
+        _charLabel.Text = $"< {CarlNames[(int)_carl]} >";
         _promptLabel.Text = "Press \u2191 to kick off";
         UpdateTerrain();
         UpdateSceneryPositions();
