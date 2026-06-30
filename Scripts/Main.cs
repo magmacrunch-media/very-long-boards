@@ -76,6 +76,11 @@ public partial class Main : Node3D
 
     // Camera
     private float _cameraTilt = 0f;
+    private float _cameraShake = 0f;
+
+    // Near miss
+    private float _nearMissTimer = 0f;
+    private int _nearMissCombo = 0;
 
     // Pause
     private Label _pauseLabel;
@@ -800,6 +805,37 @@ public partial class Main : Node3D
         }
     }
 
+    // ── Near Miss ────────────────────────────────
+
+    private void UpdateNearMiss(float dt)
+    {
+        _nearMissTimer -= dt;
+        if (_nearMissTimer <= 0f)
+            _nearMissCombo = 0;
+
+        float playerZ = _playerDistance;
+        float px = _playerX;
+
+        foreach (var item in _scenery)
+        {
+            float dz = item.WorldZ - playerZ;
+            if (dz > 3f || dz < -3f) continue;
+
+            float dx = Mathf.Abs(px - item.OffsetX);
+            float nearDist = 1.2f;
+
+            if (dx < nearDist && dx > 0.4f)
+            {
+                _nearMissCombo++;
+                _nearMissTimer = 1.5f;
+                int bonus = 50 * _nearMissCombo;
+                _playerSpeed += 0.02f;  // small speed boost
+                GD.Print($"Near miss! x{ _nearMissCombo} +{bonus} speed boost");
+                break;
+            }
+        }
+    }
+
     // ── Confetti ─────────────────────────────────
 
     private void CreateConfettiParticles()
@@ -981,7 +1017,6 @@ public partial class Main : Node3D
         float sf = Mathf.Clamp(-slope / 2f, 0f, 1f);
         float speedFactor = Mathf.Clamp(_playerSpeed / MaxSpeed, 0f, 1f);
 
-        // Camera gets slightly closer and higher at speed
         float camH = 4.5f + sf * 3f - speedFactor * 0.5f;
         float camD = 6f + sf * 2f - speedFactor * 1f;
         _cameraMount.Position = new Vector3(0, camH, -camD);
@@ -990,12 +1025,21 @@ public partial class Main : Node3D
         float curve = CurveAt(_playerDistance);
         cam.LookAt(new Vector3(_playerX + curve * 30f, groundY + 0.5f, 12f), Vector3.Up);
 
-        // Tilt camera into curves
+        // Tilt into curves
         float targetTilt = -curve * 15f;
         _cameraTilt = Mathf.Lerp(_cameraTilt, targetTilt, 3f * (float)GetPhysicsProcessDeltaTime());
         cam.Rotation = new Vector3(cam.Rotation.X, cam.Rotation.Y, _cameraTilt);
 
-        // Slight FOV increase at high speed
+        // Speed wobble at very high speed
+        if (speedFactor > 0.85f)
+        {
+            float wobbleIntensity = (speedFactor - 0.85f) / 0.15f;
+            float time = (float)Time.GetTicksMsec() * 0.01f;
+            float wobble = Mathf.Sin(time * 12f) * wobbleIntensity * 0.003f;
+            cam.Rotation = new Vector3(cam.Rotation.X + wobble, cam.Rotation.Y, cam.Rotation.Z);
+        }
+
+        // FOV increases at speed
         cam.Fov = 65f + speedFactor * 5f;
     }
 
@@ -1066,6 +1110,7 @@ public partial class Main : Node3D
                 UpdateClouds(dt);
                 UpdateFinishLine();
                 UpdateDustParticles();
+                UpdateNearMiss(dt);
                 UpdateSound(dt);
                 UpdateCamera();
                 UpdateHUD();
