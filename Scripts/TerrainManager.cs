@@ -39,11 +39,38 @@ public class TerrainManager
 
     public void Create()
     {
-        _roadMesh = MakeMesh(new Color(0.35f, 0.35f, 0.38f));
-        _lineCenterMesh = MakeMesh(new Color(0.85f, 0.85f, 0.72f));
-        _lineEdgeLMesh = MakeMesh(new Color(0.8f, 0.8f, 0.68f));
-        _lineEdgeRMesh = MakeMesh(new Color(0.8f, 0.8f, 0.68f));
-        _groundMesh = MakeMesh(new Color(0.24f, 0.5f, 0.18f));
+        // Asphalt with slight roughness
+        var roadMat = new StandardMaterial3D();
+        roadMat.AlbedoColor = new Color(0.32f, 0.32f, 0.35f);
+        roadMat.Roughness = 0.85f;
+        roadMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        _roadMesh = new MeshInstance3D();
+        _roadMesh.MaterialOverride = roadMat;
+
+        // Road markings
+        var lineMat = new StandardMaterial3D();
+        lineMat.AlbedoColor = new Color(0.9f, 0.9f, 0.78f);
+        lineMat.EmissionEnabled = true;
+        lineMat.Emission = new Color(0.15f, 0.15f, 0.1f);
+        lineMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        _lineCenterMesh = new MeshInstance3D();
+        _lineCenterMesh.MaterialOverride = lineMat;
+
+        var edgeMat = new StandardMaterial3D();
+        edgeMat.AlbedoColor = new Color(0.85f, 0.85f, 0.7f);
+        edgeMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        _lineEdgeLMesh = new MeshInstance3D();
+        _lineEdgeLMesh.MaterialOverride = edgeMat;
+        _lineEdgeRMesh = new MeshInstance3D();
+        _lineEdgeRMesh.MaterialOverride = edgeMat;
+
+        // Grass with more vibrant color
+        var grassMat = new StandardMaterial3D();
+        grassMat.AlbedoColor = new Color(0.22f, 0.52f, 0.15f);
+        grassMat.Roughness = 0.9f;
+        grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        _groundMesh = new MeshInstance3D();
+        _groundMesh.MaterialOverride = grassMat;
 
         _main.AddChild(_roadMesh);
         _main.AddChild(_lineCenterMesh);

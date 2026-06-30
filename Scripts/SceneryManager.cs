@@ -171,28 +171,44 @@ public class SceneryManager
     private void AddTree(float z, float offset, float h, bool isPine, RandomNumberGenerator rng)
     {
         var tree = new Node3D();
-        var trunk = MakeCylinder(0.05f, h * 0.45f, new Color(0.32f, 0.2f, 0.1f));
+
+        // Trunk with slight taper
+        var trunk = MakeCylinder(0.04f, h * 0.45f, new Color(0.35f, 0.22f, 0.12f));
         trunk.Position = new Vector3(0, h * 0.22f, 0);
         tree.AddChild(trunk);
 
         if (isPine)
         {
+            // 4 layers of cone foliage for fuller look
             for (int j = 0; j < 4; j++)
             {
                 float t = j / 4f;
-                float lh = h * 0.2f;
-                float lr = (1f - t * 0.35f) * h * 0.2f;
-                var col = new Color(0.1f + rng.RandfRange(0, 0.06f), 0.26f + rng.RandfRange(0, 0.1f), 0.08f);
+                float lh = h * 0.22f;
+                float lr = (1f - t * 0.3f) * h * 0.22f;
+                float green = 0.24f + rng.RandfRange(0, 0.12f);
+                var col = new Color(0.08f + rng.RandfRange(0, 0.05f), green, 0.06f + rng.RandfRange(0, 0.03f));
                 var foliage = MakeCylinder(lr, lh, col);
-                foliage.Position = new Vector3(0, h * 0.32f + j * lh * 0.55f, 0);
+                foliage.Position = new Vector3(0, h * 0.3f + j * lh * 0.52f, 0);
                 tree.AddChild(foliage);
             }
         }
         else
         {
-            var foliage = MakeSphere(h * 0.24f, new Color(0.24f + rng.RandfRange(0, 0.12f), 0.48f + rng.RandfRange(0, 0.12f), 0.14f));
-            foliage.Position = new Vector3(0, h * 0.62f, 0);
-            tree.AddChild(foliage);
+            // Deciduous: multiple spheres for fuller canopy
+            float canopyR = h * 0.24f;
+            var leafCol = new Color(0.22f + rng.RandfRange(0, 0.15f), 0.5f + rng.RandfRange(0, 0.15f), 0.12f + rng.RandfRange(0, 0.06f));
+
+            var main = MakeSphere(canopyR, leafCol);
+            main.Position = new Vector3(0, h * 0.62f, 0);
+            tree.AddChild(main);
+
+            var left = MakeSphere(canopyR * 0.7f, leafCol * 0.9f);
+            left.Position = new Vector3(-canopyR * 0.4f, h * 0.55f, canopyR * 0.2f);
+            tree.AddChild(left);
+
+            var right = MakeSphere(canopyR * 0.65f, leafCol * 0.85f);
+            right.Position = new Vector3(canopyR * 0.35f, h * 0.58f, -canopyR * 0.15f);
+            tree.AddChild(right);
         }
 
         _main.AddChild(tree);
