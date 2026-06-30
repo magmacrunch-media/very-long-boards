@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public partial class Main : Node3D
 {
-    private enum GameState { Title, Riding, Paused, Finished }
+    private enum GameState { Title, Riding, Paused, Finished, Countdown }
     private enum CarlType { Office, Party, Dark }
     private GameState _state = GameState.Title;
     private CarlType _carl = CarlType.Office;
@@ -79,6 +79,10 @@ public partial class Main : Node3D
 
     // Pause
     private Label _pauseLabel;
+
+    // Countdown
+    private float _countdownTimer = 0f;
+    private Label _countdownLabel;
 
     // UI
     private Label _speedLabel;
@@ -955,6 +959,17 @@ public partial class Main : Node3D
         _progressFill.OffsetTop = 0;
         _progressFill.OffsetBottom = 0;
         canvas.AddChild(_progressFill);
+
+        // Countdown label (center)
+        _countdownLabel = new Label();
+        _countdownLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _countdownLabel.AddThemeFontSizeOverride("font_size", 64);
+        _countdownLabel.Text = "";
+        _countdownLabel.Modulate = new Color(1f, 0.88f, 0.23f);
+        canvas.AddChild(_countdownLabel);
+        _countdownLabel.AnchorLeft = 0.5f; _countdownLabel.AnchorTop = 0.35f;
+        _countdownLabel.AnchorRight = 0.5f; _countdownLabel.AnchorBottom = 0.35f;
+        _countdownLabel.OffsetLeft = -50; _countdownLabel.OffsetRight = 50;
     }
 
     // ── Camera ───────────────────────────────────
@@ -1011,16 +1026,36 @@ public partial class Main : Node3D
                 if (Input.IsActionJustPressed("kick_off"))
                 {
                     GD.Print($"KICK OFF as {CarlNames[(int)_carl]}!");
-                    _state = GameState.Riding;
-                    _kicked = true;
-                    _playerSpeed = 0.3f;
-                    _timer = 0f;
+                    _state = GameState.Countdown;
+                    _countdownTimer = 3f;
                     _titleLabel.Text = "";
                     _subtitleLabel.Text = "";
                     _charLabel.Text = "";
                     _courseLabel.Text = "";
                     _promptLabel.Text = "";
                 }
+                break;
+
+            case GameState.Countdown:
+                _countdownTimer -= dt;
+                if (_countdownTimer <= 0f)
+                {
+                    _state = GameState.Riding;
+                    _kicked = true;
+                    _playerSpeed = 0.3f;
+                    _timer = 0f;
+                    _countdownLabel.Text = "";
+                }
+                else
+                {
+                    int count = Mathf.CeilToInt(_countdownTimer);
+                    _countdownLabel.Text = count.ToString();
+                    if (count == 1)
+                        _countdownLabel.Modulate = new Color(0.2f, 1f, 0.4f);
+                    else
+                        _countdownLabel.Modulate = new Color(1f, 0.88f, 0.23f);
+                }
+                UpdateCamera();
                 break;
 
             case GameState.Riding:
@@ -1107,6 +1142,15 @@ public partial class Main : Node3D
     {
         float kmh = _playerSpeed * 18f;
         _speedLabel.Text = $"{kmh:F0} km/h";
+        // Speed color: white -> yellow -> red
+        float speedRatio = Mathf.Clamp(_playerSpeed / MaxSpeed, 0f, 1f);
+        if (speedRatio > 0.8f)
+            _speedLabel.Modulate = new Color(1f, 0.3f, 0.3f);  // red at high speed
+        else if (speedRatio > 0.5f)
+            _speedLabel.Modulate = new Color(1f, 0.9f, 0.3f);  // yellow at medium
+        else
+            _speedLabel.Modulate = new Color(1f, 1f, 1f);      // white at low
+
         _distLabel.Text = $"{_playerDistance:F0} m";
         int mins = (int)(_timer / 60f);
         float secs = _timer % 60f;
@@ -1117,7 +1161,6 @@ public partial class Main : Node3D
             float bSecs = _bestTime % 60f;
             _bestLabel.Text = $"Best: {bMins}:{bSecs:00.0}";
         }
-        // Progress bar
         float progress = Mathf.Clamp(_playerDistance / CourseLength, 0f, 1f);
         _progressFill.AnchorRight = progress;
     }
@@ -1156,6 +1199,7 @@ public partial class Main : Node3D
         _charLabel.Text = $"< {CarlNames[(int)_carl]} >";
         _courseLabel.Text = CourseName;
         _promptLabel.Text = "Press \u2191 to kick off";
+        _countdownLabel.Text = "";
         UpdateTerrain();
         UpdateSceneryPositions();
         UpdateCamera();
