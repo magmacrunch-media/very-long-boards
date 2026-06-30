@@ -53,9 +53,21 @@ public partial class Main : Node3D
     private const float Handling = 0.18f;
     private const float CourseLength = 2000f;
 
-    // Scenery — stored as data so we can reposition each frame
+    // Scenery
     private struct SceneryItem { public Node3D Node; public float WorldZ; public float OffsetX; }
     private List<SceneryItem> _scenery = new List<SceneryItem>();
+
+    // Clouds
+    private struct Cloud { public MeshInstance3D Node; public float BaseX; public float BaseZ; public float Height; public float Speed; }
+    private List<Cloud> _clouds = new List<Cloud>();
+
+    // Finish line
+    private Node3D _finishLine;
+
+    // Sound
+    private AudioStreamPlayer3D _windSound;
+    private AudioStreamPlayer3D _wheelSound;
+    private float _windPitch = 0.8f;
 
     // UI
     private Label _speedLabel;
@@ -63,6 +75,9 @@ public partial class Main : Node3D
     private Label _timerLabel;
     private Label _promptLabel;
     private Label _titleLabel;
+    private Label _subtitleLabel;
+    private Label _charLabel;
+    private Label _bestLabel;
 
     public override void _Ready()
     {
@@ -72,6 +87,9 @@ public partial class Main : Node3D
         CreateTerrain();
         CreatePlayerMesh();
         CreateScenery();
+        CreateClouds();
+        CreateFinishLine();
+        CreateSound();
         CreateUI();
         UpdateCamera();
     }
@@ -458,8 +476,115 @@ public partial class Main : Node3D
         }
     }
 
-    private Label _subtitleLabel;
-    private Label _charLabel;
+    // ── Clouds ───────────────────────────────────
+
+    private void CreateClouds()
+    {
+        var rng = new RandomNumberGenerator();
+        rng.Seed = 77;
+        var cloudMat = new StandardMaterial3D();
+        cloudMat.AlbedoColor = new Color(0.95f, 0.95f, 0.97f);
+        cloudMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        cloudMat.AlbedoColor = new Color(0.95f, 0.95f, 0.97f, 0.7f);
+
+        for (int i = 0; i < 20; i++)
+        {
+            var cloud = new MeshInstance3D();
+            var mesh = new BoxMesh();
+            mesh.Size = new Vector3(rng.RandfRange(8f, 20f), 0.3f, rng.RandfRange(4f, 10f));
+            cloud.Mesh = mesh;
+            cloud.MaterialOverride = cloudMat;
+
+            float bx = rng.RandfRange(-100f, 100f);
+            float bz = rng.RandfRange(-50f, 500f);
+            float bh = 35f + rng.RandfRange(0f, 25f);
+            float speed = 0.3f + rng.RandfRange(0f, 0.8f);
+
+            cloud.Position = new Vector3(bx, bh, bz);
+            AddChild(cloud);
+            _clouds.Add(new Cloud { Node = cloud, BaseX = bx, BaseZ = bz, Height = bh, Speed = speed });
+        }
+    }
+
+    private void UpdateClouds(float dt)
+    {
+        for (int i = 0; i < _clouds.Count; i++)
+        {
+            var c = _clouds[i];
+            c.BaseX += c.Speed * dt;
+            if (c.BaseX > 150f) c.BaseX -= 300f;
+            float relZ = c.BaseZ - _scrollOffset;
+            c.Node.Position = new Vector3(c.BaseX, c.Height, relZ);
+        }
+    }
+
+    // ── Finish Line ──────────────────────────────
+
+    private void CreateFinishLine()
+    {
+        _finishLine = new Node3D();
+
+        var postMat = new StandardMaterial3D();
+        postMat.AlbedoColor = new Color(0.9f, 0.15f, 0.15f);
+
+        var bannerMat = new StandardMaterial3D();
+        bannerMat.AlbedoColor = new Color(0.95f, 0.95f, 0.9f);
+
+        // Left post
+        var postL = MakeCylinder(0.08f, 3f, new Color(0.9f, 0.15f, 0.15f));
+        postL.Position = new Vector3(-RoadW / 2f - 0.5f, 1.5f, 0);
+        _finishLine.AddChild(postL);
+
+        // Right post
+        var postR = MakeCylinder(0.08f, 3f, new Color(0.9f, 0.15f, 0.15f));
+        postR.Position = new Vector3(RoadW / 2f + 0.5f, 1.5f, 0);
+        _finishLine.AddChild(postR);
+
+        // Banner
+        var banner = MakeBox(new Vector3(RoadW + 1.5f, 0.6f, 0.05f), new Color(0.95f, 0.95f, 0.9f));
+        banner.Position = new Vector3(0, 2.8f, 0);
+        _finishLine.AddChild(banner);
+
+        // Checkered pattern (simple alternating boxes)
+        for (int i = 0; i < 12; i++)
+        {
+            float x = -RoadW / 2f + 0.3f + i * (RoadW / 12f);
+            var check = MakeBox(new Vector3(RoadW / 12f - 0.05f, 0.15f, 0.06f),
+                i % 2 == 0 ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.9f, 0.15f, 0.15f));
+            check.Position = new Vector3(x, 2.55f, 0);
+            _finishLine.AddChild(check);
+        }
+
+        AddChild(_finishLine);
+    }
+
+    private void UpdateFinishLine()
+    {
+        float relZ = CourseLength - _scrollOffset;
+        float cx = CurveAt(CourseLength) * relZ;
+        float cy = HillAt(CourseLength);
+        _finishLine.Position = new Vector3(cx, cy, relZ);
+    }
+
+    // ── Sound ────────────────────────────────────
+
+    private void CreateSound()
+    {
+        // Wind sound (procedural)
+        _windSound = new AudioStreamPlayer3D();
+        _windSound.MaxDistance = 5f;
+        _player.AddChild(_windSound);
+    }
+
+    private void UpdateSound(float dt)
+    {
+        // Wind pitch increases with speed
+        if (_windSound != null)
+        {
+            float targetVol = Mathf.Clamp(_playerSpeed / MaxSpeed, 0f, 0.3f);
+            _windSound.VolumeDb = Mathf.LinearToDb(targetVol);
+        }
+    }
 
     // ── UI ───────────────────────────────────────
 
@@ -493,6 +618,13 @@ public partial class Main : Node3D
         _timerLabel.AddThemeFontSizeOverride("font_size", 16);
         _timerLabel.Text = "0:00.0";
         vbox.AddChild(_timerLabel);
+
+        _bestLabel = new Label();
+        _bestLabel.AddThemeFontSizeOverride("font_size", 12);
+        _bestLabel.Text = "";
+        _bestLabel.Modulate = new Color(0.7f, 0.85f, 1f);
+        vbox.AddChild(_bestLabel);
+
         panel.AddChild(vbox);
         canvas.AddChild(panel);
 
@@ -601,6 +733,9 @@ public partial class Main : Node3D
                 UpdatePhysics(dt, steer, braking);
                 UpdateTerrain();
                 UpdateSceneryPositions();
+                UpdateClouds(dt);
+                UpdateFinishLine();
+                UpdateSound(dt);
                 UpdateCamera();
                 UpdateHUD();
 
@@ -615,6 +750,7 @@ public partial class Main : Node3D
                 break;
 
             case GameState.Finished:
+                UpdateClouds(dt);
                 UpdateCamera();
                 if (Input.IsActionJustPressed("kick_off"))
                     ResetGame();
@@ -654,6 +790,12 @@ public partial class Main : Node3D
         int mins = (int)(_timer / 60f);
         float secs = _timer % 60f;
         _timerLabel.Text = $"{mins}:{secs:00.0}";
+        if (_bestTime > 0f)
+        {
+            int bMins = (int)(_bestTime / 60f);
+            float bSecs = _bestTime % 60f;
+            _bestLabel.Text = $"Best: {bMins}:{bSecs:00.0}";
+        }
     }
 
     private void ShowFinish()
@@ -662,7 +804,14 @@ public partial class Main : Node3D
         _titleLabel.Text = "FINISH!";
         int mins = (int)(_finishTime / 60f);
         float secs = _finishTime % 60f;
-        _promptLabel.Text = $"Time: {mins}:{secs:00.0}   |   Press \u2191 to ride again";
+        string bestText = "";
+        if (_bestTime > 0f)
+        {
+            int bMins = (int)(_bestTime / 60f);
+            float bSecs = _bestTime % 60f;
+            bestText = $"  |  Best: {bMins}:{bSecs:00.0}";
+        }
+        _promptLabel.Text = $"Time: {mins}:{secs:00.0}{bestText}   |   Press \u2191 to ride again";
     }
 
     private void ResetGame()
