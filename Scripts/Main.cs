@@ -401,8 +401,8 @@ public partial class Main : Node3D
     {
         float dt = (float)delta;
         float steer = 0f;
-        if (Input.IsActionPressed("move_left")) steer -= 1f;
-        if (Input.IsActionPressed("move_right")) steer += 1f;
+        if (Input.IsActionPressed("move_left")) steer += 1f;
+        if (Input.IsActionPressed("move_right")) steer -= 1f;
         bool braking = Input.IsActionPressed("brake");
 
         switch (_state)
