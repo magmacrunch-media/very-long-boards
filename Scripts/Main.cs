@@ -69,6 +69,12 @@ public partial class Main : Node3D
     private AudioStreamPlayer3D _wheelSound;
     private float _windPitch = 0.8f;
 
+    // Particles
+    private GpuParticles3D _dustParticles;
+
+    // Camera
+    private float _cameraTilt = 0f;
+
     // UI
     private Label _speedLabel;
     private Label _distLabel;
@@ -89,6 +95,7 @@ public partial class Main : Node3D
         CreateScenery();
         CreateClouds();
         CreateFinishLine();
+        CreateDustParticles();
         CreateSound();
         CreateUI();
         UpdateCamera();
@@ -570,7 +577,6 @@ public partial class Main : Node3D
 
     private void CreateSound()
     {
-        // Wind sound (procedural)
         _windSound = new AudioStreamPlayer3D();
         _windSound.MaxDistance = 5f;
         _player.AddChild(_windSound);
@@ -578,11 +584,48 @@ public partial class Main : Node3D
 
     private void UpdateSound(float dt)
     {
-        // Wind pitch increases with speed
         if (_windSound != null)
         {
             float targetVol = Mathf.Clamp(_playerSpeed / MaxSpeed, 0f, 0.3f);
             _windSound.VolumeDb = Mathf.LinearToDb(targetVol);
+        }
+    }
+
+    // ── Dust Particles ───────────────────────────
+
+    private void CreateDustParticles()
+    {
+        _dustParticles = new GpuParticles3D();
+        _dustParticles.Amount = 40;
+        _dustParticles.Lifetime = 0.8f;
+        _dustParticles.Transform = new Transform3D(Basis.Identity, new Vector3(0, 0.1f, -0.8f));
+
+        var mat = new ParticleProcessMaterial();
+        mat.Direction = new Vector3(0, 0.5f, -1f);
+        mat.Spread = 30f;
+        mat.InitialVelocityMin = 0.5f;
+        mat.InitialVelocityMax = 1.5f;
+        mat.Gravity = new Vector3(0, -0.5f, 0);
+        mat.ScaleMin = 0.05f;
+        mat.ScaleMax = 0.15f;
+        mat.Color = new Color(0.6f, 0.55f, 0.4f, 0.6f);
+
+        _dustParticles.ProcessMaterial = mat;
+        _dustParticles.Emitting = false;
+        _player.AddChild(_dustParticles);
+    }
+
+    private void UpdateDustParticles()
+    {
+        if (_dustParticles != null)
+        {
+            _dustParticles.Emitting = _playerSpeed > 0.3f && _kicked;
+            var mat = _dustParticles.ProcessMaterial as ParticleProcessMaterial;
+            if (mat != null)
+            {
+                float intensity = Mathf.Clamp(_playerSpeed / MaxSpeed, 0.1f, 1f);
+                mat.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
+            }
         }
     }
 
@@ -688,6 +731,11 @@ public partial class Main : Node3D
         var cam = _cameraMount.GetNode<Camera3D>("Camera3D");
         float curve = CurveAt(_playerDistance);
         cam.LookAt(new Vector3(_playerX + curve * 30f, groundY + 0.5f, 12f), Vector3.Up);
+
+        // Tilt camera slightly into curves
+        float targetTilt = -curve * 15f;
+        _cameraTilt = Mathf.Lerp(_cameraTilt, targetTilt, 3f * (float)GetPhysicsProcessDeltaTime());
+        cam.Rotation = new Vector3(cam.Rotation.X, cam.Rotation.Y, _cameraTilt);
     }
 
     // ── Game Loop ────────────────────────────────
@@ -735,6 +783,7 @@ public partial class Main : Node3D
                 UpdateSceneryPositions();
                 UpdateClouds(dt);
                 UpdateFinishLine();
+                UpdateDustParticles();
                 UpdateSound(dt);
                 UpdateCamera();
                 UpdateHUD();
