@@ -8,6 +8,7 @@ public partial class Main : Node3D
     private GameState _state = GameState.Title;
     private CarlType _carl = CarlType.Office;
     private static readonly string[] CarlNames = { "Office Carl", "Party Carl", "Dark Carl" };
+    private static readonly string CourseName = "New Hampshire Summer";
     private static readonly Color[] CarlShirtColors = {
         new Color(0.55f, 0.18f, 0.18f),  // Office: dress shirt red
         new Color(0.2f, 0.15f, 0.6f),    // Party: loud purple
@@ -88,6 +89,7 @@ public partial class Main : Node3D
     private Label _subtitleLabel;
     private Label _charLabel;
     private Label _bestLabel;
+    private Label _courseLabel;
 
     public override void _Ready()
     {
@@ -797,6 +799,17 @@ public partial class Main : Node3D
         _charLabel.AnchorRight = 0.5f; _charLabel.AnchorBottom = 0.22f;
         _charLabel.OffsetLeft = -120; _charLabel.OffsetRight = 120;
 
+        // Course name
+        _courseLabel = new Label();
+        _courseLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _courseLabel.AddThemeFontSizeOverride("font_size", 12);
+        _courseLabel.Text = CourseName;
+        _courseLabel.Modulate = new Color(0.5f, 0.65f, 0.5f);
+        canvas.AddChild(_courseLabel);
+        _courseLabel.AnchorLeft = 0.5f; _courseLabel.AnchorTop = 0.27f;
+        _courseLabel.AnchorRight = 0.5f; _courseLabel.AnchorBottom = 0.27f;
+        _courseLabel.OffsetLeft = -100; _courseLabel.OffsetRight = 100;
+
         // Prompt
         _promptLabel = new Label();
         _promptLabel.HorizontalAlignment = HorizontalAlignment.Center;
@@ -827,19 +840,24 @@ public partial class Main : Node3D
         float groundY = HillAt(_playerDistance);
         float slope = (HillAt(_playerDistance + 3f) - HillAt(_playerDistance)) / 3f;
         float sf = Mathf.Clamp(-slope / 2f, 0f, 1f);
+        float speedFactor = Mathf.Clamp(_playerSpeed / MaxSpeed, 0f, 1f);
 
-        float camH = 4.5f + sf * 3f;
-        float camD = 6f + sf * 2f;
+        // Camera gets slightly closer and higher at speed
+        float camH = 4.5f + sf * 3f - speedFactor * 0.5f;
+        float camD = 6f + sf * 2f - speedFactor * 1f;
         _cameraMount.Position = new Vector3(0, camH, -camD);
 
         var cam = _cameraMount.GetNode<Camera3D>("Camera3D");
         float curve = CurveAt(_playerDistance);
         cam.LookAt(new Vector3(_playerX + curve * 30f, groundY + 0.5f, 12f), Vector3.Up);
 
-        // Tilt camera slightly into curves
+        // Tilt camera into curves
         float targetTilt = -curve * 15f;
         _cameraTilt = Mathf.Lerp(_cameraTilt, targetTilt, 3f * (float)GetPhysicsProcessDeltaTime());
         cam.Rotation = new Vector3(cam.Rotation.X, cam.Rotation.Y, _cameraTilt);
+
+        // Slight FOV increase at high speed
+        cam.Fov = 65f + speedFactor * 5f;
     }
 
     // ── Game Loop ────────────────────────────────
@@ -876,6 +894,7 @@ public partial class Main : Node3D
                     _titleLabel.Text = "";
                     _subtitleLabel.Text = "";
                     _charLabel.Text = "";
+                    _courseLabel.Text = "";
                     _promptLabel.Text = "";
                 }
                 break;
@@ -950,8 +969,14 @@ public partial class Main : Node3D
         float groundY = HillAt(_playerDistance);
         _player.Position = new Vector3(_playerX, groundY + 0.1f, 0);
 
+        // Lean animation — board tilts, body leans into turn
         if (_skaterRoot != null)
-            _skaterRoot.Rotation = new Vector3(0, _lean * 0.12f, _lean * 0.18f);
+        {
+            float leanAngle = _lean * 0.25f;  // board tilt (Z rotation)
+            float bodyLean = _lean * 0.15f;    // body lean (Y rotation)
+            float speedFactor = Mathf.Clamp(_playerSpeed / MaxSpeed, 0f, 1f);
+            _skaterRoot.Rotation = new Vector3(0, bodyLean, leanAngle * (0.5f + speedFactor * 0.5f));
+        }
     }
 
     private void UpdateHUD()
@@ -1002,6 +1027,7 @@ public partial class Main : Node3D
         _titleLabel.Text = "VERY LONG BOARDS";
         _subtitleLabel.Text = "A Carl Spatski Game";
         _charLabel.Text = $"< {CarlNames[(int)_carl]} >";
+        _courseLabel.Text = CourseName;
         _promptLabel.Text = "Press \u2191 to kick off";
         UpdateTerrain();
         UpdateSceneryPositions();
