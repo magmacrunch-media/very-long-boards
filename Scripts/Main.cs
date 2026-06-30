@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public partial class Main : Node3D
 {
-    private enum GameState { Title, Riding, Finished }
+    private enum GameState { Title, Riding, Paused, Finished }
     private enum CarlType { Office, Party, Dark }
     private GameState _state = GameState.Title;
     private CarlType _carl = CarlType.Office;
@@ -71,9 +71,13 @@ public partial class Main : Node3D
 
     // Particles
     private GpuParticles3D _dustParticles;
+    private GpuParticles3D _confettiParticles;
 
     // Camera
     private float _cameraTilt = 0f;
+
+    // Pause
+    private Label _pauseLabel;
 
     // UI
     private Label _speedLabel;
@@ -96,6 +100,7 @@ public partial class Main : Node3D
         CreateClouds();
         CreateFinishLine();
         CreateDustParticles();
+        CreateConfettiParticles();
         CreateSound();
         CreateUI();
         UpdateCamera();
@@ -398,6 +403,24 @@ public partial class Main : Node3D
         AddMailbox(350f, -1f);
         AddMailbox(700f, 1f);
 
+        // Guard rails (along steep sections)
+        for (int i = 0; i < 25; i++)
+        {
+            float z = 100f + i * 60f + rng.RandfRange(0f, 20f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (4.2f + rng.RandfRange(0f, 0.5f));
+            AddGuardRail(z, offset, side);
+        }
+
+        // Road signs
+        for (int i = 0; i < 8; i++)
+        {
+            float z = 80f + i * 220f + rng.RandfRange(0f, 40f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (5f + rng.RandfRange(0f, 2f));
+            AddRoadSign(z, offset, rng);
+        }
+
         UpdateSceneryPositions();
     }
 
@@ -455,21 +478,57 @@ public partial class Main : Node3D
     private void AddMailbox(float z, float side)
     {
         var box = new Node3D();
-        // Post
         var post = MakeCylinder(0.03f, 0.8f, new Color(0.35f, 0.22f, 0.1f));
         post.Position = new Vector3(0, 0.4f, 0);
         box.AddChild(post);
-        // Box
         var mail = MakeBox(new Vector3(0.2f, 0.15f, 0.3f), new Color(0.2f, 0.2f, 0.7f));
         mail.Position = new Vector3(0, 0.85f, 0);
         box.AddChild(mail);
-        // Flag
         var flag = MakeBox(new Vector3(0.02f, 0.12f, 0.02f), new Color(0.8f, 0.1f, 0.1f));
         flag.Position = new Vector3(0.12f, 0.9f, 0);
         box.AddChild(flag);
-
         AddChild(box);
         _scenery.Add(new SceneryItem { Node = box, WorldZ = z, OffsetX = side * 5f });
+    }
+
+    private void AddGuardRail(float z, float offset, float side)
+    {
+        var rail = new Node3D();
+        // Posts
+        for (int i = 0; i < 3; i++)
+        {
+            float dz = i * 2f;
+            var post = MakeCylinder(0.025f, 0.7f, new Color(0.6f, 0.6f, 0.6f));
+            post.Position = new Vector3(0, 0.35f, dz);
+            rail.AddChild(post);
+        }
+        // Rail bar
+        var bar = MakeBox(new Vector3(0.04f, 0.04f, 5f), new Color(0.65f, 0.65f, 0.65f));
+        bar.Position = new Vector3(0, 0.55f, 2.5f);
+        rail.AddChild(bar);
+        AddChild(rail);
+        _scenery.Add(new SceneryItem { Node = rail, WorldZ = z, OffsetX = offset });
+    }
+
+    private void AddRoadSign(float z, float offset, RandomNumberGenerator rng)
+    {
+        var sign = new Node3D();
+        // Post
+        var post = MakeCylinder(0.03f, 1.5f, new Color(0.5f, 0.5f, 0.5f));
+        post.Position = new Vector3(0, 0.75f, 0);
+        sign.AddChild(post);
+        // Sign board
+        var signColors = new[] {
+            new Color(0.9f, 0.8f, 0.1f),  // yellow warning
+            new Color(0.2f, 0.5f, 0.9f),  // blue info
+            new Color(0.85f, 0.2f, 0.1f),  // red stop
+        };
+        var col = signColors[rng.RandiRange(0, 2)];
+        var board = MakeBox(new Vector3(0.5f, 0.4f, 0.04f), col);
+        board.Position = new Vector3(0, 1.6f, 0);
+        sign.AddChild(board);
+        AddChild(sign);
+        _scenery.Add(new SceneryItem { Node = sign, WorldZ = z, OffsetX = offset });
     }
 
     private void UpdateSceneryPositions()
@@ -629,6 +688,40 @@ public partial class Main : Node3D
         }
     }
 
+    // ── Confetti ─────────────────────────────────
+
+    private void CreateConfettiParticles()
+    {
+        _confettiParticles = new GpuParticles3D();
+        _confettiParticles.Amount = 200;
+        _confettiParticles.Lifetime = 2.5f;
+        _confettiParticles.OneShot = true;
+        _confettiParticles.Emitting = false;
+
+        var mat = new ParticleProcessMaterial();
+        mat.Direction = new Vector3(0, 1, 0);
+        mat.Spread = 60f;
+        mat.InitialVelocityMin = 3f;
+        mat.InitialVelocityMax = 8f;
+        mat.Gravity = new Vector3(0, -3f, 0);
+        mat.ScaleMin = 0.03f;
+        mat.ScaleMax = 0.08f;
+        mat.Color = new Color(1f, 0.2f, 0.6f, 1f);
+
+        _confettiParticles.ProcessMaterial = mat;
+        AddChild(_confettiParticles);
+    }
+
+    private void SpawnConfetti()
+    {
+        if (_confettiParticles != null)
+        {
+            _confettiParticles.Position = _player.Position + new Vector3(0, 2f, 0);
+            _confettiParticles.Restart();
+            _confettiParticles.Emitting = true;
+        }
+    }
+
     // ── UI ───────────────────────────────────────
 
     private void CreateUI()
@@ -714,6 +807,17 @@ public partial class Main : Node3D
         _promptLabel.AnchorLeft = 0.5f; _promptLabel.AnchorTop = 0.8f;
         _promptLabel.AnchorRight = 0.5f; _promptLabel.AnchorBottom = 0.8f;
         _promptLabel.OffsetLeft = -140; _promptLabel.OffsetRight = 140;
+
+        // Pause label
+        _pauseLabel = new Label();
+        _pauseLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _pauseLabel.AddThemeFontSizeOverride("font_size", 28);
+        _pauseLabel.Text = "";
+        _pauseLabel.Modulate = new Color(0.8f, 0.6f, 1f);
+        canvas.AddChild(_pauseLabel);
+        _pauseLabel.AnchorLeft = 0.5f; _pauseLabel.AnchorTop = 0.4f;
+        _pauseLabel.AnchorRight = 0.5f; _pauseLabel.AnchorBottom = 0.4f;
+        _pauseLabel.OffsetLeft = -100; _pauseLabel.OffsetRight = 100;
     }
 
     // ── Camera ───────────────────────────────────
@@ -788,13 +892,32 @@ public partial class Main : Node3D
                 UpdateCamera();
                 UpdateHUD();
 
+                if (Input.IsActionJustPressed("pause"))
+                {
+                    _state = GameState.Paused;
+                    _pauseLabel.Text = "PAUSED";
+                    _promptLabel.Text = "Press Esc to resume";
+                    break;
+                }
+
                 if (_playerDistance >= CourseLength)
                 {
                     _state = GameState.Finished;
                     _finishTime = _timer;
                     if (_bestTime <= 0f || _finishTime < _bestTime)
                         _bestTime = _finishTime;
+                    SpawnConfetti();
                     ShowFinish();
+                }
+                break;
+
+            case GameState.Paused:
+                UpdateCamera();
+                if (Input.IsActionJustPressed("pause"))
+                {
+                    _state = GameState.Riding;
+                    _pauseLabel.Text = "";
+                    _promptLabel.Text = "";
                 }
                 break;
 
