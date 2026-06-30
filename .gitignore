@@ -1,0 +1,15 @@
+# Godot-specific
+.godot/
+*.import
+
+# Build
+bin/
+obj/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+*.sln.DotSettings.user
