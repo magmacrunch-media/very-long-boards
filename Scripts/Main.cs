@@ -104,6 +104,9 @@ public partial class Main : Node3D
     private TextureRect _progressBar;
     private ColorRect _progressFill;
 
+    // Title animation
+    private float _titleTime = 0f;
+
     public override void _Ready()
     {
         _player = GetNode<CharacterBody3D>("Player");
@@ -1146,7 +1149,14 @@ public partial class Main : Node3D
         switch (_state)
         {
             case GameState.Title:
-                UpdateCamera();
+                _titleTime += dt;
+                UpdateClouds(dt);
+                // Gentle camera sway on title screen
+                float sway = Mathf.Sin(_titleTime * 0.5f) * 0.3f;
+                _cameraMount.Position = new Vector3(sway, 5f, -7f);
+                var titleCam = _cameraMount.GetNode<Camera3D>("Camera3D");
+                titleCam.LookAt(new Vector3(sway * 2f, 0f, 15f), Vector3.Up);
+                titleCam.Fov = 65f;
                 if (Input.IsActionJustPressed("move_left"))
                 {
                     _carl = (CarlType)(((int)_carl + 2) % 3);
