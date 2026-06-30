@@ -128,14 +128,22 @@ public partial class Main : Node3D
     {
         return Mathf.Sin(z * 0.002f) * 0.15f
              + Mathf.Sin(z * 0.0008f) * 0.22f
-             + Mathf.Sin(z * 0.005f) * 0.06f;
+             + Mathf.Sin(z * 0.005f) * 0.06f
+             + Mathf.Sin(z * 0.012f) * 0.03f;  // tighter curves
     }
 
     private float HillAt(float z)
     {
         return -z * 0.08f
              + Mathf.Sin(z * 0.003f) * 5f
-             + Mathf.Sin(z * 0.008f) * 2f;
+             + Mathf.Sin(z * 0.008f) * 2f
+             + Mathf.Sin(z * 0.015f) * 1f;  // more rolling
+    }
+
+    // Road width variation (wider and narrower sections)
+    private float RoadWidthAt(float z)
+    {
+        return RoadW + Mathf.Sin(z * 0.004f) * 1.5f + Mathf.Sin(z * 0.01f) * 0.5f;
     }
 
     // ── Terrain ──────────────────────────────────
@@ -1324,6 +1332,10 @@ public partial class Main : Node3D
             bestText = $"  |  Best: {bMins}:{bSecs:00.0}";
         }
         _promptLabel.Text = $"Time: {mins}:{secs:00.0}{bestText}   |   Press \u2191 to ride again";
+        _progressFill.AnchorRight = 1f;
+
+        // Spawn celebration confetti
+        SpawnConfetti();
     }
 
     private void ResetGame()
