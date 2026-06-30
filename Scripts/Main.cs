@@ -475,6 +475,15 @@ public partial class Main : Node3D
         // Bridge section (guard rails closer together)
         AddBridge(800f);
 
+        // Stream/pond (blue flat disc near road)
+        for (int i = 0; i < 3; i++)
+        {
+            float z = 250f + i * 400f + rng.RandfRange(0f, 100f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (8f + rng.RandfRange(0f, 5f));
+            AddStream(z, offset, rng);
+        }
+
         // Distance markers every 500m
         for (float mz = 500f; mz < CourseLength; mz += 500f)
         {
@@ -659,6 +668,37 @@ public partial class Main : Node3D
 
         AddChild(bridge);
         _scenery.Add(new SceneryItem { Node = bridge, WorldZ = z, OffsetX = 0f });
+    }
+
+    private void AddStream(float z, float offset, RandomNumberGenerator rng)
+    {
+        var stream = new Node3D();
+        // Water surface
+        var water = new MeshInstance3D();
+        var waterMesh = new CylinderMesh();
+        waterMesh.TopRadius = 2f + rng.RandfRange(0f, 1f);
+        waterMesh.BottomRadius = waterMesh.TopRadius;
+        waterMesh.Height = 0.05f;
+        water.Mesh = waterMesh;
+        var waterMat = new StandardMaterial3D();
+        waterMat.AlbedoColor = new Color(0.3f, 0.55f, 0.75f, 0.7f);
+        waterMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        water.MaterialOverride = waterMat;
+        water.Position = new Vector3(0, -0.15f, 0);
+        stream.AddChild(water);
+
+        // Rocks around the edge
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = i * Mathf.Pi / 3f;
+            float r = 1.8f + rng.RandfRange(0f, 0.5f);
+            var rock = MakeSphere(0.15f + rng.RandfRange(0f, 0.1f), new Color(0.45f, 0.43f, 0.4f));
+            rock.Position = new Vector3(Mathf.Cos(angle) * r, -0.05f, Mathf.Sin(angle) * r);
+            stream.AddChild(rock);
+        }
+
+        AddChild(stream);
+        _scenery.Add(new SceneryItem { Node = stream, WorldZ = z, OffsetX = offset });
     }
 
     private void AddDistanceMarker(float z)
