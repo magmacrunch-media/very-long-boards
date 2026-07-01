@@ -15,8 +15,8 @@ public class PlayerManager
     public bool Kicked = false;
     public float Lean = 0f;
 
-    private const float Gravity = 0.03f;
-    private const float Friction = 0.996f;
+    private const float Gravity = 0.08f;
+    private const float Friction = 0.998f;
     public const float MaxSpeed = 5f;
     private const float Handling = 0.18f;
 
@@ -119,9 +119,10 @@ public class PlayerManager
             _skaterRoot.AddChild(wheel);
         }
 
-        // ── Skater body (facing right) ──
+        // ── Skater body (facing right, skating stance) ──
         var bodyGroup = new Node3D();
         bodyGroup.Rotation = new Vector3(0, Mathf.Pi / 2f, 0);
+        bodyGroup.Position = new Vector3(0, 0.05f, 0); // slight forward offset
         _skaterRoot.AddChild(bodyGroup);
 
         // Skin material
@@ -130,41 +131,46 @@ public class PlayerManager
         skinMat.Roughness = 0.8f;
         skinMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-        // Shoes (rounded)
+        // Shoes (wider apart, on the board)
         var shoeMat = new StandardMaterial3D();
         shoeMat.AlbedoColor = new Color(0.14f, 0.14f, 0.14f);
         shoeMat.Roughness = 0.65f;
-        AddCylinderTo(bodyGroup, 0.06f, 0.06f, 0.28f, shoeMat, new Vector3(-0.1f, 0.19f, -0.3f));
-        AddCylinderTo(bodyGroup, 0.06f, 0.06f, 0.28f, shoeMat, new Vector3(0.1f, 0.19f, 0.25f));
+        // Front foot (left) - near nose
+        AddCylinderTo(bodyGroup, 0.07f, 0.07f, 0.22f, shoeMat, new Vector3(-0.12f, 0.19f, -0.35f));
+        // Back foot (right) - on tail
+        AddCylinderTo(bodyGroup, 0.07f, 0.07f, 0.22f, shoeMat, new Vector3(0.12f, 0.19f, 0.3f));
 
-        // Legs (cylinders for smoother look)
+        // Legs (bent knees - angled forward for skating stance)
         var pantsMat = new StandardMaterial3D();
         pantsMat.AlbedoColor = Main.CarlPantsColors[(int)_main.Carl];
         pantsMat.Roughness = 0.85f;
         pantsMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        _pantsMesh = AddCylinderTo(bodyGroup, 0.065f, 0.065f, 0.34f, pantsMat, new Vector3(-0.1f, 0.38f, -0.25f));
-        _pantsMesh.Rotation = new Vector3(0.1f, 0, 0);
-        AddCylinderTo(bodyGroup, 0.065f, 0.065f, 0.34f, pantsMat, new Vector3(0.1f, 0.38f, 0.2f)).Rotation = new Vector3(-0.1f, 0, 0);
+        // Front leg (more bent, forward)
+        _pantsMesh = AddCylinderTo(bodyGroup, 0.07f, 0.065f, 0.3f, pantsMat, new Vector3(-0.12f, 0.36f, -0.28f));
+        _pantsMesh.Rotation = new Vector3(0.35f, 0, 0);
+        // Back leg (slightly bent)
+        AddCylinderTo(bodyGroup, 0.07f, 0.065f, 0.3f, pantsMat, new Vector3(0.12f, 0.36f, 0.15f)).Rotation = new Vector3(-0.15f, 0, 0);
 
-        // Torso (rounded cylinder)
+        // Torso (leaning forward slightly, wider at shoulders)
         var shirtMat = new StandardMaterial3D();
         shirtMat.AlbedoColor = Main.CarlShirtColors[(int)_main.Carl];
         shirtMat.Roughness = 0.75f;
         shirtMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        _shirtMesh = AddCylinderTo(bodyGroup, 0.2f, 0.18f, 0.44f, shirtMat, new Vector3(0, 0.72f, -0.05f));
+        _shirtMesh = AddCylinderTo(bodyGroup, 0.22f, 0.18f, 0.42f, shirtMat, new Vector3(0, 0.68f, -0.12f));
+        _shirtMesh.Rotation = new Vector3(0.15f, 0, 0); // lean forward
 
-        // Arms (cylinders)
-        AddCylinderTo(bodyGroup, 0.04f, 0.04f, 0.32f, skinMat, new Vector3(-0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, 0.2f);
-        AddCylinderTo(bodyGroup, 0.04f, 0.04f, 0.32f, skinMat, new Vector3(0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, -0.2f);
+        // Arms (spread wide for balance, angled outward)
+        AddCylinderTo(bodyGroup, 0.04f, 0.035f, 0.35f, skinMat, new Vector3(-0.3f, 0.72f, -0.1f)).Rotation = new Vector3(0.1f, 0, 0.6f);
+        AddCylinderTo(bodyGroup, 0.04f, 0.035f, 0.35f, skinMat, new Vector3(0.3f, 0.72f, -0.1f)).Rotation = new Vector3(0.1f, 0, -0.6f);
 
-        // Head (sphere)
-        AddSphereTo(bodyGroup, 0.14f, skinMat, new Vector3(0, 1.08f, -0.05f));
+        // Head (slightly forward, looking ahead)
+        AddSphereTo(bodyGroup, 0.14f, skinMat, new Vector3(0, 1.0f, -0.15f));
 
-        // Hair (flattened sphere)
+        // Hair
         var hairMat = new StandardMaterial3D();
         hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
         hairMat.Roughness = 0.9f;
-        AddCylinderTo(bodyGroup, 0.14f, 0.15f, 0.08f, hairMat, new Vector3(0, 1.22f, -0.05f));
+        AddCylinderTo(bodyGroup, 0.14f, 0.15f, 0.08f, hairMat, new Vector3(0, 1.14f, -0.15f));
 
         // Collision
         var col = new CollisionShape3D();
