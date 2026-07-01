@@ -473,16 +473,38 @@ public class SceneryManager
     private void CreateFinishLine()
     {
         _finishLine = new Node3D();
-        _finishLine.AddChild(MakeCylinder(0.08f, 3f, new Color(0.9f, 0.15f, 0.15f), new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.5f, 0)));
-        _finishLine.AddChild(MakeCylinder(0.08f, 3f, new Color(0.9f, 0.15f, 0.15f), new Vector3(TerrainManager.RoadW / 2f + 0.5f, 1.5f, 0)));
-        _finishLine.AddChild(MakeBox(new Vector3(TerrainManager.RoadW + 1.5f, 0.6f, 0.05f), new Color(0.95f, 0.95f, 0.9f), new Vector3(0, 2.8f, 0)));
 
-        for (int i = 0; i < 12; i++)
+        var postMat = new StandardMaterial3D();
+        postMat.AlbedoColor = new Color(0.92f, 0.18f, 0.18f);
+        postMat.Roughness = 0.6f;
+
+        var bannerMat = new StandardMaterial3D();
+        bannerMat.AlbedoColor = new Color(0.95f, 0.95f, 0.92f);
+        bannerMat.EmissionEnabled = true;
+        bannerMat.Emission = new Color(0.1f, 0.1f, 0.08f);
+
+        // Posts
+        _finishLine.AddChild(MakeCylinderWithMat(0.08f, 3.5f, postMat, new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.75f, 0)));
+        _finishLine.AddChild(MakeCylinderWithMat(0.08f, 3.5f, postMat, new Vector3(TerrainManager.RoadW / 2f + 0.5f, 1.75f, 0)));
+
+        // Banner
+        _finishLine.AddChild(MakeBoxWithMat(new Vector3(TerrainManager.RoadW + 1.5f, 0.7f, 0.06f), bannerMat, new Vector3(0, 3.2f, 0)));
+
+        // Checkered pattern
+        for (int i = 0; i < 14; i++)
         {
-            float x = -TerrainManager.RoadW / 2f + 0.3f + i * (TerrainManager.RoadW / 12f);
-            var col = i % 2 == 0 ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.9f, 0.15f, 0.15f);
-            _finishLine.AddChild(MakeBox(new Vector3(TerrainManager.RoadW / 12f - 0.05f, 0.15f, 0.06f), col, new Vector3(x, 2.55f, 0)));
+            float x = -TerrainManager.RoadW / 2f + 0.2f + i * (TerrainManager.RoadW / 14f);
+            var checkMat = new StandardMaterial3D();
+            checkMat.AlbedoColor = i % 2 == 0 ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.92f, 0.18f, 0.18f);
+            _finishLine.AddChild(MakeBoxWithMat(new Vector3(TerrainManager.RoadW / 14f - 0.04f, 0.18f, 0.07f), checkMat, new Vector3(x, 2.85f, 0)));
         }
+
+        // "FINISH" text area (white box)
+        var textMat = new StandardMaterial3D();
+        textMat.AlbedoColor = new Color(0.98f, 0.98f, 0.95f);
+        textMat.EmissionEnabled = true;
+        textMat.Emission = new Color(0.15f, 0.15f, 0.12f);
+        _finishLine.AddChild(MakeBoxWithMat(new Vector3(2f, 0.3f, 0.07f), textMat, new Vector3(0, 3.6f, 0)));
 
         _main.AddChild(_finishLine);
     }
