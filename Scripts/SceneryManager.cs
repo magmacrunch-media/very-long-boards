@@ -8,7 +8,7 @@ public class SceneryManager
     public struct SceneryItem { public Node3D Node; public float WorldZ; public float OffsetX; }
     public List<SceneryItem> Items = new List<SceneryItem>();
 
-    public struct Cloud { public MeshInstance3D Node; public float BaseX; public float BaseZ; public float Height; public float Speed; }
+    public struct Cloud { public Node3D Node; public float BaseX; public float BaseZ; public float Height; public float Speed; }
     public List<Cloud> Clouds = new List<Cloud>();
 
     private Node3D _finishLine;
@@ -431,20 +431,39 @@ public class SceneryManager
     {
         var rng = new RandomNumberGenerator();
         rng.Seed = 77;
-        var cloudMat = new StandardMaterial3D();
-        cloudMat.AlbedoColor = new Color(0.95f, 0.95f, 0.97f, 0.7f);
-        cloudMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
 
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 25; i++)
         {
-            var cloud = new MeshInstance3D();
-            var mesh = new BoxMesh();
-            mesh.Size = new Vector3(rng.RandfRange(8f, 20f), 0.3f, rng.RandfRange(4f, 10f));
-            cloud.Mesh = mesh;
-            cloud.MaterialOverride = cloudMat;
-            float bx = rng.RandfRange(-100f, 100f);
-            float bz = rng.RandfRange(-50f, 500f);
-            float bh = 35f + rng.RandfRange(0f, 25f);
+            var cloud = new Node3D();
+            float w = rng.RandfRange(8f, 22f);
+            float h = 0.3f + rng.RandfRange(0f, 0.2f);
+            float d = rng.RandfRange(4f, 12f);
+
+            // Cloud is multiple overlapping boxes for fluffy look
+            var cloudMat = new StandardMaterial3D();
+            cloudMat.AlbedoColor = new Color(0.96f, 0.96f, 0.98f, 0.75f);
+            cloudMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+            cloudMat.Roughness = 1f;
+            cloudMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+            // Main body
+            var main = MakeBoxWithMat(new Vector3(w, h, d), cloudMat);
+            cloud.AddChild(main);
+
+            // Puffs on top
+            for (int j = 0; j < 3; j++)
+            {
+                float px = rng.RandfRange(-w * 0.3f, w * 0.3f);
+                float pz = rng.RandfRange(-d * 0.3f, d * 0.3f);
+                float puffSize = rng.RandfRange(2f, 5f);
+                var puff = MakeSphereWithMat(puffSize, cloudMat);
+                puff.Position = new Vector3(px, h * 0.4f + puffSize * 0.3f, pz);
+                cloud.AddChild(puff);
+            }
+
+            float bx = rng.RandfRange(-120f, 120f);
+            float bz = rng.RandfRange(-60f, 500f);
+            float bh = 38f + rng.RandfRange(0f, 30f);
             cloud.Position = new Vector3(bx, bh, bz);
             _main.AddChild(cloud);
             Clouds.Add(new Cloud { Node = cloud, BaseX = bx, BaseZ = bz, Height = bh, Speed = 0.3f + rng.RandfRange(0f, 0.8f) });
