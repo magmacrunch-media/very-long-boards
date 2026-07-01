@@ -345,9 +345,9 @@ public class SceneryManager
         postMat.Metallic = 0.2f;
 
         var signColors = new[] {
-            new Color(0.95f, 0.85f, 0.15f),  // yellow warning
-            new Color(0.25f, 0.55f, 0.95f),  // blue info
-            new Color(0.92f, 0.25f, 0.15f),  // red stop
+            new Color(0.98f, 0.88f, 0.18f),  // yellow warning
+            new Color(0.28f, 0.58f, 0.98f),  // blue info
+            new Color(0.95f, 0.28f, 0.18f),  // red stop
         };
         var signMat = new StandardMaterial3D();
         signMat.AlbedoColor = signColors[rng.RandiRange(0, 2)];
