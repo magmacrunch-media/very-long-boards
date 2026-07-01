@@ -15,6 +15,10 @@ public class SceneryManager
     public struct Butterfly { public Node3D Node; public float BaseX; public float BaseY; public float BaseZ; public float Phase; }
     public List<Butterfly> Butterflies = new List<Butterfly>();
 
+    // Birds
+    public struct Bird { public Node3D Node; public float BaseX; public float BaseY; public float BaseZ; public float Speed; public float Phase; }
+    public List<Bird> Birds = new List<Bird>();
+
     private Node3D _finishLine;
 
     public SceneryManager(Main main)
@@ -29,6 +33,7 @@ public class SceneryManager
         CreateFinishLine();
         CreateSunDisc();
         CreateButterflies();
+        CreateBirds();
     }
 
     private void CreateScenery()
@@ -598,6 +603,49 @@ public class SceneryManager
         _main.AddChild(_finishLine);
     }
 
+    private void CreateBirds()
+    {
+        var rng = new RandomNumberGenerator();
+        rng.Seed = 456;
+        var birdMat = new StandardMaterial3D();
+        birdMat.AlbedoColor = new Color(0.15f, 0.12f, 0.1f);
+        birdMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        for (int i = 0; i < 8; i++)
+        {
+            var bird = new Node3D();
+            var body = new MeshInstance3D();
+            var bodyMesh = new SphereMesh();
+            bodyMesh.Radius = 0.06f;
+            bodyMesh.Height = 0.12f;
+            body.Mesh = bodyMesh;
+            body.MaterialOverride = birdMat;
+            bird.AddChild(body);
+
+            var wingMesh = new BoxMesh();
+            wingMesh.Size = new Vector3(0.2f, 0.01f, 0.08f);
+
+            var wingL = new MeshInstance3D();
+            wingL.Mesh = wingMesh;
+            wingL.MaterialOverride = birdMat;
+            wingL.Position = new Vector3(-0.1f, 0.02f, 0);
+            bird.AddChild(wingL);
+
+            var wingR = new MeshInstance3D();
+            wingR.Mesh = wingMesh;
+            wingR.MaterialOverride = birdMat;
+            wingR.Position = new Vector3(0.1f, 0.02f, 0);
+            bird.AddChild(wingR);
+
+            float bx = rng.RandfRange(-30f, 30f);
+            float by = 15f + rng.RandfRange(0f, 20f);
+            float bz = rng.RandfRange(-50f, 200f);
+            bird.Position = new Vector3(bx, by, bz);
+            _main.AddChild(bird);
+            Birds.Add(new Bird { Node = bird, BaseX = bx, BaseY = by, BaseZ = bz, Speed = 3f + rng.RandfRange(0f, 5f), Phase = rng.RandfRange(0, 6f) });
+        }
+    }
+
     private void CreateSunDisc()
     {
         // Sun disc in the sky
@@ -668,6 +716,7 @@ public class SceneryManager
         UpdateClouds(dt);
         UpdateFinishLine();
         UpdateButterflies(dt);
+        UpdateBirds(dt);
     }
 
     public void UpdatePositions(float scrollOffset)
@@ -715,8 +764,25 @@ public class SceneryManager
             float y = bf.BaseY + Mathf.Sin(time * 1.2f + bf.Phase * 1.5f) * 0.5f;
             float relZ = bf.BaseZ - terrain.ScrollOffset;
             bf.Node.Position = new Vector3(x, y, relZ);
-            // Wing flap
             bf.Node.Rotation = new Vector3(0, Mathf.Sin(time * 8f + bf.Phase) * 0.3f, 0);
+        }
+    }
+
+    private void UpdateBirds(float dt)
+    {
+        var terrain = _main.Terrain;
+        float time = (float)Time.GetTicksMsec() * 0.001f;
+        for (int i = 0; i < Birds.Count; i++)
+        {
+            var bird = Birds[i];
+            float x = bird.BaseX + Mathf.Sin(time * 0.3f + bird.Phase) * 15f;
+            float y = bird.BaseY + Mathf.Sin(time * 0.5f + bird.Phase) * 2f;
+            float relZ = bird.BaseZ - terrain.ScrollOffset + time * bird.Speed;
+            // Wrap around
+            if (relZ > 300f) relZ -= 400f;
+            bird.Node.Position = new Vector3(x, y, relZ);
+            // Wing flap
+            bird.Node.Rotation = new Vector3(Mathf.Sin(time * 6f + bird.Phase) * 0.4f, 0, 0);
         }
     }
 
