@@ -393,7 +393,7 @@ public class SceneryManager
         doorMat.Roughness = 0.65f;
 
         var winMat = new StandardMaterial3D();
-        winMat.AlbedoColor = new Color(0.75f, 0.88f, 0.98f, 0.88f);
+        winMat.AlbedoColor = new Color(0.78f, 0.9f, 1f, 0.9f);
         winMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
         winMat.EmissionEnabled = true;
         winMat.Emission = new Color(0.1f, 0.08f, 0.04f);
