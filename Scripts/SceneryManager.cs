@@ -341,18 +341,35 @@ public class SceneryManager
     private void AddBridge(float z)
     {
         var bridge = new Node3D();
-        var railCol = new Color(0.5f, 0.5f, 0.5f);
-        bridge.AddChild(MakeBox(new Vector3(TerrainManager.RoadW + 1f, 0.15f, 6f), new Color(0.4f, 0.3f, 0.2f), new Vector3(0, -0.1f, 3f)));
+        var woodMat = new StandardMaterial3D();
+        woodMat.AlbedoColor = new Color(0.42f, 0.32f, 0.22f);
+        woodMat.Roughness = 0.85f;
+        woodMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
+        var railMat = new StandardMaterial3D();
+        railMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
+        railMat.Metallic = 0.2f;
+        railMat.Roughness = 0.5f;
+
+        // Bridge deck (wooden planks)
+        AddBoxTo(bridge, new Vector3(TerrainManager.RoadW + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
+        // Plank lines
+        for (int i = 0; i < 6; i++)
+        {
+            float zOff = i * 1f;
+            AddBoxTo(bridge, new Vector3(TerrainManager.RoadW + 0.8f, 0.01f, 0.04f), woodMat, new Vector3(0, -0.04f, zOff));
+        }
+
+        // Rails on both sides
         for (float side = -1f; side <= 1f; side += 2f)
         {
             for (int i = 0; i < 4; i++)
             {
-                var post = MakeCylinder(0.03f, 1f, railCol);
+                var post = MakeCylinderWithMat(0.03f, 1f, railMat);
                 post.Position = new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.5f, i * 1.5f);
                 bridge.AddChild(post);
             }
-            var bar = MakeBox(new Vector3(0.04f, 0.04f, 5.5f), railCol, new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.8f, 2.5f));
+            var bar = MakeBoxWithMat(new Vector3(0.04f, 0.04f, 5.5f), railMat, new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.8f, 2.5f));
             bridge.AddChild(bar);
         }
 
@@ -363,24 +380,35 @@ public class SceneryManager
     private void AddStream(float z, float offset, RandomNumberGenerator rng)
     {
         var stream = new Node3D();
+
+        // Water surface with transparency and emission
+        var waterMat = new StandardMaterial3D();
+        waterMat.AlbedoColor = new Color(0.3f, 0.58f, 0.78f, 0.75f);
+        waterMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        waterMat.EmissionEnabled = true;
+        waterMat.Emission = new Color(0.05f, 0.1f, 0.15f);
+        waterMat.Roughness = 0.2f;
+        waterMat.Metallic = 0.1f;
+
         var water = new MeshInstance3D();
         var waterMesh = new CylinderMesh();
         waterMesh.TopRadius = 2f + rng.RandfRange(0f, 1f);
         waterMesh.BottomRadius = waterMesh.TopRadius;
         waterMesh.Height = 0.05f;
         water.Mesh = waterMesh;
-        var waterMat = new StandardMaterial3D();
-        waterMat.AlbedoColor = new Color(0.3f, 0.55f, 0.75f, 0.7f);
-        waterMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
         water.MaterialOverride = waterMat;
         water.Position = new Vector3(0, -0.15f, 0);
         stream.AddChild(water);
 
+        // Rocks around the edge
+        var rockMat = new StandardMaterial3D();
+        rockMat.AlbedoColor = new Color(0.48f, 0.46f, 0.42f);
+        rockMat.Roughness = 0.9f;
         for (int i = 0; i < 6; i++)
         {
             float angle = i * Mathf.Pi / 3f;
             float r = 1.8f + rng.RandfRange(0f, 0.5f);
-            var rock = MakeSphere(0.15f + rng.RandfRange(0f, 0.1f), new Color(0.45f, 0.43f, 0.4f));
+            var rock = MakeSphereWithMat(0.15f + rng.RandfRange(0f, 0.1f), rockMat);
             rock.Position = new Vector3(Mathf.Cos(angle) * r, -0.05f, Mathf.Sin(angle) * r);
             stream.AddChild(rock);
         }
@@ -565,6 +593,17 @@ public class SceneryManager
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
+        return m;
+    }
+
+    private MeshInstance3D MakeSphereWithMat(float radius, StandardMaterial3D mat)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new SphereMesh();
+        mesh.Radius = radius;
+        mesh.Height = radius * 2f;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
         return m;
     }
 }
