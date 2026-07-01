@@ -264,8 +264,8 @@ public class SceneryManager
             // Deciduous: bright summer green, multiple spheres
             float canopyR = h * 0.24f;
             var leafMat = new StandardMaterial3D();
-            leafMat.AlbedoColor = new Color(0.22f + rng.RandfRange(0, 0.12f), 0.52f + rng.RandfRange(0, 0.12f), 0.14f + rng.RandfRange(0, 0.05f));
-            leafMat.Roughness = 0.85f;
+            leafMat.AlbedoColor = new Color(0.2f + rng.RandfRange(0, 0.1f), 0.55f + rng.RandfRange(0, 0.1f), 0.12f + rng.RandfRange(0, 0.04f));
+            leafMat.Roughness = 0.88f;
             leafMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
             var main = MakeSphereWithMat(canopyR, leafMat);
