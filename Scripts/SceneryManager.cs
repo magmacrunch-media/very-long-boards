@@ -88,17 +88,46 @@ public class SceneryManager
             AddItem(z, offset, MakeCylinder(0.15f, 0.15f + rng.RandfRange(0f, 0.2f), new Color(0.35f, 0.22f, 0.1f)));
         }
 
-        // Wildflowers
-        for (int i = 0; i < 60; i++)
+        // Wildflowers — more variety and density
+        for (int i = 0; i < 100; i++)
         {
             float z = rng.RandfRange(-30f, 800f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.2f + rng.RandfRange(0f, 3f));
             var col = new[] {
-                new Color(0.9f, 0.85f, 0.2f), new Color(0.9f, 0.4f, 0.5f),
-                new Color(0.8f, 0.8f, 0.85f), new Color(0.6f, 0.4f, 0.8f)
-            }[rng.RandiRange(0, 3)];
-            AddItem(z, offset, MakeSphere(0.04f, col));
+                new Color(0.92f, 0.88f, 0.22f), new Color(0.92f, 0.42f, 0.52f),
+                new Color(0.82f, 0.82f, 0.88f), new Color(0.62f, 0.42f, 0.82f),
+                new Color(0.95f, 0.6f, 0.2f)  // orange
+            }[rng.RandiRange(0, 4)];
+            AddItem(z, offset, MakeSphere(0.04f + rng.RandfRange(0, 0.02f), col));
+        }
+
+        // Ferns — low green fronds
+        for (int i = 0; i < 30; i++)
+        {
+            float z = rng.RandfRange(-20f, 700f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (4.5f + rng.RandfRange(0f, 3f));
+            var fernMat = new StandardMaterial3D();
+            fernMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.06f), 0.45f + rng.RandfRange(0, 0.1f), 0.1f);
+            fernMat.Roughness = 0.9f;
+            fernMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            var fern = new Node3D();
+            // Multiple small flat ellipses for fern fronds
+            for (int j = 0; j < 3; j++)
+            {
+                var frond = new MeshInstance3D();
+                var fMesh = new SphereMesh();
+                fMesh.Radius = 0.08f + rng.RandfRange(0, 0.04f);
+                fMesh.Height = 0.04f;
+                fMesh.RadialSegments = 8;
+                frond.Mesh = fMesh;
+                frond.MaterialOverride = fernMat;
+                frond.Position = new Vector3(rng.RandfRange(-0.1f, 0.1f), 0.02f, rng.RandfRange(-0.1f, 0.1f));
+                frond.Rotation = new Vector3(rng.RandfRange(-0.3f, 0.3f), rng.RandfRange(0, 3f), 0);
+                fern.AddChild(frond);
+            }
+            AddItem(z, offset, fern);
         }
 
         // Bushes — multiple overlapping spheres for organic look
