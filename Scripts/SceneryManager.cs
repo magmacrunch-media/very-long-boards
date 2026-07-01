@@ -19,6 +19,10 @@ public class SceneryManager
     public struct Bird { public Node3D Node; public float BaseX; public float BaseY; public float BaseZ; public float Speed; public float Phase; }
     public List<Bird> Birds = new List<Bird>();
 
+    // Squirrels
+    public struct Squirrel { public Node3D Node; public float WorldZ; public float OffsetX; public float Phase; }
+    public List<Squirrel> Squirrels = new List<Squirrel>();
+
     private Node3D _finishLine;
 
     public SceneryManager(Main main)
@@ -34,6 +38,7 @@ public class SceneryManager
         CreateSunDisc();
         CreateButterflies();
         CreateBirds();
+        CreateSquirrels();
     }
 
     private void CreateScenery()
@@ -646,6 +651,58 @@ public class SceneryManager
         }
     }
 
+    private void CreateSquirrels()
+    {
+        var rng = new RandomNumberGenerator();
+        rng.Seed = 789;
+        var squirrelMat = new StandardMaterial3D();
+        squirrelMat.AlbedoColor = new Color(0.55f, 0.35f, 0.15f);
+        squirrelMat.Roughness = 0.8f;
+        squirrelMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        for (int i = 0; i < 6; i++)
+        {
+            var squirrel = new Node3D();
+            // Body
+            var body = new MeshInstance3D();
+            var bodyMesh = new SphereMesh();
+            bodyMesh.Radius = 0.08f;
+            bodyMesh.Height = 0.16f;
+            body.Mesh = bodyMesh;
+            body.MaterialOverride = squirrelMat;
+            squirrel.AddChild(body);
+
+            // Head
+            var head = new MeshInstance3D();
+            var headMesh = new SphereMesh();
+            headMesh.Radius = 0.05f;
+            headMesh.Height = 0.1f;
+            head.Mesh = headMesh;
+            head.MaterialOverride = squirrelMat;
+            head.Position = new Vector3(0, 0.06f, 0.06f);
+            squirrel.AddChild(head);
+
+            // Tail
+            var tail = new MeshInstance3D();
+            var tailMesh = new CylinderMesh();
+            tailMesh.TopRadius = 0.01f;
+            tailMesh.BottomRadius = 0.04f;
+            tailMesh.Height = 0.15f;
+            tail.Mesh = tailMesh;
+            tail.MaterialOverride = squirrelMat;
+            tail.Position = new Vector3(0, 0.08f, -0.1f);
+            tail.Rotation = new Vector3(-0.5f, 0, 0);
+            squirrel.AddChild(tail);
+
+            float sz = rng.RandfRange(50f, 600f);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (5f + rng.RandfRange(0f, 3f));
+            squirrel.Position = new Vector3(offset, 0.1f, sz);
+            _main.AddChild(squirrel);
+            Squirrels.Add(new Squirrel { Node = squirrel, WorldZ = sz, OffsetX = offset, Phase = rng.RandfRange(0, 6f) });
+        }
+    }
+
     private void CreateSunDisc()
     {
         // Sun disc in the sky
@@ -717,6 +774,7 @@ public class SceneryManager
         UpdateFinishLine();
         UpdateButterflies(dt);
         UpdateBirds(dt);
+        UpdateSquirrels(dt);
     }
 
     public void UpdatePositions(float scrollOffset)
@@ -778,11 +836,26 @@ public class SceneryManager
             float x = bird.BaseX + Mathf.Sin(time * 0.3f + bird.Phase) * 15f;
             float y = bird.BaseY + Mathf.Sin(time * 0.5f + bird.Phase) * 2f;
             float relZ = bird.BaseZ - terrain.ScrollOffset + time * bird.Speed;
-            // Wrap around
             if (relZ > 300f) relZ -= 400f;
             bird.Node.Position = new Vector3(x, y, relZ);
-            // Wing flap
             bird.Node.Rotation = new Vector3(Mathf.Sin(time * 6f + bird.Phase) * 0.4f, 0, 0);
+        }
+    }
+
+    private void UpdateSquirrels(float dt)
+    {
+        var terrain = _main.Terrain;
+        float time = (float)Time.GetTicksMsec() * 0.001f;
+        for (int i = 0; i < Squirrels.Count; i++)
+        {
+            var sq = Squirrels[i];
+            float relZ = sq.WorldZ - terrain.ScrollOffset;
+            float cx = terrain.CurveAt(sq.WorldZ) * relZ;
+            float cy = terrain.HillAt(sq.WorldZ) - 0.3f;
+            // Squirrels twitch and look around
+            float twitch = Mathf.Sin(time * 3f + sq.Phase) * 0.1f;
+            sq.Node.Position = new Vector3(sq.OffsetX + cx, cy, relZ);
+            sq.Node.Rotation = new Vector3(0, twitch, 0);
         }
     }
 
