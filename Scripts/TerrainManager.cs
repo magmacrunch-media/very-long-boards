@@ -7,6 +7,8 @@ public class TerrainManager
     private MeshInstance3D _lineCenterMesh;
     private MeshInstance3D _lineEdgeLMesh;
     private MeshInstance3D _lineEdgeRMesh;
+    private MeshInstance3D _shoulderLMesh;
+    private MeshInstance3D _shoulderRMesh;
     private MeshInstance3D _groundMesh;
 
     public float ScrollOffset = 0f;
@@ -66,9 +68,19 @@ public class TerrainManager
         _lineEdgeRMesh = new MeshInstance3D();
         _lineEdgeRMesh.MaterialOverride = edgeMat;
 
-        // Summer grass — rich green
+        // Dirt shoulder
+        var shoulderMat = new StandardMaterial3D();
+        shoulderMat.AlbedoColor = new Color(0.45f, 0.38f, 0.28f);
+        shoulderMat.Roughness = 0.95f;
+        shoulderMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        _shoulderLMesh = new MeshInstance3D();
+        _shoulderLMesh.MaterialOverride = shoulderMat;
+        _shoulderRMesh = new MeshInstance3D();
+        _shoulderRMesh.MaterialOverride = shoulderMat;
+
+        // Summer grass — rich green with slight variation
         var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.2f, 0.48f, 0.14f);
+        grassMat.AlbedoColor = new Color(0.22f, 0.52f, 0.16f);
         grassMat.Roughness = 0.92f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
@@ -78,6 +90,8 @@ public class TerrainManager
         _main.AddChild(_lineCenterMesh);
         _main.AddChild(_lineEdgeLMesh);
         _main.AddChild(_lineEdgeRMesh);
+        _main.AddChild(_shoulderLMesh);
+        _main.AddChild(_shoulderRMesh);
         _main.AddChild(_groundMesh);
 
         Update();
@@ -90,6 +104,8 @@ public class TerrainManager
         _lineCenterMesh.Mesh = BuildRibbon(0.12f, 0.015f);
         _lineEdgeLMesh.Mesh = BuildRibbon(0.1f, 0.015f, -RoadW / 2f + 0.3f);
         _lineEdgeRMesh.Mesh = BuildRibbon(0.1f, 0.015f, RoadW / 2f - 0.3f);
+        _shoulderLMesh.Mesh = BuildRibbon(2f, -0.05f, -RoadW / 2f - 1f);
+        _shoulderRMesh.Mesh = BuildRibbon(2f, -0.05f, RoadW / 2f + 1f);
         _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f);
     }
 
