@@ -100,7 +100,7 @@ public class PlayerManager
 
         // Wheels (rubber, smoother)
         var wheelMat = new StandardMaterial3D();
-        wheelMat.AlbedoColor = new Color(0.1f, 0.1f, 0.1f);
+        wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
         wheelMat.Roughness = 0.6f;
         foreach (var pos in new[] {
             new Vector3(-0.32f, 0.04f, 0.55f), new Vector3(0.32f, 0.04f, 0.55f),
