@@ -24,14 +24,14 @@ public partial class Main : Node3D
     public static readonly string[] BoardDescs = { "Brown wood deck", "Bright neon colors", "Black with purple accent", "Light natural wood" };
     public static readonly string CourseName = "New Hampshire Summer";
     public static readonly Color[] CarlShirtColors = {
-        new Color(0.55f, 0.18f, 0.18f),
-        new Color(0.2f, 0.15f, 0.6f),
-        new Color(0.1f, 0.1f, 0.12f)
+        new Color(0.6f, 0.2f, 0.2f),   // Office: red
+        new Color(0.25f, 0.18f, 0.65f), // Party: purple
+        new Color(0.12f, 0.12f, 0.15f)  // Dark: black
     };
     public static readonly Color[] CarlPantsColors = {
-        new Color(0.2f, 0.24f, 0.32f),
-        new Color(0.9f, 0.4f, 0.1f),
-        new Color(0.08f, 0.08f, 0.1f)
+        new Color(0.22f, 0.26f, 0.35f), // Office: slacks
+        new Color(0.92f, 0.42f, 0.12f), // Party: orange
+        new Color(0.1f, 0.1f, 0.12f)    // Dark: black
     };
     public static readonly Color[] BoardDeckColors = {
         new Color(0.45f, 0.22f, 0.06f),  // Classic brown
