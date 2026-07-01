@@ -574,7 +574,7 @@ public class SceneryManager
         _finishLine = new Node3D();
 
         var postMat = new StandardMaterial3D();
-        postMat.AlbedoColor = new Color(0.92f, 0.18f, 0.18f);
+        postMat.AlbedoColor = new Color(0.95f, 0.2f, 0.2f);
         postMat.Roughness = 0.6f;
 
         var bannerMat = new StandardMaterial3D();
