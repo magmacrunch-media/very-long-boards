@@ -364,10 +364,10 @@ public class SceneryManager
     {
         var house = new Node3D();
         var wallColors = new[] {
-            new Color(0.92f, 0.9f, 0.82f),  // white clapboard
-            new Color(0.88f, 0.78f, 0.62f),  // cream
-            new Color(0.72f, 0.87f, 0.78f),  // sage green
-            new Color(0.82f, 0.72f, 0.67f),  // beige
+            new Color(0.94f, 0.92f, 0.85f),  // white clapboard
+            new Color(0.9f, 0.8f, 0.65f),    // cream
+            new Color(0.75f, 0.88f, 0.8f),   // sage green
+            new Color(0.85f, 0.75f, 0.7f),   // beige
         };
         var roofColors = new[] {
             new Color(0.42f, 0.13f, 0.1f),   // dark red shingles
