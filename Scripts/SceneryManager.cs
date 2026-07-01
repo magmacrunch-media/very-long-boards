@@ -429,14 +429,14 @@ public class SceneryManager
     {
         var bridge = new Node3D();
         var woodMat = new StandardMaterial3D();
-        woodMat.AlbedoColor = new Color(0.48f, 0.38f, 0.28f);
-        woodMat.Roughness = 0.85f;
+        woodMat.AlbedoColor = new Color(0.52f, 0.42f, 0.3f);
+        woodMat.Roughness = 0.82f;
         woodMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var railMat = new StandardMaterial3D();
-        railMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
-        railMat.Metallic = 0.28f;
-        railMat.Roughness = 0.42f;
+        railMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
+        railMat.Metallic = 0.3f;
+        railMat.Roughness = 0.4f;
 
         // Bridge deck (wooden planks)
         AddBoxTo(bridge, new Vector3(TerrainManager.RoadW + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
