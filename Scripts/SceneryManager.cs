@@ -316,7 +316,7 @@ public class SceneryManager
     {
         var rail = new Node3D();
         var postMat = new StandardMaterial3D();
-        postMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
+        postMat.AlbedoColor = new Color(0.68f, 0.68f, 0.72f);
         postMat.Metallic = 0.25f;
         postMat.Roughness = 0.45f;
 
