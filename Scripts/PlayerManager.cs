@@ -13,9 +13,9 @@ public class PlayerManager
     public bool Kicked = false;
     public float Lean = 0f;
 
-    private const float Gravity = 0.04f;
-    private const float Friction = 0.997f;
-    public const float MaxSpeed = 4f;
+    private const float Gravity = 0.03f;
+    private const float Friction = 0.996f;
+    public const float MaxSpeed = 5f;
     private const float Handling = 0.18f;
 
     // Particles
@@ -257,6 +257,15 @@ public class PlayerManager
     {
         var terrain = _main.Terrain;
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
+
+        // Push off: gives a burst of speed
+        if (Input.IsActionJustPressed("kick_off"))
+        {
+            Speed += 0.25f;
+            Kicked = true;
+        }
+
+        // Slope acceleration
         Speed += -slope * Gravity * dt * 60f;
         Speed *= Mathf.Pow(Friction, dt * 60f);
 

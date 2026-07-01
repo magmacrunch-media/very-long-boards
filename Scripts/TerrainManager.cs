@@ -31,11 +31,12 @@ public class TerrainManager
 
     public float HillAt(float z)
     {
-        // Gentler slope with rolling hills — visual slope matches physics
-        return -z * 0.035f
-             + Mathf.Sin(z * 0.003f) * 4f
-             + Mathf.Sin(z * 0.007f) * 2.5f
-             + Mathf.Sin(z * 0.015f) * 1.2f;
+        // Visible rolling hills with gentle overall downhill
+        float baseHill = Mathf.Sin(z * 0.004f) * 8f      // big rolling hills
+                       + Mathf.Sin(z * 0.009f) * 4f       // medium hills
+                       + Mathf.Sin(z * 0.02f) * 1.5f;     // small bumps
+        float downhill = -z * 0.025f;                       // gentle overall slope
+        return baseHill + downhill;
     }
 
     public void Create()
