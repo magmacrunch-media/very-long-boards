@@ -234,8 +234,8 @@ public class SceneryManager
 
         // Trunk
         var trunkMat = new StandardMaterial3D();
-        trunkMat.AlbedoColor = new Color(0.38f, 0.24f, 0.14f);
-        trunkMat.Roughness = 0.85f;
+        trunkMat.AlbedoColor = new Color(0.4f, 0.26f, 0.15f);
+        trunkMat.Roughness = 0.88f;
         trunkMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         var trunk = MakeCylinderWithMat(0.04f, h * 0.45f, trunkMat);
         trunk.Position = new Vector3(0, h * 0.22f, 0);
