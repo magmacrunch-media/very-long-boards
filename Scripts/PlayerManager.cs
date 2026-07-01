@@ -147,9 +147,9 @@ public class PlayerManager
         // Torso (rounded cylinder)
         var shirtMat = new StandardMaterial3D();
         shirtMat.AlbedoColor = Main.CarlShirtColors[(int)_main.Carl];
-        shirtMat.Roughness = 0.8f;
+        shirtMat.Roughness = 0.75f;
         shirtMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        _shirtMesh = AddCylinderTo(bodyGroup, 0.18f, 0.16f, 0.44f, shirtMat, new Vector3(0, 0.72f, -0.05f));
+        _shirtMesh = AddCylinderTo(bodyGroup, 0.2f, 0.18f, 0.44f, shirtMat, new Vector3(0, 0.72f, -0.05f));
 
         // Arms (cylinders)
         AddCylinderTo(bodyGroup, 0.04f, 0.04f, 0.32f, skinMat, new Vector3(-0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, 0.2f);
