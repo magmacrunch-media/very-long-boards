@@ -540,7 +540,7 @@ public class SceneryManager
 
             // Cloud is multiple overlapping boxes for fluffy look
             var cloudMat = new StandardMaterial3D();
-            cloudMat.AlbedoColor = new Color(0.98f, 0.98f, 1f, 0.85f);
+            cloudMat.AlbedoColor = new Color(0.99f, 0.99f, 1f, 0.88f);
             cloudMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
             cloudMat.Roughness = 1f;
             cloudMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
