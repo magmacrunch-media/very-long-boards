@@ -4,21 +4,40 @@ public class PlayerManager
 {
     private Main _main;
     private Node3D _skaterRoot;
-    private MeshInstance3D _shirtMesh;
-    private MeshInstance3D _pantsMesh;
+
+    // Board meshes (for color swaps)
     private MeshInstance3D _deckMesh;
+    private MeshInstance3D _deckNoseMesh;
+    private MeshInstance3D _deckTailMesh;
     private MeshInstance3D _gripMesh;
+
+    // Joint hierarchy — each is a Node3D we can rotate for animation
+    private Node3D _bodyGroup;   // body counter-lean
+    private Node3D _hip;         // root of skeleton
+    private Node3D _spine;       // torso sway / forward lean
+    private Node3D _neck;        // head look
+    private Node3D _armL;        // left shoulder
+    private Node3D _forearmL;    // left elbow
+    private Node3D _armR;        // right shoulder
+    private Node3D _forearmR;    // right elbow
+    private Node3D _legL;        // left hip
+    private Node3D _kneeL;       // left knee
+    private Node3D _legR;        // right hip
+    private Node3D _kneeR;       // right knee
 
     public float Speed = 0f;
     public float PosX = 0f;
     public float Distance = 0f;
     public bool Kicked = false;
     public float Lean = 0f;
+    public bool Crashed = false;
+    public float PushOffTimer = 0f;
 
     private const float Gravity = 0.08f;
     private const float Friction = 0.998f;
     public const float MaxSpeed = 5f;
     private const float Handling = 0.18f;
+    private const float AnimLerp = 8f;
 
     // Particles
     private GpuParticles3D _dustParticles;
@@ -32,196 +51,311 @@ public class PlayerManager
 
     public void Create()
     {
-        CreateMesh();
+        CreateBoard();
+        CreateBody();
         CreateParticles();
     }
 
-    private void CreateMesh()
+    // ═══════════════════════════════════════════
+    //  LONGBOARD
+    // ═══════════════════════════════════════════
+
+    private void CreateBoard()
     {
         _skaterRoot = new Node3D();
         _main.Player.AddChild(_skaterRoot);
 
-        // ── Board ──
-        // Deck with wood grain color
         var deckMat = new StandardMaterial3D();
         deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
         deckMat.Roughness = 0.7f;
         deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
+        // ── Deck: center strip (flat) ──
         _deckMesh = new MeshInstance3D();
-        var deckMesh = new BoxMesh();
-        deckMesh.Size = new Vector3(0.7f, 0.05f, 1.8f);
-        _deckMesh.Mesh = deckMesh;
+        var deckCenter = new BoxMesh();
+        deckCenter.Size = new Vector3(0.62f, 0.045f, 1.4f);
+        _deckMesh.Mesh = deckCenter;
         _deckMesh.MaterialOverride = deckMat;
         _deckMesh.Position = new Vector3(0, 0.13f, 0);
         _skaterRoot.AddChild(_deckMesh);
 
-        // Grip tape
+        // Nose extension (tapers narrower, flat)
+        _deckNoseMesh = new MeshInstance3D();
+        var deckNose = new BoxMesh();
+        deckNose.Size = new Vector3(0.48f, 0.04f, 0.4f);
+        _deckNoseMesh.Mesh = deckNose;
+        _deckNoseMesh.MaterialOverride = deckMat;
+        _deckNoseMesh.Position = new Vector3(0, 0.13f, 0.9f);
+        _skaterRoot.AddChild(_deckNoseMesh);
+
+        // Tail extension
+        _deckTailMesh = new MeshInstance3D();
+        var deckTail = new BoxMesh();
+        deckTail.Size = new Vector3(0.48f, 0.04f, 0.35f);
+        _deckTailMesh.Mesh = deckTail;
+        _deckTailMesh.MaterialOverride = deckMat;
+        _deckTailMesh.Position = new Vector3(0, 0.13f, -0.88f);
+        _skaterRoot.AddChild(_deckTailMesh);
+
+        // ── Grip tape ──
         var gripMat = new StandardMaterial3D();
         gripMat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
         gripMat.Roughness = 0.95f;
         _gripMesh = new MeshInstance3D();
         var gripMesh = new BoxMesh();
-        gripMesh.Size = new Vector3(0.65f, 0.02f, 1.6f);
+        gripMesh.Size = new Vector3(0.58f, 0.015f, 1.3f);
         _gripMesh.Mesh = gripMesh;
         _gripMesh.MaterialOverride = gripMat;
-        _gripMesh.Position = new Vector3(0, 0.165f, 0);
+        _gripMesh.Position = new Vector3(0, 0.16f, 0);
         _skaterRoot.AddChild(_gripMesh);
 
-        // Nose/tail kicks
-        var kickMat = new StandardMaterial3D();
-        kickMat.AlbedoColor = new Color(0.52f, 0.28f, 0.1f);
-        kickMat.Roughness = 0.7f;
-        var noseKick = new MeshInstance3D();
-        var nkMesh = new BoxMesh();
-        nkMesh.Size = new Vector3(0.55f, 0.04f, 0.2f);
-        noseKick.Mesh = nkMesh;
-        noseKick.MaterialOverride = kickMat;
-        noseKick.Position = new Vector3(0, 0.18f, 0.9f);
-        noseKick.Rotation = new Vector3(0.25f, 0, 0);
-        _skaterRoot.AddChild(noseKick);
-
-        var tailKick = new MeshInstance3D();
-        var tkMesh = new BoxMesh();
-        tkMesh.Size = new Vector3(0.55f, 0.04f, 0.2f);
-        tailKick.Mesh = tkMesh;
-        tailKick.MaterialOverride = kickMat;
-        tailKick.Position = new Vector3(0, 0.18f, -0.9f);
-        tailKick.Rotation = new Vector3(-0.25f, 0, 0);
-        _skaterRoot.AddChild(tailKick);
-
-        // Trucks (metal, smoother)
+        // ── Trucks ──
         var truckMat = new StandardMaterial3D();
         truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
-        truckMat.Metallic = 0.45f;
-        truckMat.Roughness = 0.35f;
-        AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
-        AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
+        truckMat.Metallic = 0.5f;
+        truckMat.Roughness = 0.3f;
 
-        // Wheels (rubber, smoother)
+        // Front truck: baseplate + axle
+        AddBox(_skaterRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
+        var axleMat = new StandardMaterial3D();
+        axleMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
+        axleMat.Metallic = 0.6f;
+        axleMat.Roughness = 0.25f;
+        AddCylinder(_skaterRoot, 0.015f, 0.015f, 0.58f, axleMat, new Vector3(0, 0.06f, 0.55f), new Vector3(0, 0, Mathf.Pi / 2f));
+
+        // Rear truck
+        AddBox(_skaterRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
+        AddCylinder(_skaterRoot, 0.015f, 0.015f, 0.58f, axleMat, new Vector3(0, 0.06f, -0.55f), new Vector3(0, 0, Mathf.Pi / 2f));
+
+        // ── Wheels ──
         var wheelMat = new StandardMaterial3D();
         wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
-        wheelMat.Roughness = 0.6f;
+        wheelMat.Roughness = 0.55f;
+
+        var hubMat = new StandardMaterial3D();
+        hubMat.AlbedoColor = new Color(0.45f, 0.45f, 0.48f);
+        hubMat.Metallic = 0.4f;
+        hubMat.Roughness = 0.3f;
+
         foreach (var pos in new[] {
-            new Vector3(-0.32f, 0.04f, 0.55f), new Vector3(0.32f, 0.04f, 0.55f),
-            new Vector3(-0.32f, 0.04f, -0.55f), new Vector3(0.32f, 0.04f, -0.55f) })
+            new Vector3(-0.30f, 0.03f, 0.55f), new Vector3(0.30f, 0.03f, 0.55f),
+            new Vector3(-0.30f, 0.03f, -0.55f), new Vector3(0.30f, 0.03f, -0.55f) })
         {
             var wheel = new MeshInstance3D();
             var wMesh = new CylinderMesh();
-            wMesh.TopRadius = 0.06f;
-            wMesh.BottomRadius = 0.06f;
-            wMesh.Height = 0.08f;
-            wMesh.RadialSegments = 16;
+            wMesh.TopRadius = 0.055f;
+            wMesh.BottomRadius = 0.055f;
+            wMesh.Height = 0.07f;
+            wMesh.RadialSegments = 20;
             wheel.Mesh = wMesh;
             wheel.MaterialOverride = wheelMat;
             wheel.Position = pos;
             wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
             _skaterRoot.AddChild(wheel);
+
+            // Hub
+            var hub = new MeshInstance3D();
+            var hMesh = new CylinderMesh();
+            hMesh.TopRadius = 0.025f;
+            hMesh.BottomRadius = 0.025f;
+            hMesh.Height = 0.075f;
+            hMesh.RadialSegments = 12;
+            hub.Mesh = hMesh;
+            hub.MaterialOverride = hubMat;
+            hub.Position = pos;
+            hub.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
+            _skaterRoot.AddChild(hub);
         }
+    }
 
-        // ── Skater body (facing right, skating stance) ──
-        var bodyGroup = new Node3D();
-        bodyGroup.Rotation = new Vector3(0, Mathf.Pi / 2f, 0);
-        bodyGroup.Position = new Vector3(0, 0.05f, 0); // slight forward offset
-        _skaterRoot.AddChild(bodyGroup);
+    // ═══════════════════════════════════════════
+    //  SKATER BODY — joint hierarchy
+    // ═══════════════════════════════════════════
 
-        // Skin material
+    private void CreateBody()
+    {
+        // Materials
         var skinMat = new StandardMaterial3D();
-        skinMat.AlbedoColor = new Color(0.9f, 0.8f, 0.62f);
-        skinMat.Roughness = 0.8f;
+        skinMat.AlbedoColor = new Color(0.9f, 0.78f, 0.6f);
+        skinMat.Roughness = 0.75f;
         skinMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-        // Shoes (wider apart, on the board)
         var shoeMat = new StandardMaterial3D();
-        shoeMat.AlbedoColor = new Color(0.16f, 0.16f, 0.16f);
-        shoeMat.Roughness = 0.65f;
-        // Front foot (left) - near nose
-        AddCylinderTo(bodyGroup, 0.07f, 0.07f, 0.22f, shoeMat, new Vector3(-0.12f, 0.19f, -0.35f));
-        // Back foot (right) - on tail
-        AddCylinderTo(bodyGroup, 0.07f, 0.07f, 0.22f, shoeMat, new Vector3(0.12f, 0.19f, 0.3f));
+        shoeMat.AlbedoColor = new Color(0.14f, 0.14f, 0.14f);
+        shoeMat.Roughness = 0.6f;
 
-        // Legs (bent knees - angled forward for skating stance)
+        var soleMat = new StandardMaterial3D();
+        soleMat.AlbedoColor = new Color(0.08f, 0.08f, 0.08f);
+        soleMat.Roughness = 0.7f;
+
         var pantsMat = new StandardMaterial3D();
         pantsMat.AlbedoColor = Main.CarlPantsColors[(int)_main.Carl];
         pantsMat.Roughness = 0.85f;
         pantsMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        // Front leg (more bent, forward)
-        _pantsMesh = AddCylinderTo(bodyGroup, 0.07f, 0.065f, 0.3f, pantsMat, new Vector3(-0.12f, 0.36f, -0.28f));
-        _pantsMesh.Rotation = new Vector3(0.35f, 0, 0);
-        // Back leg (slightly bent)
-        AddCylinderTo(bodyGroup, 0.07f, 0.065f, 0.3f, pantsMat, new Vector3(0.12f, 0.36f, 0.15f)).Rotation = new Vector3(-0.15f, 0, 0);
 
-        // Torso (leaning forward slightly, wider at shoulders)
         var shirtMat = new StandardMaterial3D();
         shirtMat.AlbedoColor = Main.CarlShirtColors[(int)_main.Carl];
         shirtMat.Roughness = 0.75f;
         shirtMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        _shirtMesh = AddCylinderTo(bodyGroup, 0.22f, 0.18f, 0.42f, shirtMat, new Vector3(0, 0.68f, -0.12f));
-        _shirtMesh.Rotation = new Vector3(0.15f, 0, 0); // lean forward
 
-        // Arms (spread wide for balance, angled outward)
-        AddCylinderTo(bodyGroup, 0.04f, 0.035f, 0.35f, skinMat, new Vector3(-0.3f, 0.72f, -0.1f)).Rotation = new Vector3(0.1f, 0, 0.6f);
-        AddCylinderTo(bodyGroup, 0.04f, 0.035f, 0.35f, skinMat, new Vector3(0.3f, 0.72f, -0.1f)).Rotation = new Vector3(0.1f, 0, -0.6f);
-
-        // Head (slightly forward, looking ahead)
-        AddSphereTo(bodyGroup, 0.14f, skinMat, new Vector3(0, 1.0f, -0.15f));
-
-        // Hair
         var hairMat = new StandardMaterial3D();
-        hairMat.AlbedoColor = new Color(0.32f, 0.2f, 0.1f);
+        hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
         hairMat.Roughness = 0.9f;
-        AddCylinderTo(bodyGroup, 0.14f, 0.15f, 0.08f, hairMat, new Vector3(0, 1.14f, -0.15f));
 
-        // Collision
+        // ── Body group — sideways stance (facing right) ──
+        _bodyGroup = new Node3D();
+        _bodyGroup.Position = new Vector3(0, 0.05f, 0);
+        _bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0); // face right (+X)
+        _skaterRoot.AddChild(_bodyGroup);
+
+        // ── Hip (skeleton root) ──
+        _hip = new Node3D();
+        _hip.Position = new Vector3(0, 0.2f, 0);
+        _bodyGroup.AddChild(_hip);
+
+        // ── Spine (torso) ──
+        _spine = new Node3D();
+        _spine.Position = new Vector3(0, 0.35f, 0);
+        _hip.AddChild(_spine);
+
+        // Waist (lower torso)
+        AddCylinderTo(_spine, 0.13f, 0.11f, 0.18f, shirtMat, new Vector3(0, 0.09f, 0));
+        // Chest (upper torso)
+        AddCylinderTo(_spine, 0.15f, 0.13f, 0.22f, shirtMat, new Vector3(0, 0.29f, -0.02f));
+        // Shoulders (wider cap)
+        AddCylinderTo(_spine, 0.16f, 0.15f, 0.06f, shirtMat, new Vector3(0, 0.42f, -0.02f));
+
+        // ── Neck ──
+        _neck = new Node3D();
+        _neck.Position = new Vector3(0, 0.46f, -0.02f);
+        _spine.AddChild(_neck);
+        AddCylinderTo(_neck, 0.05f, 0.06f, 0.08f, skinMat, new Vector3(0, 0.04f, 0));
+
+        // Head
+        var head = new MeshInstance3D();
+        var headMesh = new SphereMesh();
+        headMesh.Radius = 0.12f;
+        headMesh.Height = 0.24f;
+        headMesh.Rings = 10;
+        headMesh.RadialSegments = 16;
+        head.Mesh = headMesh;
+        head.MaterialOverride = skinMat;
+        head.Position = new Vector3(0, 0.14f, -0.02f);
+        _neck.AddChild(head);
+
+        // Hair (flat cap)
+        var hair = new MeshInstance3D();
+        var hairMesh = new CylinderMesh();
+        hairMesh.TopRadius = 0.11f;
+        hairMesh.BottomRadius = 0.13f;
+        hairMesh.Height = 0.06f;
+        hairMesh.RadialSegments = 16;
+        hair.Mesh = hairMesh;
+        hair.MaterialOverride = hairMat;
+        hair.Position = new Vector3(0, 0.24f, -0.02f);
+        _neck.AddChild(hair);
+
+        // ── Left arm ──
+        _armL = new Node3D();
+        _armL.Position = new Vector3(-0.17f, 0.4f, -0.02f);
+        _spine.AddChild(_armL);
+        // Upper arm
+        AddCylinderTo(_armL, 0.035f, 0.03f, 0.2f, skinMat, new Vector3(0, -0.1f, 0));
+        // Forearm joint
+        _forearmL = new Node3D();
+        _forearmL.Position = new Vector3(0, -0.2f, 0);
+        _armL.AddChild(_forearmL);
+        AddCylinderTo(_forearmL, 0.03f, 0.025f, 0.18f, skinMat, new Vector3(0, -0.09f, 0));
+        // Hand
+        AddSphereTo(_forearmL, 0.03f, skinMat, new Vector3(0, -0.2f, 0));
+
+        // ── Right arm ──
+        _armR = new Node3D();
+        _armR.Position = new Vector3(0.17f, 0.4f, -0.02f);
+        _spine.AddChild(_armR);
+        AddCylinderTo(_armR, 0.035f, 0.03f, 0.2f, skinMat, new Vector3(0, -0.1f, 0));
+        _forearmR = new Node3D();
+        _forearmR.Position = new Vector3(0, -0.2f, 0);
+        _armR.AddChild(_forearmR);
+        AddCylinderTo(_forearmR, 0.03f, 0.025f, 0.18f, skinMat, new Vector3(0, -0.09f, 0));
+        AddSphereTo(_forearmR, 0.03f, skinMat, new Vector3(0, -0.2f, 0));
+
+        // ── Left leg ──
+        _legL = new Node3D();
+        _legL.Position = new Vector3(-0.08f, 0.0f, 0);
+        _hip.AddChild(_legL);
+        // Upper leg (thigh)
+        AddCylinderTo(_legL, 0.06f, 0.055f, 0.22f, pantsMat, new Vector3(0, -0.11f, 0));
+        // Knee joint
+        _kneeL = new Node3D();
+        _kneeL.Position = new Vector3(0, -0.22f, 0);
+        _legL.AddChild(_kneeL);
+        // Lower leg (shin)
+        AddCylinderTo(_kneeL, 0.05f, 0.045f, 0.2f, pantsMat, new Vector3(0, -0.1f, 0));
+        // Shoe
+        var shoeL = new MeshInstance3D();
+        var shoeLMesh = new BoxMesh();
+        shoeLMesh.Size = new Vector3(0.1f, 0.06f, 0.22f);
+        shoeL.Mesh = shoeLMesh;
+        shoeL.MaterialOverride = shoeMat;
+        shoeL.Position = new Vector3(0, -0.22f, -0.02f);
+        _kneeL.AddChild(shoeL);
+        // Sole
+        AddBoxTo(_kneeL, new Vector3(0.1f, 0.02f, 0.22f), soleMat, new Vector3(0, -0.25f, -0.02f));
+
+        // ── Right leg ──
+        _legR = new Node3D();
+        _legR.Position = new Vector3(0.08f, 0.0f, 0);
+        _hip.AddChild(_legR);
+        AddCylinderTo(_legR, 0.06f, 0.055f, 0.22f, pantsMat, new Vector3(0, -0.11f, 0));
+        _kneeR = new Node3D();
+        _kneeR.Position = new Vector3(0, -0.22f, 0);
+        _legR.AddChild(_kneeR);
+        AddCylinderTo(_kneeR, 0.05f, 0.045f, 0.2f, pantsMat, new Vector3(0, -0.1f, 0));
+        var shoeR = new MeshInstance3D();
+        var shoeRMesh = new BoxMesh();
+        shoeRMesh.Size = new Vector3(0.1f, 0.06f, 0.22f);
+        shoeR.Mesh = shoeRMesh;
+        shoeR.MaterialOverride = shoeMat;
+        shoeR.Position = new Vector3(0, -0.22f, -0.02f);
+        _kneeR.AddChild(shoeR);
+        AddBoxTo(_kneeR, new Vector3(0.1f, 0.02f, 0.22f), soleMat, new Vector3(0, -0.25f, -0.02f));
+
+        // ── Collision ──
         var col = new CollisionShape3D();
         var shape = new BoxShape3D();
         shape.Size = new Vector3(0.7f, 1.3f, 1.8f);
         col.Shape = shape;
         col.Position = new Vector3(0, 0.65f, 0);
         _main.Player.AddChild(col);
+
+        // ── Initial riding stance ──
+        ApplyStance(0f, 0f, false);
     }
 
-    private MeshInstance3D AddBox(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
+    private void ApplyStance(float speedFactor, float lean, bool braking)
     {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-        return m;
+        // Set joints to a relaxed riding pose
+        float kneeBend = -0.25f - speedFactor * 0.15f;
+        float spinePitch = -0.1f - speedFactor * 0.15f;
+        float armOut = 0.7f - speedFactor * 0.3f;
+
+        if (_hip != null) _hip.Rotation = new Vector3(0, 0, lean * 0.08f);
+        if (_spine != null) _spine.Rotation = new Vector3(spinePitch, lean * 0.1f, 0);
+        if (_neck != null) _neck.Rotation = new Vector3(0.1f, -lean * 0.15f, 0);
+        if (_armL != null) _armL.Rotation = new Vector3(0.1f, 0, -armOut);
+        if (_forearmL != null) _forearmL.Rotation = new Vector3(-0.3f, 0, 0);
+        if (_armR != null) _armR.Rotation = new Vector3(0.1f, 0, armOut);
+        if (_forearmR != null) _forearmR.Rotation = new Vector3(-0.3f, 0, 0);
+        if (_legL != null) _legL.Rotation = new Vector3(0.15f + speedFactor * 0.1f, 0, 0);
+        if (_kneeL != null) _kneeL.Rotation = new Vector3(kneeBend, 0, 0);
+        if (_legR != null) _legR.Rotation = new Vector3(0.15f + speedFactor * 0.1f, 0, 0);
+        if (_kneeR != null) _kneeR.Rotation = new Vector3(kneeBend, 0, 0);
     }
 
-    private MeshInstance3D AddCylinderTo(Node3D parent, float topR, float bottomR, float height, StandardMaterial3D mat, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new CylinderMesh();
-        mesh.TopRadius = topR;
-        mesh.BottomRadius = bottomR;
-        mesh.Height = height;
-        mesh.RadialSegments = 12;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-        return m;
-    }
-
-    private MeshInstance3D AddSphereTo(Node3D parent, float radius, StandardMaterial3D mat, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new SphereMesh();
-        mesh.Radius = radius;
-        mesh.Height = radius * 2f;
-        mesh.Rings = 8;
-        mesh.RadialSegments = 12;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-        return m;
-    }
+    // ═══════════════════════════════════════════
+    //  PARTICLES
+    // ═══════════════════════════════════════════
 
     private void CreateParticles()
     {
@@ -279,17 +413,23 @@ public class PlayerManager
         _main.Player.AddChild(_speedLines);
     }
 
+    // ═══════════════════════════════════════════
+    //  UPDATE
+    // ═══════════════════════════════════════════
+
     public void Update(float dt, float steer, bool braking)
     {
         var terrain = _main.Terrain;
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
 
-        // Push off: only when going slow (realistic skateboarding)
+        // Push off
         if (Input.IsActionJustPressed("kick_off") && Speed < 0.5f)
         {
             Speed += 0.25f;
             Kicked = true;
+            PushOffTimer = 0.4f;
         }
+        PushOffTimer = Mathf.Max(0f, PushOffTimer - dt);
 
         // Slope acceleration
         Speed += -slope * Gravity * dt * 60f;
@@ -298,9 +438,14 @@ public class PlayerManager
         if (braking)
             Speed *= Mathf.Pow(0.97f, dt * 60f);
 
+        // Shoulder drag
+        if (Mathf.Abs(PosX) > 3.5f)
+            Speed *= Mathf.Pow(0.94f, dt * 60f);
+
         Lean = Mathf.Lerp(Lean, steer, 6f * dt);
+        if (Mathf.Abs(Lean) < 0.005f) Lean = 0f; // snap to center to prevent drift
         PosX += steer * Handling * dt * 60f * (0.3f + Speed * 0.5f);
-        PosX = Mathf.Clamp(PosX, -3.5f, 3.5f);
+        PosX = Mathf.Clamp(PosX, -4.5f, 4.5f);
         Speed = Mathf.Clamp(Speed, 0.02f, MaxSpeed);
 
         Distance += Speed * dt * 60f;
@@ -308,30 +453,33 @@ public class PlayerManager
         float groundY = terrain.HillAt(Distance);
         _main.Player.Position = new Vector3(PosX, groundY + 0.1f, 0);
 
-        // Carve animation — board points in direction of travel
+        // Off-road crash check
+        if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
+        {
+            Crashed = true;
+            Speed = 0f;
+        }
+
+        // Board carve — the board points in direction of travel
         if (_skaterRoot != null)
         {
             float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
+            float carveAngle = Lean * 0.7f * (0.3f + speedFactor * 0.7f);
+            float tiltAngle = Lean * 0.35f * (0.5f + speedFactor * 0.5f);
 
-            // Board Y rotation (yaw) — points the board when carving
-            float carveAngle = Lean * 0.4f * (0.3f + speedFactor * 0.7f);
+            // Subtle wobble only at high speed
+            float time = (float)Time.GetTicksMsec() * 0.001f;
+            float wobble = Mathf.Sin(time * 6f) * 0.008f * speedFactor * speedFactor;
 
-            // Board Z rotation (roll) — tilts into the turn
-            float tiltAngle = Lean * 0.3f * (0.5f + speedFactor * 0.5f);
-
-            // Body counter-rotates slightly (stays more upright than board)
-            float bodyLean = -Lean * 0.1f;
-
-            _skaterRoot.Rotation = new Vector3(0, carveAngle, tiltAngle);
-
-            // Body group counter-rotates to stay facing forward-ish
-            if (_skaterRoot.GetChildCount() > 0)
-            {
-                var bodyGroup = _skaterRoot.GetChild<Node3D>(0);
-                if (bodyGroup != null)
-                    bodyGroup.Rotation = new Vector3(0, Mathf.Pi / 2f + bodyLean, 0);
-            }
+            _skaterRoot.Rotation = new Vector3(0, carveAngle, tiltAngle + wobble);
         }
+
+        // Body stays in sideways stance — no counter-rotation
+        if (_bodyGroup != null)
+            _bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0);
+
+        // Procedural animation
+        Animate(dt, steer, braking);
 
         // Dust particles
         _dustParticles.Emitting = Speed > 0.3f && Kicked;
@@ -342,7 +490,7 @@ public class PlayerManager
             dustMat.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
         }
 
-        // Speed lines at high speed
+        // Speed lines
         float spdFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
         _speedLines.Emitting = spdFactor > 0.7f && Kicked;
         var speedMat = _speedLines.ProcessMaterial as ParticleProcessMaterial;
@@ -352,6 +500,123 @@ public class PlayerManager
             speedMat.Color = new Color(1f, 1f, 1f, 0.1f + lineIntensity * 0.3f);
         }
     }
+
+    // ═══════════════════════════════════════════
+    //  PROCEDURAL ANIMATION
+    // ═══════════════════════════════════════════
+
+    private void Animate(float dt, float steer, bool braking)
+    {
+        float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
+        float time = (float)Time.GetTicksMsec() * 0.001f;
+        bool pushing = PushOffTimer > 0f;
+
+        // ── Defaults: relaxed riding stance (body faces right, board points forward) ──
+        float hipYaw = 0f;
+        float hipPitch = 0f;
+        float hipRoll = Lean * 0.08f;
+
+        float spinePitch = -0.1f - speedFactor * 0.15f; // lean forward at speed
+        float spineRoll = 0f;
+        float spineYaw = Lean * 0.1f; // twist slightly into the turn
+
+        float neckPitch = 0.1f; // look ahead
+        float neckYaw = -Lean * 0.15f; // head looks into the turn
+        float neckRoll = 0f;
+
+        // Arms: out for balance, tighter at speed
+        float armOutBase = 0.8f - speedFactor * 0.3f;
+        float armLPitch = 0.1f;
+        float armRPitch = 0.1f;
+        float forearmLBend = -0.3f;
+        float forearmRBend = -0.3f;
+
+        // Legs: bent knees
+        float legLPitch = 0.15f + speedFactor * 0.1f;
+        float legRPitch = 0.15f + speedFactor * 0.1f;
+        float kneeLBend = -0.3f - speedFactor * 0.15f;
+        float kneeRBend = -0.3f - speedFactor * 0.15f;
+
+        // ── Idle sway (when slow/stopped) ──
+        if (Speed < 0.3f)
+        {
+            float sway = Mathf.Sin(time * 1.2f) * 0.04f;
+            hipRoll += sway;
+            spineRoll += sway * 0.5f;
+            armOutBase = 0.5f;
+        }
+
+        // ── Push-off animation ──
+        if (pushing)
+        {
+            float t = PushOffTimer / 0.4f; // 1→0
+            // Back leg extends down and back
+            legRPitch = Mathf.Lerp(0.15f, 0.5f, t);
+            kneeRBend = Mathf.Lerp(-0.3f, -0.6f, t);
+            // Body leans forward
+            spinePitch = Mathf.Lerp(-0.1f, -0.3f, t);
+            // Front leg stays planted
+            legLPitch = 0.1f;
+            kneeLBend = -0.2f;
+        }
+
+        // Arms adjust with steering
+        armLPitch -= Lean * 0.1f;
+        armRPitch += Lean * 0.1f;
+
+        // ── Braking ──
+        if (braking && Speed > 0.3f)
+        {
+            // Back foot presses down, torso leans back
+            legRPitch += 0.1f;
+            kneeRBend -= 0.1f;
+            spinePitch += 0.1f;
+        }
+
+        // ── Arm sway at speed ──
+        float armSway = Mathf.Sin(time * 2.5f) * 0.05f * speedFactor;
+        armLPitch += armSway;
+        armRPitch -= armSway;
+
+        // ── Lerp all joints toward targets ──
+        float lerp = AnimLerp * dt;
+        if (_hip != null)
+            _hip.Rotation = LerpVec(_hip.Rotation, new Vector3(hipPitch, hipYaw, hipRoll), lerp);
+        if (_spine != null)
+            _spine.Rotation = LerpVec(_spine.Rotation, new Vector3(spinePitch, spineYaw, spineRoll), lerp);
+        if (_neck != null)
+            _neck.Rotation = LerpVec(_neck.Rotation, new Vector3(neckPitch, neckYaw, neckRoll), lerp);
+
+        if (_armL != null)
+            _armL.Rotation = LerpVec(_armL.Rotation, new Vector3(armLPitch, 0, -armOutBase), lerp);
+        if (_forearmL != null)
+            _forearmL.Rotation = LerpVec(_forearmL.Rotation, new Vector3(forearmLBend, 0, 0), lerp);
+        if (_armR != null)
+            _armR.Rotation = LerpVec(_armR.Rotation, new Vector3(armRPitch, 0, armOutBase), lerp);
+        if (_forearmR != null)
+            _forearmR.Rotation = LerpVec(_forearmR.Rotation, new Vector3(forearmRBend, 0, 0), lerp);
+
+        if (_legL != null)
+            _legL.Rotation = LerpVec(_legL.Rotation, new Vector3(legLPitch, 0, 0), lerp);
+        if (_kneeL != null)
+            _kneeL.Rotation = LerpVec(_kneeL.Rotation, new Vector3(kneeLBend, 0, 0), lerp);
+        if (_legR != null)
+            _legR.Rotation = LerpVec(_legR.Rotation, new Vector3(legRPitch, 0, 0), lerp);
+        if (_kneeR != null)
+            _kneeR.Rotation = LerpVec(_kneeR.Rotation, new Vector3(kneeRBend, 0, 0), lerp);
+    }
+
+    private static Vector3 LerpVec(Vector3 from, Vector3 to, float t)
+    {
+        return new Vector3(
+            Mathf.Lerp(from.X, to.X, t),
+            Mathf.Lerp(from.Y, to.Y, t),
+            Mathf.Lerp(from.Z, to.Z, t));
+    }
+
+    // ═══════════════════════════════════════════
+    //  CONFETTI / RESET / APPLY BOARD
+    // ═══════════════════════════════════════════
 
     public void SpawnConfetti()
     {
@@ -367,20 +632,25 @@ public class PlayerManager
         Distance = 0f;
         Kicked = false;
         Lean = 0f;
+        Crashed = false;
+        PushOffTimer = 0f;
         _main.Player.Position = new Vector3(0, 0.1f, 0);
         if (_skaterRoot != null) _skaterRoot.Rotation = Vector3.Zero;
+        ApplyStance(0f, 0f, false);
+        if (_kneeR != null) _kneeR.Rotation = Vector3.Zero;
     }
 
     public void ApplyBoard()
     {
-        if (_deckMesh != null)
-        {
-            var mat = new StandardMaterial3D();
-            mat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
-            mat.Roughness = 0.7f;
-            mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-            _deckMesh.MaterialOverride = mat;
-        }
+        var deckMat = new StandardMaterial3D();
+        deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
+        deckMat.Roughness = 0.7f;
+        deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        if (_deckMesh != null) _deckMesh.MaterialOverride = deckMat;
+        if (_deckNoseMesh != null) _deckNoseMesh.MaterialOverride = deckMat;
+        if (_deckTailMesh != null) _deckTailMesh.MaterialOverride = deckMat;
+
         if (_gripMesh != null)
         {
             var mat = new StandardMaterial3D();
@@ -388,5 +658,79 @@ public class PlayerManager
             mat.Roughness = 0.95f;
             _gripMesh.MaterialOverride = mat;
         }
+    }
+
+    // ═══════════════════════════════════════════
+    //  MESH HELPERS
+    // ═══════════════════════════════════════════
+
+    private MeshInstance3D AddBox(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new BoxMesh();
+        mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D AddBoxTo(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new BoxMesh();
+        mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D AddCylinder(Node3D parent, float topR, float bottomR, float height, StandardMaterial3D mat, Vector3 pos, Vector3 rot)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new CylinderMesh();
+        mesh.TopRadius = topR;
+        mesh.BottomRadius = bottomR;
+        mesh.Height = height;
+        mesh.RadialSegments = 16;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        m.Rotation = rot;
+        parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D AddCylinderTo(Node3D parent, float topR, float bottomR, float height, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new CylinderMesh();
+        mesh.TopRadius = topR;
+        mesh.BottomRadius = bottomR;
+        mesh.Height = height;
+        mesh.RadialSegments = 16;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D AddSphereTo(Node3D parent, float radius, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new SphereMesh();
+        mesh.Radius = radius;
+        mesh.Height = radius * 2f;
+        mesh.Rings = 10;
+        mesh.RadialSegments = 16;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
     }
 }

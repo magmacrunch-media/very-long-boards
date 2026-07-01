@@ -182,15 +182,6 @@ public class SceneryManager
         AddMailbox(350f, -1f);
         AddMailbox(700f, 1f);
 
-        // Guard rails
-        for (int i = 0; i < 25; i++)
-        {
-            float z = 100f + i * 60f + rng.RandfRange(0f, 20f);
-            float side = rng.Randf() > 0.5f ? 1f : -1f;
-            float offset = side * (4.2f + rng.RandfRange(0f, 0.5f));
-            AddGuardRail(z, offset);
-        }
-
         // Road signs
         for (int i = 0; i < 8; i++)
         {
@@ -310,31 +301,6 @@ public class SceneryManager
 
         _main.AddChild(box);
         Items.Add(new SceneryItem { Node = box, WorldZ = z, OffsetX = side * 5f });
-    }
-
-    private void AddGuardRail(float z, float offset)
-    {
-        var rail = new Node3D();
-        var postMat = new StandardMaterial3D();
-        postMat.AlbedoColor = new Color(0.68f, 0.68f, 0.72f);
-        postMat.Metallic = 0.25f;
-        postMat.Roughness = 0.45f;
-
-        var barMat = new StandardMaterial3D();
-        barMat.AlbedoColor = new Color(0.68f, 0.68f, 0.72f);
-        barMat.Metallic = 0.35f;
-        barMat.Roughness = 0.35f;
-
-        for (int i = 0; i < 3; i++)
-        {
-            var post = MakeCylinderWithMat(0.025f, 0.7f, postMat);
-            post.Position = new Vector3(0, 0.35f, i * 2f);
-            rail.AddChild(post);
-        }
-        var bar = MakeBoxWithMat(new Vector3(0.04f, 0.04f, 5f), barMat, new Vector3(0, 0.55f, 2.5f));
-        rail.AddChild(bar);
-        _main.AddChild(rail);
-        Items.Add(new SceneryItem { Node = rail, WorldZ = z, OffsetX = offset });
     }
 
     private void AddRoadSign(float z, float offset, RandomNumberGenerator rng)

@@ -149,6 +149,11 @@ public partial class Main : Node3D
                     PlayerMgr.SpawnConfetti();
                     UI.ShowFinish(this);
                 }
+                else if (PlayerMgr.Crashed)
+                {
+                    State = GameState.Finished;
+                    UI.ShowCrash();
+                }
                 break;
 
             case GameState.Paused:

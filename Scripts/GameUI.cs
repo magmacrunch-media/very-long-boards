@@ -450,6 +450,12 @@ public class GameUI
         _progressFill.AnchorRight = 1f;
     }
 
+    public void ShowCrash()
+    {
+        _promptLabel.Modulate = new Color(1f, 0.3f, 0.3f);
+        _promptLabel.Text = "WIPEOUT! OFF ROAD  |  \u2191 TRY AGAIN";
+    }
+
     public void SetCountdown(string text, Color color)
     {
         _countdownLabel.Text = text;
