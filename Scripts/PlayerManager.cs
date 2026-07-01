@@ -168,7 +168,7 @@ public class PlayerManager
 
         // Hair
         var hairMat = new StandardMaterial3D();
-        hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
+        hairMat.AlbedoColor = new Color(0.32f, 0.2f, 0.1f);
         hairMat.Roughness = 0.9f;
         AddCylinderTo(bodyGroup, 0.14f, 0.15f, 0.08f, hairMat, new Vector3(0, 1.14f, -0.15f));
 
