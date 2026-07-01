@@ -55,15 +55,15 @@ public class TerrainManager
 
         // Road markings
         var lineMat = new StandardMaterial3D();
-        lineMat.AlbedoColor = new Color(0.95f, 0.95f, 0.8f);
+        lineMat.AlbedoColor = new Color(0.98f, 0.98f, 0.82f);
         lineMat.EmissionEnabled = true;
-        lineMat.Emission = new Color(0.3f, 0.3f, 0.22f);
+        lineMat.Emission = new Color(0.35f, 0.35f, 0.25f);
         lineMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineCenterMesh = new MeshInstance3D();
         _lineCenterMesh.MaterialOverride = lineMat;
 
         var edgeMat = new StandardMaterial3D();
-        edgeMat.AlbedoColor = new Color(0.92f, 0.92f, 0.78f);
+        edgeMat.AlbedoColor = new Color(0.95f, 0.95f, 0.8f);
         edgeMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineEdgeLMesh = new MeshInstance3D();
         _lineEdgeLMesh.MaterialOverride = edgeMat;
@@ -82,7 +82,7 @@ public class TerrainManager
 
         // Summer grass
         var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.14f, 0.38f, 0.08f);
+        grassMat.AlbedoColor = new Color(0.16f, 0.4f, 0.1f);
         grassMat.Roughness = 0.95f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
