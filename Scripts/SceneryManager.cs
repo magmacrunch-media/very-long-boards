@@ -23,6 +23,7 @@ public class SceneryManager
         CreateScenery();
         CreateClouds();
         CreateFinishLine();
+        CreateSunDisc();
     }
 
     private void CreateScenery()
@@ -465,6 +466,26 @@ public class SceneryManager
         }
 
         _main.AddChild(_finishLine);
+    }
+
+    private void CreateSunDisc()
+    {
+        // Sun disc in the sky
+        var sunMat = new StandardMaterial3D();
+        sunMat.AlbedoColor = new Color(1f, 0.95f, 0.8f);
+        sunMat.EmissionEnabled = true;
+        sunMat.Emission = new Color(1f, 0.9f, 0.7f);
+        sunMat.EmissionEnergyMultiplier = 2f;
+        sunMat.AlbedoColor = new Color(1f, 1f, 1f);
+
+        var sun = new MeshInstance3D();
+        var sunMesh = new SphereMesh();
+        sunMesh.Radius = 5f;
+        sunMesh.Height = 10f;
+        sun.Mesh = sunMesh;
+        sun.MaterialOverride = sunMat;
+        sun.Position = new Vector3(50f, 80f, 200f);
+        _main.AddChild(sun);
     }
 
     public void UpdateAll(float dt)
