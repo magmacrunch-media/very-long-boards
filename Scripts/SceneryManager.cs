@@ -370,9 +370,9 @@ public class SceneryManager
             new Color(0.9f, 0.8f, 0.75f),     // beige
         };
         var roofColors = new[] {
-            new Color(0.48f, 0.18f, 0.14f),   // dark red shingles
-            new Color(0.32f, 0.26f, 0.22f),   // dark brown
-            new Color(0.42f, 0.42f, 0.45f),   // grey
+            new Color(0.52f, 0.2f, 0.16f),    // dark red shingles
+            new Color(0.35f, 0.28f, 0.24f),   // dark brown
+            new Color(0.45f, 0.45f, 0.48f),   // grey
         };
         var w = wallColors[rng.RandiRange(0, 3)];
         var r = roofColors[rng.RandiRange(0, 2)];
