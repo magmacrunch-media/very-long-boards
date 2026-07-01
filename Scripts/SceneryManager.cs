@@ -594,7 +594,7 @@ public class SceneryManager
         {
             float x = -TerrainManager.RoadW / 2f + 0.2f + i * (TerrainManager.RoadW / 14f);
             var checkMat = new StandardMaterial3D();
-            checkMat.AlbedoColor = i % 2 == 0 ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.92f, 0.18f, 0.18f);
+            checkMat.AlbedoColor = i % 2 == 0 ? new Color(0.12f, 0.12f, 0.12f) : new Color(0.95f, 0.2f, 0.2f);
             _finishLine.AddChild(MakeBoxWithMat(new Vector3(TerrainManager.RoadW / 14f - 0.04f, 0.18f, 0.07f), checkMat, new Vector3(x, 2.85f, 0)));
         }
 
