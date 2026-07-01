@@ -47,8 +47,8 @@ public class TerrainManager
     {
         // Asphalt road — darker, more realistic
         var roadMat = new StandardMaterial3D();
-        roadMat.AlbedoColor = new Color(0.28f, 0.28f, 0.3f);
-        roadMat.Roughness = 0.9f;
+        roadMat.AlbedoColor = new Color(0.25f, 0.25f, 0.28f);
+        roadMat.Roughness = 0.92f;
         roadMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _roadMesh = new MeshInstance3D();
         _roadMesh.MaterialOverride = roadMat;
