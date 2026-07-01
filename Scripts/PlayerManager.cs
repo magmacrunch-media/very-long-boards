@@ -13,9 +13,9 @@ public class PlayerManager
     public bool Kicked = false;
     public float Lean = 0f;
 
-    private const float Gravity = 0.06f;
-    private const float Friction = 0.998f;
-    public const float MaxSpeed = 5f;
+    private const float Gravity = 0.04f;
+    private const float Friction = 0.997f;
+    public const float MaxSpeed = 4f;
     private const float Handling = 0.18f;
 
     // Particles

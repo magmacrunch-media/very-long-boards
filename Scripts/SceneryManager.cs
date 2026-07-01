@@ -622,6 +622,7 @@ public class SceneryManager
         mesh.TopRadius = topR;
         mesh.BottomRadius = topR;
         mesh.Height = height;
+        mesh.RadialSegments = 12;
         m.Mesh = mesh;
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = color;
@@ -637,6 +638,8 @@ public class SceneryManager
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
+        mesh.Rings = 8;
+        mesh.RadialSegments = 12;
         m.Mesh = mesh;
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = color;
@@ -671,6 +674,7 @@ public class SceneryManager
         mesh.TopRadius = topR;
         mesh.BottomRadius = topR;
         mesh.Height = height;
+        mesh.RadialSegments = 12;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
@@ -694,6 +698,8 @@ public class SceneryManager
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
+        mesh.Rings = 8;
+        mesh.RadialSegments = 12;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         return m;

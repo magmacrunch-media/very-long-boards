@@ -12,9 +12,9 @@ public class TerrainManager
     public float ScrollOffset = 0f;
     public const float RoadW = 8f;
     public const float GroundW = 300f;
-    public const int Segs = 350;
-    public const int Back = 60;
-    public const float SegLen = 3f;
+    public const int Segs = 400;
+    public const int Back = 70;
+    public const float SegLen = 2.5f;
 
     public TerrainManager(Main main)
     {
@@ -31,10 +31,11 @@ public class TerrainManager
 
     public float HillAt(float z)
     {
-        return -z * 0.08f
-             + Mathf.Sin(z * 0.003f) * 5f
-             + Mathf.Sin(z * 0.008f) * 2f
-             + Mathf.Sin(z * 0.015f) * 1f;
+        // Gentler slope with rolling hills — visual slope matches physics
+        return -z * 0.035f
+             + Mathf.Sin(z * 0.003f) * 4f
+             + Mathf.Sin(z * 0.007f) * 2.5f
+             + Mathf.Sin(z * 0.015f) * 1.2f;
     }
 
     public void Create()
