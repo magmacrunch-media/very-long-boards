@@ -228,13 +228,23 @@ public class SceneryManager
     private void AddGuardRail(float z, float offset)
     {
         var rail = new Node3D();
+        var postMat = new StandardMaterial3D();
+        postMat.AlbedoColor = new Color(0.6f, 0.6f, 0.62f);
+        postMat.Metallic = 0.2f;
+        postMat.Roughness = 0.5f;
+
+        var barMat = new StandardMaterial3D();
+        barMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
+        barMat.Metallic = 0.3f;
+        barMat.Roughness = 0.4f;
+
         for (int i = 0; i < 3; i++)
         {
-            var post = MakeCylinder(0.025f, 0.7f, new Color(0.6f, 0.6f, 0.6f));
+            var post = MakeCylinderWithMat(0.025f, 0.7f, postMat);
             post.Position = new Vector3(0, 0.35f, i * 2f);
             rail.AddChild(post);
         }
-        var bar = MakeBox(new Vector3(0.04f, 0.04f, 5f), new Color(0.65f, 0.65f, 0.65f), new Vector3(0, 0.55f, 2.5f));
+        var bar = MakeBoxWithMat(new Vector3(0.04f, 0.04f, 5f), barMat, new Vector3(0, 0.55f, 2.5f));
         rail.AddChild(bar);
         _main.AddChild(rail);
         Items.Add(new SceneryItem { Node = rail, WorldZ = z, OffsetX = offset });
@@ -243,9 +253,22 @@ public class SceneryManager
     private void AddRoadSign(float z, float offset, RandomNumberGenerator rng)
     {
         var sign = new Node3D();
-        sign.AddChild(MakeCylinder(0.03f, 1.5f, new Color(0.5f, 0.5f, 0.5f), new Vector3(0, 0.75f, 0)));
-        var colors = new[] { new Color(0.9f, 0.8f, 0.1f), new Color(0.2f, 0.5f, 0.9f), new Color(0.85f, 0.2f, 0.1f) };
-        sign.AddChild(MakeBox(new Vector3(0.5f, 0.4f, 0.04f), colors[rng.RandiRange(0, 2)], new Vector3(0, 1.6f, 0)));
+        var postMat = new StandardMaterial3D();
+        postMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
+        postMat.Metallic = 0.2f;
+
+        var signColors = new[] {
+            new Color(0.92f, 0.82f, 0.12f),  // yellow warning
+            new Color(0.22f, 0.52f, 0.92f),  // blue info
+            new Color(0.88f, 0.22f, 0.12f),  // red stop
+        };
+        var signMat = new StandardMaterial3D();
+        signMat.AlbedoColor = signColors[rng.RandiRange(0, 2)];
+        signMat.Roughness = 0.6f;
+
+        sign.AddChild(MakeCylinderWithMat(0.03f, 1.5f, postMat, new Vector3(0, 0.75f, 0)));
+        sign.AddChild(MakeBoxWithMat(new Vector3(0.55f, 0.45f, 0.04f), signMat, new Vector3(0, 1.65f, 0)));
+
         _main.AddChild(sign);
         Items.Add(new SceneryItem { Node = sign, WorldZ = z, OffsetX = offset });
     }
@@ -518,6 +541,30 @@ public class SceneryManager
         m.MaterialOverride = mat;
         m.Position = pos;
         parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D MakeCylinderWithMat(float topR, float height, StandardMaterial3D mat, Vector3 pos = default)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new CylinderMesh();
+        mesh.TopRadius = topR;
+        mesh.BottomRadius = topR;
+        mesh.Height = height;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        return m;
+    }
+
+    private MeshInstance3D MakeBoxWithMat(Vector3 size, StandardMaterial3D mat, Vector3 pos = default)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new BoxMesh();
+        mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
         return m;
     }
 }
