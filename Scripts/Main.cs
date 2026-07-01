@@ -3,12 +3,14 @@ using System.Collections.Generic;
 
 public partial class Main : Node3D
 {
-    public enum GameState { Title, Riding, Paused, Finished, Countdown }
+    public enum GameState { Title, CharSelect, BoardSelect, Riding, Paused, Finished, Countdown }
     public enum CarlType { Office, Party, Dark }
+    public enum BoardType { Classic, Neon, Dark, Natural }
 
     // State
     public GameState State = GameState.Title;
     public CarlType Carl = CarlType.Office;
+    public BoardType Board = BoardType.Classic;
     public float Timer = 0f;
     public float BestTime = 0f;
     public float FinishTime = 0f;
@@ -17,6 +19,9 @@ public partial class Main : Node3D
 
     // Constants
     public static readonly string[] CarlNames = { "Office Carl", "Party Carl", "Dark Carl" };
+    public static readonly string[] CarlDescs = { "The everyman", "The maniac", "The enigma" };
+    public static readonly string[] BoardNames = { "Classic", "Neon", "Dark", "Natural" };
+    public static readonly string[] BoardDescs = { "Brown wood deck", "Bright neon colors", "Black with purple accent", "Light natural wood" };
     public static readonly string CourseName = "New Hampshire Summer";
     public static readonly Color[] CarlShirtColors = {
         new Color(0.55f, 0.18f, 0.18f),
@@ -27,6 +32,18 @@ public partial class Main : Node3D
         new Color(0.2f, 0.24f, 0.32f),
         new Color(0.9f, 0.4f, 0.1f),
         new Color(0.08f, 0.08f, 0.1f)
+    };
+    public static readonly Color[] BoardDeckColors = {
+        new Color(0.45f, 0.22f, 0.06f),  // Classic brown
+        new Color(0.9f, 0.2f, 0.9f),     // Neon pink
+        new Color(0.08f, 0.08f, 0.1f),   // Dark black
+        new Color(0.75f, 0.6f, 0.35f)    // Natural wood
+    };
+    public static readonly Color[] BoardGripColors = {
+        new Color(0.12f, 0.12f, 0.12f),  // Classic black
+        new Color(0.1f, 0.1f, 0.4f),     // Neon blue
+        new Color(0.3f, 0.0f, 0.5f),     // Dark purple
+        new Color(0.5f, 0.4f, 0.25f)     // Natural tan
     };
     public const float CourseLength = 2000f;
 
@@ -74,6 +91,18 @@ public partial class Main : Node3D
                 Scenery.UpdateClouds(dt);
                 Cam.UpdateTitle(TitleTime);
                 UI.HandleTitleInput(this);
+                break;
+
+            case GameState.CharSelect:
+                Scenery.UpdateClouds(dt);
+                Cam.UpdateTitle(TitleTime);
+                UI.HandleCharSelectInput(this);
+                break;
+
+            case GameState.BoardSelect:
+                Scenery.UpdateClouds(dt);
+                Cam.UpdateTitle(TitleTime);
+                UI.HandleBoardSelectInput(this);
                 break;
 
             case GameState.Countdown:
@@ -142,11 +171,24 @@ public partial class Main : Node3D
         }
     }
 
+    public void ShowCharSelect()
+    {
+        State = GameState.CharSelect;
+        UI.ShowCharSelect(this);
+    }
+
+    public void ShowBoardSelect()
+    {
+        State = GameState.BoardSelect;
+        UI.ShowBoardSelect(this);
+    }
+
     public void StartRide()
     {
         State = GameState.Countdown;
         CountdownTimer = 3f;
-        UI.HideTitle();
+        UI.HideAllSelectors();
+        PlayerMgr.ApplyBoard();
     }
 
     public void ResetGame()

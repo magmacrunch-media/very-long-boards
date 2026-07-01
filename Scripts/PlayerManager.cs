@@ -6,6 +6,8 @@ public class PlayerManager
     private Node3D _skaterRoot;
     private MeshInstance3D _shirtMesh;
     private MeshInstance3D _pantsMesh;
+    private MeshInstance3D _deckMesh;
+    private MeshInstance3D _gripMesh;
 
     public float Speed = 0f;
     public float PosX = 0f;
@@ -42,29 +44,29 @@ public class PlayerManager
         // ── Board ──
         // Deck with wood grain color
         var deckMat = new StandardMaterial3D();
-        deckMat.AlbedoColor = new Color(0.45f, 0.22f, 0.06f);
+        deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
         deckMat.Roughness = 0.7f;
         deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-        var deck = new MeshInstance3D();
+        _deckMesh = new MeshInstance3D();
         var deckMesh = new BoxMesh();
         deckMesh.Size = new Vector3(0.7f, 0.05f, 1.8f);
-        deck.Mesh = deckMesh;
-        deck.MaterialOverride = deckMat;
-        deck.Position = new Vector3(0, 0.13f, 0);
-        _skaterRoot.AddChild(deck);
+        _deckMesh.Mesh = deckMesh;
+        _deckMesh.MaterialOverride = deckMat;
+        _deckMesh.Position = new Vector3(0, 0.13f, 0);
+        _skaterRoot.AddChild(_deckMesh);
 
         // Grip tape
         var gripMat = new StandardMaterial3D();
-        gripMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
+        gripMat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
         gripMat.Roughness = 0.95f;
-        var grip = new MeshInstance3D();
+        _gripMesh = new MeshInstance3D();
         var gripMesh = new BoxMesh();
         gripMesh.Size = new Vector3(0.65f, 0.02f, 1.6f);
-        grip.Mesh = gripMesh;
-        grip.MaterialOverride = gripMat;
-        grip.Position = new Vector3(0, 0.165f, 0);
-        _skaterRoot.AddChild(grip);
+        _gripMesh.Mesh = gripMesh;
+        _gripMesh.MaterialOverride = gripMat;
+        _gripMesh.Position = new Vector3(0, 0.165f, 0);
+        _skaterRoot.AddChild(_gripMesh);
 
         // Nose/tail kicks
         var kickMat = new StandardMaterial3D();
@@ -345,5 +347,24 @@ public class PlayerManager
         Lean = 0f;
         _main.Player.Position = new Vector3(0, 0.1f, 0);
         if (_skaterRoot != null) _skaterRoot.Rotation = Vector3.Zero;
+    }
+
+    public void ApplyBoard()
+    {
+        if (_deckMesh != null)
+        {
+            var mat = new StandardMaterial3D();
+            mat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
+            mat.Roughness = 0.7f;
+            mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            _deckMesh.MaterialOverride = mat;
+        }
+        if (_gripMesh != null)
+        {
+            var mat = new StandardMaterial3D();
+            mat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
+            mat.Roughness = 0.95f;
+            _gripMesh.MaterialOverride = mat;
+        }
     }
 }

@@ -4,20 +4,36 @@ public class GameUI
 {
     private Main _main;
 
+    // HUD
     public Label SpeedLabel;
     public Label DistLabel;
     public Label TimerLabel;
-    public Label PromptLabel;
-    public Label TitleLabel;
-    public Label SubtitleLabel;
-    public Label CharLabel;
     public Label BestLabel;
-    public Label CourseLabel;
+    public Label PromptLabel;
     public Label PauseLabel;
     public Label CountdownLabel;
     public Label NearMissLabel;
     private ColorRect _progressFill;
-    private float _nearMissDisplayTimer = 0f;
+
+    // Title
+    public Label TitleLabel;
+    public Label SubtitleLabel;
+    public Label CourseLabel;
+
+    // Char Select
+    private PanelContainer _charPanel;
+    private Label _charTitle;
+    private Label _charName;
+    private Label _charDesc;
+    private Label _charStats;
+    private Label _charHint;
+
+    // Board Select
+    private PanelContainer _boardPanel;
+    private Label _boardTitle;
+    private Label _boardName;
+    private Label _boardDesc;
+    private Label _boardHint;
 
     public GameUI(Main main)
     {
@@ -29,7 +45,14 @@ public class GameUI
         var canvas = new CanvasLayer();
         _main.AddChild(canvas);
 
-        // HUD panel
+        CreateHUD(canvas);
+        CreateTitle(canvas);
+        CreateCharSelect(canvas);
+        CreateBoardSelect(canvas);
+    }
+
+    private void CreateHUD(CanvasLayer canvas)
+    {
         var panel = new PanelContainer();
         panel.AnchorLeft = 0; panel.AnchorTop = 0;
         panel.AnchorRight = 0; panel.AnchorBottom = 0;
@@ -57,27 +80,6 @@ public class GameUI
         panel.AddChild(vbox);
         canvas.AddChild(panel);
 
-        // Title
-        TitleLabel = MakeCenterLabel(36, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f));
-        SetAnchor(TitleLabel, 0.5f, 0.08f, -240, 240);
-        canvas.AddChild(TitleLabel);
-
-        SubtitleLabel = MakeCenterLabel(16, "A Carl Spatski Game", new Color(0.7f, 0.7f, 0.8f));
-        SetAnchor(SubtitleLabel, 0.5f, 0.15f, -140, 140);
-        canvas.AddChild(SubtitleLabel);
-
-        CharLabel = MakeCenterLabel(14, "< Office Carl >", new Color(0.9f, 0.85f, 0.6f));
-        SetAnchor(CharLabel, 0.5f, 0.22f, -120, 120);
-        canvas.AddChild(CharLabel);
-
-        CourseLabel = MakeCenterLabel(12, Main.CourseName, new Color(0.5f, 0.65f, 0.5f));
-        SetAnchor(CourseLabel, 0.5f, 0.27f, -100, 100);
-        canvas.AddChild(CourseLabel);
-
-        PromptLabel = MakeCenterLabel(18, "Press \u2191 to kick off", new Color(1f, 0.88f, 0.23f));
-        SetAnchor(PromptLabel, 0.5f, 0.8f, -140, 140);
-        canvas.AddChild(PromptLabel);
-
         PauseLabel = MakeCenterLabel(28, "", new Color(0.8f, 0.6f, 1f));
         SetAnchor(PauseLabel, 0.5f, 0.4f, -100, 100);
         canvas.AddChild(PauseLabel);
@@ -90,7 +92,10 @@ public class GameUI
         SetAnchor(NearMissLabel, 0.5f, 0.7f, -100, 100);
         canvas.AddChild(NearMissLabel);
 
-        // Progress bar
+        PromptLabel = MakeCenterLabel(16, "", new Color(1f, 0.88f, 0.23f));
+        SetAnchor(PromptLabel, 0.5f, 0.85f, -160, 160);
+        canvas.AddChild(PromptLabel);
+
         var progressBg = new ColorRect();
         progressBg.Color = new Color(0, 0, 0, 0.4f);
         progressBg.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
@@ -105,24 +110,203 @@ public class GameUI
         canvas.AddChild(_progressFill);
     }
 
+    private void CreateTitle(CanvasLayer canvas)
+    {
+        TitleLabel = MakeCenterLabel(36, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f));
+        SetAnchor(TitleLabel, 0.5f, 0.1f, -240, 240);
+        canvas.AddChild(TitleLabel);
+
+        SubtitleLabel = MakeCenterLabel(16, "A Carl Spatski Game", new Color(0.7f, 0.7f, 0.8f));
+        SetAnchor(SubtitleLabel, 0.5f, 0.17f, -140, 140);
+        canvas.AddChild(SubtitleLabel);
+
+        CourseLabel = MakeCenterLabel(12, Main.CourseName, new Color(0.5f, 0.65f, 0.5f));
+        SetAnchor(CourseLabel, 0.5f, 0.23f, -100, 100);
+        canvas.AddChild(CourseLabel);
+    }
+
+    private void CreateCharSelect(CanvasLayer canvas)
+    {
+        _charPanel = MakePanel(canvas, 0.25f, 0.2f, 0.75f, 0.8f);
+
+        _charTitle = MakeCenterLabel(20, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
+        SetAnchor(_charTitle, 0.5f, 0.08f, -160, 160);
+        _charPanel.AddChild(_charTitle);
+
+        _charName = MakeCenterLabel(24, "", new Color(1f, 0.88f, 0.23f));
+        SetAnchor(_charName, 0.5f, 0.25f, -140, 140);
+        _charPanel.AddChild(_charName);
+
+        _charDesc = MakeCenterLabel(14, "", new Color(0.7f, 0.7f, 0.8f));
+        SetAnchor(_charDesc, 0.5f, 0.38f, -120, 120);
+        _charPanel.AddChild(_charDesc);
+
+        _charStats = MakeCenterLabel(11, "", new Color(0.6f, 0.8f, 0.6f));
+        SetAnchor(_charStats, 0.5f, 0.5f, -140, 140);
+        _charPanel.AddChild(_charStats);
+
+        _charHint = MakeCenterLabel(11, "\u2190 \u2192 to select  |  Enter to confirm", new Color(0.5f, 0.5f, 0.6f));
+        SetAnchor(_charHint, 0.5f, 0.85f, -180, 180);
+        _charPanel.AddChild(_charHint);
+
+        _charPanel.Visible = false;
+    }
+
+    private void CreateBoardSelect(CanvasLayer canvas)
+    {
+        _boardPanel = MakePanel(canvas, 0.25f, 0.25f, 0.75f, 0.75f);
+
+        _boardTitle = MakeCenterLabel(20, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
+        SetAnchor(_boardTitle, 0.5f, 0.08f, -160, 160);
+        _boardPanel.AddChild(_boardTitle);
+
+        _boardName = MakeCenterLabel(24, "", new Color(1f, 0.88f, 0.23f));
+        SetAnchor(_boardName, 0.5f, 0.28f, -140, 140);
+        _boardPanel.AddChild(_boardName);
+
+        _boardDesc = MakeCenterLabel(14, "", new Color(0.7f, 0.7f, 0.8f));
+        SetAnchor(_boardDesc, 0.5f, 0.42f, -120, 120);
+        _boardPanel.AddChild(_boardDesc);
+
+        _boardHint = MakeCenterLabel(11, "\u2190 \u2192 to select  |  Enter to confirm", new Color(0.5f, 0.5f, 0.6f));
+        SetAnchor(_boardHint, 0.5f, 0.85f, -180, 180);
+        _boardPanel.AddChild(_boardHint);
+
+        _boardPanel.Visible = false;
+    }
+
+    private PanelContainer MakePanel(CanvasLayer canvas, float left, float top, float right, float bottom)
+    {
+        var panel = new PanelContainer();
+        panel.AnchorLeft = left; panel.AnchorTop = top;
+        panel.AnchorRight = right; panel.AnchorBottom = bottom;
+        var ps = new StyleBoxFlat();
+        ps.BgColor = new Color(0.05f, 0.05f, 0.08f, 0.92f);
+        ps.BorderColor = new Color(0.3f, 0.3f, 0.4f);
+        ps.CornerRadiusTopLeft = 8; ps.CornerRadiusTopRight = 8;
+        ps.CornerRadiusBottomLeft = 8; ps.CornerRadiusBottomRight = 8;
+        panel.AddThemeStyleboxOverride("panel", ps);
+        canvas.AddChild(panel);
+        return panel;
+    }
+
+    // ── Input Handlers ───────────────────────────
+
     public void HandleTitleInput(Main main)
+    {
+        if (Input.IsActionJustPressed("kick_off"))
+        {
+            main.ShowCharSelect();
+        }
+    }
+
+    public void HandleCharSelectInput(Main main)
     {
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Carl = (Main.CarlType)(((int)main.Carl + 2) % 3);
-            CharLabel.Text = $"< {Main.CarlNames[(int)main.Carl]} >";
+            UpdateCharSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Carl = (Main.CarlType)(((int)main.Carl + 1) % 3);
-            CharLabel.Text = $"< {Main.CarlNames[(int)main.Carl]} >";
+            UpdateCharSelect(main);
         }
         if (Input.IsActionJustPressed("kick_off"))
         {
-            GD.Print($"KICK OFF as {Main.CarlNames[(int)main.Carl]}!");
+            main.ShowBoardSelect();
+        }
+    }
+
+    public void HandleBoardSelectInput(Main main)
+    {
+        if (Input.IsActionJustPressed("move_left"))
+        {
+            main.Board = (Main.BoardType)(((int)main.Board + 3) % 4);
+            UpdateBoardSelect(main);
+        }
+        if (Input.IsActionJustPressed("move_right"))
+        {
+            main.Board = (Main.BoardType)(((int)main.Board + 1) % 4);
+            UpdateBoardSelect(main);
+        }
+        if (Input.IsActionJustPressed("kick_off"))
+        {
             main.StartRide();
         }
     }
+
+    // ── Show/Hide ────────────────────────────────
+
+    public void ShowTitle(Main main)
+    {
+        TitleLabel.Text = "VERY LONG BOARDS";
+        SubtitleLabel.Text = "A Carl Spatski Game";
+        CourseLabel.Text = Main.CourseName;
+        PromptLabel.Text = "Press \u2191 to start";
+        CountdownLabel.Text = "";
+        NearMissLabel.Text = "";
+        _progressFill.AnchorRight = 0f;
+        _charPanel.Visible = false;
+        _boardPanel.Visible = false;
+    }
+
+    public void ShowCharSelect(Main main)
+    {
+        TitleLabel.Text = "";
+        SubtitleLabel.Text = "";
+        CourseLabel.Text = "";
+        PromptLabel.Text = "";
+        _charPanel.Visible = true;
+        _boardPanel.Visible = false;
+        UpdateCharSelect(main);
+    }
+
+    public void ShowBoardSelect(Main main)
+    {
+        _charPanel.Visible = false;
+        _boardPanel.Visible = true;
+        UpdateBoardSelect(main);
+    }
+
+    public void HideAllSelectors()
+    {
+        TitleLabel.Text = "";
+        SubtitleLabel.Text = "";
+        CourseLabel.Text = "";
+        PromptLabel.Text = "";
+        _charPanel.Visible = false;
+        _boardPanel.Visible = false;
+    }
+
+    private void UpdateCharSelect(Main main)
+    {
+        _charName.Text = Main.CarlNames[(int)main.Carl];
+        _charDesc.Text = Main.CarlDescs[(int)main.Carl];
+
+        string stats = "";
+        switch (main.Carl)
+        {
+            case Main.CarlType.Office:
+                stats = "SPD \u2584\u2584\u2584\u2584\u2581  HAND \u2584\u2584\u2584\u2584\u2581  TRK \u2584\u2584\u2584\u2584\u2581";
+                break;
+            case Main.CarlType.Party:
+                stats = "SPD \u2588\u2588\u2588\u2588\u2588  HAND \u2588\u2588\u2588\u2581\u2581  TRK \u2588\u2588\u2588\u2581\u2581";
+                break;
+            case Main.CarlType.Dark:
+                stats = "SPD \u2588\u2588\u2588\u2588\u2581  HAND \u2588\u2588\u2588\u2588\u2581  TRK \u2588\u2588\u2588\u2588\u2588";
+                break;
+        }
+        _charStats.Text = stats;
+    }
+
+    private void UpdateBoardSelect(Main main)
+    {
+        _boardName.Text = Main.BoardNames[(int)main.Board];
+        _boardDesc.Text = Main.BoardDescs[(int)main.Board];
+    }
+
+    // ── HUD ──────────────────────────────────────
 
     public void UpdateHUD(Main main)
     {
@@ -154,28 +338,6 @@ public class GameUI
         _progressFill.AnchorRight = progress;
     }
 
-    public void ShowTitle(Main main)
-    {
-        TitleLabel.Modulate = new Color(1f, 0.18f, 0.61f);
-        TitleLabel.Text = "VERY LONG BOARDS";
-        SubtitleLabel.Text = "A Carl Spatski Game";
-        CharLabel.Text = $"< {Main.CarlNames[(int)main.Carl]} >";
-        CourseLabel.Text = Main.CourseName;
-        PromptLabel.Text = "Press \u2191 to kick off";
-        CountdownLabel.Text = "";
-        NearMissLabel.Text = "";
-        _progressFill.AnchorRight = 0f;
-    }
-
-    public void HideTitle()
-    {
-        TitleLabel.Text = "";
-        SubtitleLabel.Text = "";
-        CharLabel.Text = "";
-        CourseLabel.Text = "";
-        PromptLabel.Text = "";
-    }
-
     public void ShowFinish(Main main)
     {
         TitleLabel.Modulate = new Color(0.22f, 1f, 0.43f);
@@ -192,6 +354,8 @@ public class GameUI
         PromptLabel.Text = $"Time: {mins}:{secs:00.0}{bestText}   |   Press \u2191 to ride again";
         _progressFill.AnchorRight = 1f;
     }
+
+    // ── Helpers ──────────────────────────────────
 
     private Label MakeLabel(int fontSize, string text)
     {
@@ -211,10 +375,10 @@ public class GameUI
         return label;
     }
 
-    private void SetAnchor(Label label, float x, float y, float leftOff, float rightOff)
+    private void SetAnchor(Control control, float x, float y, float leftOff, float rightOff)
     {
-        label.AnchorLeft = x; label.AnchorTop = y;
-        label.AnchorRight = x; label.AnchorBottom = y;
-        label.OffsetLeft = leftOff; label.OffsetRight = rightOff;
+        control.AnchorLeft = x; control.AnchorTop = y;
+        control.AnchorRight = x; control.AnchorBottom = y;
+        control.OffsetLeft = leftOff; control.OffsetRight = rightOff;
     }
 }
