@@ -709,7 +709,7 @@ public class SceneryManager
         sunMat.AlbedoColor = new Color(1f, 1f, 1f);
         sunMat.EmissionEnabled = true;
         sunMat.Emission = new Color(1f, 0.95f, 0.8f);
-        sunMat.EmissionEnergyMultiplier = 3f;
+        sunMat.EmissionEnergyMultiplier = 4f;
 
         var sun = new MeshInstance3D();
         var sunMesh = new SphereMesh();
