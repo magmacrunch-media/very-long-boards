@@ -278,8 +278,8 @@ public class PlayerManager
         var terrain = _main.Terrain;
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
 
-        // Push off: gives a burst of speed
-        if (Input.IsActionJustPressed("kick_off"))
+        // Push off: only when going slow (realistic skateboarding)
+        if (Input.IsActionJustPressed("kick_off") && Speed < 0.5f)
         {
             Speed += 0.25f;
             Kicked = true;

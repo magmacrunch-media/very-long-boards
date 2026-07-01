@@ -16,21 +16,18 @@ public class GameUI
     private Label _nearMissLabel;
     private ColorRect _progressFill;
 
-    // Title
+    // Screens
     private Control _titleScreen;
-
-    // Loading
     private Control _loadingScreen;
-    private Label _loadingText;
+    private Control _charScreen;
+    private Control _boardScreen;
 
     // Char Select
-    private Control _charScreen;
     private Label _charName;
     private Label _charDesc;
     private Label _charStats;
 
     // Board Select
-    private Control _boardScreen;
     private Label _boardName;
     private Label _boardDesc;
 
@@ -53,32 +50,16 @@ public class GameUI
         CreateBoardSelect(canvas);
     }
 
-    private Label MakeRetroLabel(int size, string text, Color color, Control parent)
+    private Label Retro(int size, string text, Color color)
     {
         var label = new Label();
         label.AddThemeFontSizeOverride("font_size", size);
-        label.AddThemeFontOverride("font", _font);
+        if (_font != null) label.AddThemeFontOverride("font", _font);
         label.Text = text;
         label.Modulate = color;
         label.HorizontalAlignment = HorizontalAlignment.Center;
         label.VerticalAlignment = VerticalAlignment.Center;
-        parent.AddChild(label);
         return label;
-    }
-
-    private PanelContainer MakePanel(Control parent, Color bgColor, Color borderColor)
-    {
-        var panel = new PanelContainer();
-        var ps = new StyleBoxFlat();
-        ps.BgColor = bgColor;
-        ps.BorderColor = borderColor;
-        ps.CornerRadiusTopLeft = 4; ps.CornerRadiusTopRight = 4;
-        ps.CornerRadiusBottomLeft = 4; ps.CornerRadiusBottomRight = 4;
-        ps.ContentMarginLeft = 16; ps.ContentMarginRight = 16;
-        ps.ContentMarginTop = 12; ps.ContentMarginBottom = 12;
-        panel.AddThemeStyleboxOverride("panel", ps);
-        parent.AddChild(panel);
-        return panel;
     }
 
     // ── HUD ──────────────────────────────────────
@@ -89,46 +70,59 @@ public class GameUI
         hud.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         canvas.AddChild(hud);
 
-        // Top-left panel
-        var panel = MakePanel(hud, new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.3f, 0.4f));
-        panel.AnchorLeft = 0; panel.AnchorTop = 0;
-        panel.AnchorRight = 0; panel.AnchorBottom = 0;
-        panel.OffsetLeft = 12; panel.OffsetTop = 10;
-        panel.OffsetRight = 220; panel.OffsetBottom = 120;
+        // Speed (top-left, big)
+        _speedLabel = Retro(20, "0 km/h", new Color(1, 1, 1));
+        _speedLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _speedLabel.OffsetLeft = 16;
+        _speedLabel.OffsetTop = 10;
+        hud.AddChild(_speedLabel);
 
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 4);
-        panel.AddChild(vbox);
+        // Distance
+        _distLabel = Retro(12, "0 m", new Color(1, 1, 1));
+        _distLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _distLabel.OffsetLeft = 16;
+        _distLabel.OffsetTop = 38;
+        hud.AddChild(_distLabel);
 
-        _speedLabel = MakeRetroLabel(18, "0 km/h", new Color(1, 1, 1), new Control());
-        vbox.AddChild(_speedLabel);
-        _distLabel = MakeRetroLabel(12, "0 m", new Color(1, 1, 1), new Control());
-        vbox.AddChild(_distLabel);
-        _timerLabel = MakeRetroLabel(12, "0:00.0", new Color(1, 1, 1), new Control());
-        vbox.AddChild(_timerLabel);
-        _bestLabel = MakeRetroLabel(10, "", new Color(0.7f, 0.85f, 1f), new Control());
-        vbox.AddChild(_bestLabel);
+        // Timer
+        _timerLabel = Retro(12, "0:00.0", new Color(1, 1, 1));
+        _timerLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _timerLabel.OffsetLeft = 16;
+        _timerLabel.OffsetTop = 58;
+        hud.AddChild(_timerLabel);
 
-        // Center labels
-        _pauseLabel = MakeRetroLabel(24, "", new Color(0.8f, 0.6f, 1f), hud);
+        // Best time
+        _bestLabel = Retro(10, "", new Color(0.7f, 0.85f, 1f));
+        _bestLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _bestLabel.OffsetLeft = 16;
+        _bestLabel.OffsetTop = 78;
+        hud.AddChild(_bestLabel);
+
+        // Pause (center)
+        _pauseLabel = Retro(24, "", new Color(0.8f, 0.6f, 1f));
         _pauseLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _pauseLabel.OffsetTop = -20;
+        hud.AddChild(_pauseLabel);
 
-        _countdownLabel = MakeRetroLabel(48, "", new Color(1f, 0.88f, 0.23f), hud);
+        // Countdown (center)
+        _countdownLabel = Retro(48, "", new Color(1f, 0.88f, 0.23f));
         _countdownLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _countdownLabel.OffsetTop = -30;
+        hud.AddChild(_countdownLabel);
 
-        _nearMissLabel = MakeRetroLabel(14, "", new Color(1f, 0.85f, 0.3f), hud);
+        // Near miss (center-low)
+        _nearMissLabel = Retro(14, "", new Color(1f, 0.85f, 0.3f));
         _nearMissLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _nearMissLabel.AnchorTop = 0.65f;
-        _nearMissLabel.OffsetTop = 0;
+        _nearMissLabel.OffsetTop = 80;
+        hud.AddChild(_nearMissLabel);
 
-        _promptLabel = MakeRetroLabel(10, "", new Color(1f, 0.88f, 0.23f), hud);
+        // Prompt (bottom-center)
+        _promptLabel = Retro(10, "", new Color(1f, 0.88f, 0.23f));
         _promptLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _promptLabel.AnchorTop = 0.88f;
-        _promptLabel.OffsetTop = 0;
+        _promptLabel.OffsetTop = 200;
+        hud.AddChild(_promptLabel);
 
-        // Progress bar
+        // Progress bar background
         var barBg = new ColorRect();
         barBg.Color = new Color(0, 0, 0, 0.5f);
         barBg.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
@@ -136,6 +130,7 @@ public class GameUI
         barBg.OffsetTop = 0;
         hud.AddChild(barBg);
 
+        // Progress bar fill
         _progressFill = new ColorRect();
         _progressFill.Color = new Color(0.2f, 0.85f, 0.4f, 0.8f);
         _progressFill.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
@@ -153,41 +148,35 @@ public class GameUI
         _titleScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         canvas.AddChild(_titleScreen);
 
-        // Dark overlay
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.85f);
         _titleScreen.AddChild(bg);
 
-        // Title
-        var title = MakeRetroLabel(28, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f), _titleScreen);
+        var title = Retro(28, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.AnchorTop = 0.15f;
-        title.OffsetTop = 0;
+        title.OffsetTop = -100;
+        _titleScreen.AddChild(title);
 
-        // Subtitle
-        var sub = MakeRetroLabel(10, "A Carl Spatski Game", new Color(0.6f, 0.6f, 0.7f), _titleScreen);
+        var sub = Retro(10, "A Carl Spatski Game", new Color(0.6f, 0.6f, 0.7f));
         sub.SetAnchorsPreset(Control.LayoutPreset.Center);
-        sub.AnchorTop = 0.25f;
-        sub.OffsetTop = 0;
+        sub.OffsetTop = -50;
+        _titleScreen.AddChild(sub);
 
-        // Course name
-        var course = MakeRetroLabel(8, Main.CourseName, new Color(0.4f, 0.55f, 0.4f), _titleScreen);
+        var course = Retro(8, Main.CourseName, new Color(0.4f, 0.55f, 0.4f));
         course.SetAnchorsPreset(Control.LayoutPreset.Center);
-        course.AnchorTop = 0.32f;
-        course.OffsetTop = 0;
+        course.OffsetTop = -20;
+        _titleScreen.AddChild(course);
 
-        // Prompt
-        var prompt = MakeRetroLabel(12, "PRESS \u2191 TO START", new Color(1f, 0.88f, 0.23f), _titleScreen);
+        var prompt = Retro(12, "PRESS \u2191 TO START", new Color(1f, 0.88f, 0.23f));
         prompt.SetAnchorsPreset(Control.LayoutPreset.Center);
-        prompt.AnchorTop = 0.75f;
-        prompt.OffsetTop = 0;
+        prompt.OffsetTop = 120;
+        _titleScreen.AddChild(prompt);
 
-        // Controls hint
-        var controls = MakeRetroLabel(7, "\u2190 \u2192 STEER    SPACE BRAKE    \u2191 KICK OFF", new Color(0.4f, 0.4f, 0.5f), _titleScreen);
+        var controls = Retro(7, "\u2190 \u2192 STEER    SPACE BRAKE    \u2191 KICK", new Color(0.4f, 0.4f, 0.5f));
         controls.SetAnchorsPreset(Control.LayoutPreset.Center);
-        controls.AnchorTop = 0.85f;
-        controls.OffsetTop = 0;
+        controls.OffsetTop = 170;
+        _titleScreen.AddChild(controls);
     }
 
     // ── Loading Screen ───────────────────────────
@@ -204,9 +193,9 @@ public class GameUI
         bg.Color = new Color(0.03f, 0.02f, 0.06f, 1f);
         _loadingScreen.AddChild(bg);
 
-        _loadingText = MakeRetroLabel(14, "LOADING...", new Color(1f, 0.88f, 0.23f), _loadingScreen);
-        _loadingText.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _loadingText.OffsetTop = 0;
+        var text = Retro(14, "LOADING...", new Color(1f, 0.88f, 0.23f));
+        text.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _loadingScreen.AddChild(text);
     }
 
     // ── Character Select ─────────────────────────
@@ -220,51 +209,45 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.9f);
+        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.92f);
         _charScreen.AddChild(bg);
 
-        // Title
-        var title = MakeRetroLabel(16, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f), _charScreen);
+        var title = Retro(16, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.AnchorTop = 0.12f;
-        title.OffsetTop = 0;
+        title.OffsetTop = -120;
+        _charScreen.AddChild(title);
 
-        // Character name
-        _charName = MakeRetroLabel(22, "", new Color(1f, 0.88f, 0.23f), _charScreen);
+        _charName = Retro(22, "", new Color(1f, 0.88f, 0.23f));
         _charName.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _charName.AnchorTop = 0.3f;
-        _charName.OffsetTop = 0;
+        _charName.OffsetTop = -40;
+        _charScreen.AddChild(_charName);
 
-        // Description
-        _charDesc = MakeRetroLabel(10, "", new Color(0.7f, 0.7f, 0.8f), _charScreen);
+        _charDesc = Retro(10, "", new Color(0.7f, 0.7f, 0.8f));
         _charDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _charDesc.AnchorTop = 0.4f;
         _charDesc.OffsetTop = 0;
+        _charScreen.AddChild(_charDesc);
 
-        // Stats
-        _charStats = MakeRetroLabel(8, "", new Color(0.5f, 0.8f, 0.5f), _charScreen);
+        _charStats = Retro(8, "", new Color(0.5f, 0.8f, 0.5f));
         _charStats.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _charStats.AnchorTop = 0.5f;
-        _charStats.OffsetTop = 0;
+        _charStats.OffsetTop = 40;
+        _charScreen.AddChild(_charStats);
 
-        // Arrow indicators
-        var arrowL = MakeRetroLabel(18, "\u25C0", new Color(0.5f, 0.5f, 0.6f), _charScreen);
+        var arrowL = Retro(20, "\u25C0", new Color(0.5f, 0.5f, 0.6f));
         arrowL.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowL.AnchorLeft = 0.15f;
-        arrowL.AnchorRight = 0.15f;
-        arrowL.OffsetTop = -10;
+        arrowL.OffsetLeft = -300;
+        arrowL.OffsetTop = -40;
+        _charScreen.AddChild(arrowL);
 
-        var arrowR = MakeRetroLabel(18, "\u25B6", new Color(0.5f, 0.5f, 0.6f), _charScreen);
+        var arrowR = Retro(20, "\u25B6", new Color(0.5f, 0.5f, 0.6f));
         arrowR.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowR.AnchorLeft = 0.85f;
-        arrowR.AnchorRight = 0.85f;
-        arrowR.OffsetTop = -10;
+        arrowR.OffsetLeft = 300;
+        arrowR.OffsetTop = -40;
+        _charScreen.AddChild(arrowR);
 
-        // Hint
-        var hint = MakeRetroLabel(8, "\u2190 \u2192 SELECT    ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f), _charScreen);
+        var hint = Retro(8, "\u2190 \u2192 SELECT    ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
-        hint.AnchorTop = 0.82f;
-        hint.OffsetTop = 0;
+        hint.OffsetTop = 160;
+        _charScreen.AddChild(hint);
     }
 
     // ── Board Select ─────────────────────────────
@@ -278,48 +261,40 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.9f);
+        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.92f);
         _boardScreen.AddChild(bg);
 
-        // Title
-        var title = MakeRetroLabel(16, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f), _boardScreen);
+        var title = Retro(16, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.AnchorTop = 0.15f;
-        title.OffsetTop = 0;
+        title.OffsetTop = -100;
+        _boardScreen.AddChild(title);
 
-        // Board name
-        _boardName = MakeRetroLabel(22, "", new Color(1f, 0.88f, 0.23f), _boardScreen);
+        _boardName = Retro(22, "", new Color(1f, 0.88f, 0.23f));
         _boardName.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _boardName.AnchorTop = 0.35f;
-        _boardName.OffsetTop = 0;
+        _boardName.OffsetTop = -20;
+        _boardScreen.AddChild(_boardName);
 
-        // Description
-        _boardDesc = MakeRetroLabel(10, "", new Color(0.7f, 0.7f, 0.8f), _boardScreen);
+        _boardDesc = Retro(10, "", new Color(0.7f, 0.7f, 0.8f));
         _boardDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _boardDesc.AnchorTop = 0.45f;
-        _boardDesc.OffsetTop = 0;
+        _boardDesc.OffsetTop = 20;
+        _boardScreen.AddChild(_boardDesc);
 
-        // Board preview (colored rectangle)
-        // This will be set dynamically
-
-        // Arrow indicators
-        var arrowL = MakeRetroLabel(18, "\u25C0", new Color(0.5f, 0.5f, 0.6f), _boardScreen);
+        var arrowL = Retro(20, "\u25C0", new Color(0.5f, 0.5f, 0.6f));
         arrowL.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowL.AnchorLeft = 0.15f;
-        arrowL.AnchorRight = 0.15f;
-        arrowL.OffsetTop = -10;
+        arrowL.OffsetLeft = -300;
+        arrowL.OffsetTop = -20;
+        _boardScreen.AddChild(arrowL);
 
-        var arrowR = MakeRetroLabel(18, "\u25B6", new Color(0.5f, 0.5f, 0.6f), _boardScreen);
+        var arrowR = Retro(20, "\u25B6", new Color(0.5f, 0.5f, 0.6f));
         arrowR.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowR.AnchorLeft = 0.85f;
-        arrowR.AnchorRight = 0.85f;
-        arrowR.OffsetTop = -10;
+        arrowR.OffsetLeft = 300;
+        arrowR.OffsetTop = -20;
+        _boardScreen.AddChild(arrowR);
 
-        // Hint
-        var hint = MakeRetroLabel(8, "\u2190 \u2192 SELECT    ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f), _boardScreen);
+        var hint = Retro(8, "\u2190 \u2192 SELECT    ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
-        hint.AnchorTop = 0.82f;
-        hint.OffsetTop = 0;
+        hint.OffsetTop = 120;
+        _boardScreen.AddChild(hint);
     }
 
     // ── Input Handlers ───────────────────────────
@@ -400,16 +375,6 @@ public class GameUI
         _promptLabel.Text = "";
     }
 
-    public void ShowLoading()
-    {
-        _loadingScreen.Visible = true;
-    }
-
-    public void HideLoading()
-    {
-        _loadingScreen.Visible = false;
-    }
-
     private void UpdateCharSelect(Main main)
     {
         _charName.Text = Main.CarlNames[(int)main.Carl];
@@ -471,7 +436,6 @@ public class GameUI
 
     public void ShowFinish(Main main)
     {
-        _promptLabel.Modulate = new Color(0.22f, 1f, 0.43f);
         int mins = (int)(main.FinishTime / 60f);
         float secs = main.FinishTime % 60f;
         string bestText = "";
@@ -481,6 +445,7 @@ public class GameUI
             float bSecs = main.BestTime % 60f;
             bestText = $"  BEST {bMins}:{bSecs:00.0}";
         }
+        _promptLabel.Modulate = new Color(0.22f, 1f, 0.43f);
         _promptLabel.Text = $"FINISH! {mins}:{secs:00.0}{bestText}  |  \u2191 RIDE AGAIN";
         _progressFill.AnchorRight = 1f;
     }
@@ -491,13 +456,6 @@ public class GameUI
         _countdownLabel.Modulate = color;
     }
 
-    public void SetPause(string text)
-    {
-        _pauseLabel.Text = text;
-    }
-
-    public void SetPrompt(string text)
-    {
-        _promptLabel.Text = text;
-    }
+    public void SetPause(string text) { _pauseLabel.Text = text; }
+    public void SetPrompt(string text) { _promptLabel.Text = text; }
 }
