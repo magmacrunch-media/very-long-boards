@@ -389,8 +389,8 @@ public class SceneryManager
         roofMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var doorMat = new StandardMaterial3D();
-        doorMat.AlbedoColor = new Color(0.38f, 0.22f, 0.12f);
-        doorMat.Roughness = 0.7f;
+        doorMat.AlbedoColor = new Color(0.42f, 0.25f, 0.14f);
+        doorMat.Roughness = 0.65f;
 
         var winMat = new StandardMaterial3D();
         winMat.AlbedoColor = new Color(0.75f, 0.88f, 0.98f, 0.88f);
