@@ -110,9 +110,9 @@ public class SceneryManager
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.2f + rng.RandfRange(0f, 3f));
             var col = new[] {
-                new Color(0.92f, 0.88f, 0.22f), new Color(0.92f, 0.42f, 0.52f),
-                new Color(0.82f, 0.82f, 0.88f), new Color(0.62f, 0.42f, 0.82f),
-                new Color(0.95f, 0.6f, 0.2f)
+                new Color(0.95f, 0.9f, 0.25f), new Color(0.95f, 0.45f, 0.55f),
+                new Color(0.85f, 0.85f, 0.9f), new Color(0.65f, 0.45f, 0.85f),
+                new Color(0.98f, 0.65f, 0.25f)
             }[rng.RandiRange(0, 4)];
             AddItem(z, offset, MakeSphere(0.04f + rng.RandfRange(0, 0.02f), col));
         }
