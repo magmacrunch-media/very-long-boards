@@ -34,16 +34,16 @@ public partial class Main : Node3D
         new Color(0.1f, 0.1f, 0.12f)    // Dark: black
     };
     public static readonly Color[] BoardDeckColors = {
-        new Color(0.45f, 0.22f, 0.06f),  // Classic brown
-        new Color(0.9f, 0.2f, 0.9f),     // Neon pink
-        new Color(0.08f, 0.08f, 0.1f),   // Dark black
-        new Color(0.75f, 0.6f, 0.35f)    // Natural wood
+        new Color(0.48f, 0.24f, 0.08f),  // Classic brown
+        new Color(0.92f, 0.22f, 0.92f),  // Neon pink
+        new Color(0.1f, 0.1f, 0.12f),    // Dark black
+        new Color(0.78f, 0.62f, 0.38f)   // Natural wood
     };
     public static readonly Color[] BoardGripColors = {
-        new Color(0.12f, 0.12f, 0.12f),  // Classic black
-        new Color(0.1f, 0.1f, 0.4f),     // Neon blue
-        new Color(0.3f, 0.0f, 0.5f),     // Dark purple
-        new Color(0.5f, 0.4f, 0.25f)     // Natural tan
+        new Color(0.14f, 0.14f, 0.14f),  // Classic black
+        new Color(0.12f, 0.12f, 0.42f),  // Neon blue
+        new Color(0.32f, 0.02f, 0.52f),  // Dark purple
+        new Color(0.52f, 0.42f, 0.28f)   // Natural tan
     };
     public const float CourseLength = 2000f;
 
