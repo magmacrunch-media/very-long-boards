@@ -127,7 +127,7 @@ public class PlayerManager
 
         // Skin material
         var skinMat = new StandardMaterial3D();
-        skinMat.AlbedoColor = new Color(0.88f, 0.78f, 0.6f);
+        skinMat.AlbedoColor = new Color(0.9f, 0.8f, 0.62f);
         skinMat.Roughness = 0.8f;
         skinMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
