@@ -726,10 +726,10 @@ public class SceneryManager
         var rng = new RandomNumberGenerator();
         rng.Seed = 123;
         var colors = new[] {
-            new Color(0.9f, 0.8f, 0.2f),  // yellow
-            new Color(0.9f, 0.4f, 0.6f),  // pink
-            new Color(0.7f, 0.85f, 0.95f), // blue
-            new Color(0.95f, 0.95f, 0.9f), // white
+            new Color(0.95f, 0.85f, 0.25f),  // yellow
+            new Color(0.95f, 0.45f, 0.65f),  // pink
+            new Color(0.75f, 0.88f, 0.98f), // blue
+            new Color(0.98f, 0.98f, 0.95f), // white
         };
 
         for (int i = 0; i < 15; i++)
