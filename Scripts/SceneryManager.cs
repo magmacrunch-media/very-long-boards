@@ -602,7 +602,7 @@ public class SceneryManager
         var textMat = new StandardMaterial3D();
         textMat.AlbedoColor = new Color(0.98f, 0.98f, 0.95f);
         textMat.EmissionEnabled = true;
-        textMat.Emission = new Color(0.15f, 0.15f, 0.12f);
+        textMat.Emission = new Color(0.18f, 0.18f, 0.14f);
         _finishLine.AddChild(MakeBoxWithMat(new Vector3(2f, 0.3f, 0.07f), textMat, new Vector3(0, 3.6f, 0)));
 
         _main.AddChild(_finishLine);
