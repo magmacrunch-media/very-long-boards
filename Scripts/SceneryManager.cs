@@ -48,9 +48,9 @@ public class SceneryManager
         var terrain = _main.Terrain;
 
         // Pine trees (close)
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 120; i++)
         {
-            float z = rng.RandfRange(-80f, 900f);
+            float z = rng.RandfRange(-60f, 900f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5.5f + rng.RandfRange(0f, 12f));
             float h = 5f + rng.RandfRange(0f, 7f);
