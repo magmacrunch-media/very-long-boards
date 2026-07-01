@@ -92,8 +92,8 @@ public class PlayerManager
 
         // Trucks (metal, smoother)
         var truckMat = new StandardMaterial3D();
-        truckMat.AlbedoColor = new Color(0.58f, 0.58f, 0.62f);
-        truckMat.Metallic = 0.4f;
+        truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
+        truckMat.Metallic = 0.45f;
         truckMat.Roughness = 0.35f;
         AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
         AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
