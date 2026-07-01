@@ -153,7 +153,7 @@ public class SceneryManager
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.15f + rng.RandfRange(0f, 0.25f);
             var bushMat = new StandardMaterial3D();
-            bushMat.AlbedoColor = new Color(0.12f + rng.RandfRange(0, 0.05f), 0.35f + rng.RandfRange(0, 0.06f), 0.08f + rng.RandfRange(0, 0.02f));
+            bushMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.04f), 0.38f + rng.RandfRange(0, 0.05f), 0.1f + rng.RandfRange(0, 0.02f));
             bushMat.Roughness = 0.92f;
             bushMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
