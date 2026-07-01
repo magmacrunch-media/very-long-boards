@@ -114,14 +114,13 @@ public partial class Main : Node3D
                     PlayerMgr.Kicked = true;
                     PlayerMgr.Speed = 0.3f;
                     Timer = 0f;
-                    UI.CountdownLabel.Text = "";
+                    UI.SetCountdown("", new Color(1, 1, 1));
                 }
                 else
                 {
                     int count = Mathf.CeilToInt(CountdownTimer);
-                    UI.CountdownLabel.Text = count.ToString();
-                    UI.CountdownLabel.Modulate = count == 1 ?
-                        new Color(0.2f, 1f, 0.4f) : new Color(1f, 0.88f, 0.23f);
+                    UI.SetCountdown(count.ToString(), count == 1 ?
+                        new Color(0.2f, 1f, 0.4f) : new Color(1f, 0.88f, 0.23f));
                 }
                 break;
 
@@ -136,8 +135,8 @@ public partial class Main : Node3D
                 if (Input.IsActionJustPressed("pause"))
                 {
                     State = GameState.Paused;
-                    UI.PauseLabel.Text = "PAUSED";
-                    UI.PromptLabel.Text = "Press Esc to resume";
+                    UI.SetPause("PAUSED");
+                    UI.SetPrompt("Press Esc to resume");
                     break;
                 }
 
@@ -157,8 +156,8 @@ public partial class Main : Node3D
                 if (Input.IsActionJustPressed("pause"))
                 {
                     State = GameState.Riding;
-                    UI.PauseLabel.Text = "";
-                    UI.PromptLabel.Text = "";
+                    UI.SetPause("");
+                    UI.SetPrompt("");
                 }
                 break;
 
