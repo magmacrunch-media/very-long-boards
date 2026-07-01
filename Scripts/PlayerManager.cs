@@ -70,7 +70,7 @@ public class PlayerManager
 
         // Nose/tail kicks
         var kickMat = new StandardMaterial3D();
-        kickMat.AlbedoColor = new Color(0.48f, 0.24f, 0.07f);
+        kickMat.AlbedoColor = new Color(0.52f, 0.28f, 0.1f);
         kickMat.Roughness = 0.7f;
         var noseKick = new MeshInstance3D();
         var nkMesh = new BoxMesh();
