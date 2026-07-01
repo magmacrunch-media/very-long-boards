@@ -21,6 +21,7 @@ public class PlayerManager
     // Particles
     private GpuParticles3D _dustParticles;
     private GpuParticles3D _confettiParticles;
+    private GpuParticles3D _speedLines;
 
     public PlayerManager(Main main)
     {
@@ -251,6 +252,23 @@ public class PlayerManager
         confMat.Color = new Color(1f, 0.2f, 0.6f, 1f);
         _confettiParticles.ProcessMaterial = confMat;
         _main.AddChild(_confettiParticles);
+
+        // Speed lines (at high speed)
+        _speedLines = new GpuParticles3D();
+        _speedLines.Amount = 30;
+        _speedLines.Lifetime = 0.4f;
+        _speedLines.Transform = new Transform3D(Basis.Identity, new Vector3(0, 0.5f, 2f));
+        var speedMat = new ParticleProcessMaterial();
+        speedMat.Direction = new Vector3(0, 0, 1f);
+        speedMat.Spread = 15f;
+        speedMat.InitialVelocityMin = 8f;
+        speedMat.InitialVelocityMax = 15f;
+        speedMat.ScaleMin = 0.01f;
+        speedMat.ScaleMax = 0.02f;
+        speedMat.Color = new Color(1f, 1f, 1f, 0.3f);
+        _speedLines.ProcessMaterial = speedMat;
+        _speedLines.Emitting = false;
+        _main.Player.AddChild(_speedLines);
     }
 
     public void Update(float dt, float steer, bool braking)
@@ -298,6 +316,16 @@ public class PlayerManager
         {
             float intensity = Mathf.Clamp(Speed / MaxSpeed, 0.1f, 1f);
             dustMat.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
+        }
+
+        // Speed lines at high speed
+        float spdFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
+        _speedLines.Emitting = spdFactor > 0.7f && Kicked;
+        var speedMat = _speedLines.ProcessMaterial as ParticleProcessMaterial;
+        if (speedMat != null)
+        {
+            float lineIntensity = (spdFactor - 0.7f) / 0.3f;
+            speedMat.Color = new Color(1f, 1f, 1f, 0.1f + lineIntensity * 0.3f);
         }
     }
 
