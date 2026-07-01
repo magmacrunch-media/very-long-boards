@@ -153,7 +153,7 @@ public class SceneryManager
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.15f + rng.RandfRange(0f, 0.25f);
             var bushMat = new StandardMaterial3D();
-            bushMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.06f), 0.38f + rng.RandfRange(0, 0.08f), 0.1f + rng.RandfRange(0, 0.03f));
+            bushMat.AlbedoColor = new Color(0.12f + rng.RandfRange(0, 0.05f), 0.35f + rng.RandfRange(0, 0.06f), 0.08f + rng.RandfRange(0, 0.02f));
             bushMat.Roughness = 0.92f;
             bushMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
@@ -249,9 +249,9 @@ public class SceneryManager
                 float t = j / 4f;
                 float lh = h * 0.22f;
                 float lr = (1f - t * 0.3f) * h * 0.22f;
-                float green = 0.3f + rng.RandfRange(0, 0.08f);
+                float green = 0.28f + rng.RandfRange(0, 0.06f);
                 var folMat = new StandardMaterial3D();
-                folMat.AlbedoColor = new Color(0.08f + rng.RandfRange(0, 0.04f), green, 0.06f + rng.RandfRange(0, 0.03f));
+                folMat.AlbedoColor = new Color(0.06f + rng.RandfRange(0, 0.03f), green, 0.04f + rng.RandfRange(0, 0.02f));
                 folMat.Roughness = 0.9f;
                 folMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
                 var foliage = MakeCylinderWithMat(lr, lh, folMat);
@@ -264,7 +264,7 @@ public class SceneryManager
             // Deciduous: bright summer green, multiple spheres
             float canopyR = h * 0.24f;
             var leafMat = new StandardMaterial3D();
-            leafMat.AlbedoColor = new Color(0.2f + rng.RandfRange(0, 0.1f), 0.55f + rng.RandfRange(0, 0.1f), 0.12f + rng.RandfRange(0, 0.04f));
+            leafMat.AlbedoColor = new Color(0.18f + rng.RandfRange(0, 0.08f), 0.5f + rng.RandfRange(0, 0.08f), 0.1f + rng.RandfRange(0, 0.03f));
             leafMat.Roughness = 0.88f;
             leafMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
