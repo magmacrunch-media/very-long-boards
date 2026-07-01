@@ -294,12 +294,12 @@ public class SceneryManager
         postMat.Roughness = 0.85f;
 
         var mailMat = new StandardMaterial3D();
-        mailMat.AlbedoColor = new Color(0.22f, 0.22f, 0.72f);
-        mailMat.Roughness = 0.6f;
+        mailMat.AlbedoColor = new Color(0.25f, 0.25f, 0.75f);
+        mailMat.Roughness = 0.55f;
 
         var flagMat = new StandardMaterial3D();
-        flagMat.AlbedoColor = new Color(0.85f, 0.12f, 0.12f);
-        flagMat.Roughness = 0.5f;
+        flagMat.AlbedoColor = new Color(0.88f, 0.15f, 0.15f);
+        flagMat.Roughness = 0.45f;
 
         // Post
         box.AddChild(MakeCylinderWithMat(0.035f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
