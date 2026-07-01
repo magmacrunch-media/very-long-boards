@@ -249,9 +249,9 @@ public class SceneryManager
                 float t = j / 4f;
                 float lh = h * 0.22f;
                 float lr = (1f - t * 0.3f) * h * 0.22f;
-                float green = 0.28f + rng.RandfRange(0, 0.06f);
+                float green = 0.3f + rng.RandfRange(0, 0.05f);
                 var folMat = new StandardMaterial3D();
-                folMat.AlbedoColor = new Color(0.06f + rng.RandfRange(0, 0.03f), green, 0.04f + rng.RandfRange(0, 0.02f));
+                folMat.AlbedoColor = new Color(0.08f + rng.RandfRange(0, 0.03f), green, 0.06f + rng.RandfRange(0, 0.02f));
                 folMat.Roughness = 0.9f;
                 folMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
                 var foliage = MakeCylinderWithMat(lr, lh, folMat);
