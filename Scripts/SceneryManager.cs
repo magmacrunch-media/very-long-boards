@@ -316,14 +316,14 @@ public class SceneryManager
     {
         var rail = new Node3D();
         var postMat = new StandardMaterial3D();
-        postMat.AlbedoColor = new Color(0.6f, 0.6f, 0.62f);
-        postMat.Metallic = 0.2f;
-        postMat.Roughness = 0.5f;
+        postMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
+        postMat.Metallic = 0.25f;
+        postMat.Roughness = 0.45f;
 
         var barMat = new StandardMaterial3D();
-        barMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
-        barMat.Metallic = 0.3f;
-        barMat.Roughness = 0.4f;
+        barMat.AlbedoColor = new Color(0.68f, 0.68f, 0.72f);
+        barMat.Metallic = 0.35f;
+        barMat.Roughness = 0.35f;
 
         for (int i = 0; i < 3; i++)
         {
