@@ -133,7 +133,7 @@ public class PlayerManager
 
         // Shoes (wider apart, on the board)
         var shoeMat = new StandardMaterial3D();
-        shoeMat.AlbedoColor = new Color(0.14f, 0.14f, 0.14f);
+        shoeMat.AlbedoColor = new Color(0.16f, 0.16f, 0.16f);
         shoeMat.Roughness = 0.65f;
         // Front foot (left) - near nose
         AddCylinderTo(bodyGroup, 0.07f, 0.07f, 0.22f, shoeMat, new Vector3(-0.12f, 0.19f, -0.35f));
