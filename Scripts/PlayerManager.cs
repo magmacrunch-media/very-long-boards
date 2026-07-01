@@ -130,8 +130,8 @@ public class PlayerManager
 
         // Shoes (rounded)
         var shoeMat = new StandardMaterial3D();
-        shoeMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
-        shoeMat.Roughness = 0.7f;
+        shoeMat.AlbedoColor = new Color(0.14f, 0.14f, 0.14f);
+        shoeMat.Roughness = 0.65f;
         AddCylinderTo(bodyGroup, 0.06f, 0.06f, 0.28f, shoeMat, new Vector3(-0.1f, 0.19f, -0.3f));
         AddCylinderTo(bodyGroup, 0.06f, 0.06f, 0.28f, shoeMat, new Vector3(0.1f, 0.19f, 0.25f));
 
