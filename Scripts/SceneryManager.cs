@@ -62,15 +62,21 @@ public class SceneryManager
             AddTree(z, offset, h, false, rng);
         }
 
-        // Rocks
+        // Rocks (roadside) — smoother spheres
         for (int i = 0; i < 20; i++)
         {
             float z = rng.RandfRange(-50f, 800f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.12f + rng.RandfRange(0f, 0.3f);
-            AddItem(z, offset, MakeSphere(size, new Color(0.45f, 0.43f, 0.4f)),
-                new Vector3(rng.RandfRange(0, 0.3f), rng.RandfRange(0, 3f), 0));
+            var rockMat = new StandardMaterial3D();
+            rockMat.AlbedoColor = new Color(0.48f + rng.RandfRange(0, 0.08f), 0.46f + rng.RandfRange(0, 0.06f), 0.42f + rng.RandfRange(0, 0.05f));
+            rockMat.Roughness = 0.92f;
+            rockMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            var rock = MakeSphereWithMat(size, rockMat);
+            rock.Scale = new Vector3(1f, 0.6f + rng.RandfRange(0, 0.2f), 1f);
+            rock.Rotation = new Vector3(rng.RandfRange(0, 0.3f), rng.RandfRange(0, 3f), 0);
+            AddItem(z, offset, rock);
         }
 
         // Stumps
@@ -95,15 +101,24 @@ public class SceneryManager
             AddItem(z, offset, MakeSphere(0.04f, col));
         }
 
-        // Bushes
+        // Bushes — multiple overlapping spheres for organic look
         for (int i = 0; i < 40; i++)
         {
             float z = rng.RandfRange(-20f, 800f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.15f + rng.RandfRange(0f, 0.25f);
-            var col = new Color(0.18f + rng.RandfRange(0, 0.08f), 0.42f + rng.RandfRange(0, 0.1f), 0.12f);
-            AddItem(z, offset, MakeSphere(size, col));
+            var bushMat = new StandardMaterial3D();
+            bushMat.AlbedoColor = new Color(0.18f + rng.RandfRange(0, 0.08f), 0.42f + rng.RandfRange(0, 0.1f), 0.12f + rng.RandfRange(0, 0.04f));
+            bushMat.Roughness = 0.9f;
+            bushMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+            var bush = new Node3D();
+            bush.AddChild(MakeSphereWithMat(size, bushMat));
+            var puff = MakeSphereWithMat(size * 0.7f, bushMat);
+            puff.Position = new Vector3(size * 0.3f, size * 0.2f, 0);
+            bush.AddChild(puff);
+            AddItem(z, offset, bush);
         }
 
         // Logs
@@ -658,11 +673,11 @@ public class SceneryManager
         return m;
     }
 
-    private void AddItem(float z, float offset, MeshInstance3D mesh, Vector3 rotation = default)
+    private void AddItem(float z, float offset, Node3D node, Vector3 rotation = default)
     {
-        mesh.Rotation = rotation;
-        _main.AddChild(mesh);
-        Items.Add(new SceneryItem { Node = mesh, WorldZ = z, OffsetX = offset });
+        node.Rotation = rotation;
+        _main.AddChild(node);
+        Items.Add(new SceneryItem { Node = node, WorldZ = z, OffsetX = offset });
     }
 
     private MeshInstance3D AddBoxTo(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
