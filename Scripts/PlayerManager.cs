@@ -87,11 +87,11 @@ public class PlayerManager
         tailKick.Rotation = new Vector3(-0.25f, 0, 0);
         _skaterRoot.AddChild(tailKick);
 
-        // Trucks (metal)
+        // Trucks (metal, smoother)
         var truckMat = new StandardMaterial3D();
-        truckMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
-        truckMat.Metallic = 0.3f;
-        truckMat.Roughness = 0.4f;
+        truckMat.AlbedoColor = new Color(0.58f, 0.58f, 0.62f);
+        truckMat.Metallic = 0.4f;
+        truckMat.Roughness = 0.35f;
         AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
         AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
 
