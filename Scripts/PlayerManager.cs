@@ -308,13 +308,29 @@ public class PlayerManager
         float groundY = terrain.HillAt(Distance);
         _main.Player.Position = new Vector3(PosX, groundY + 0.1f, 0);
 
-        // Lean animation
+        // Carve animation — board points in direction of travel
         if (_skaterRoot != null)
         {
-            float leanAngle = Lean * 0.25f;
-            float bodyLean = Lean * 0.15f;
             float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
-            _skaterRoot.Rotation = new Vector3(0, bodyLean, leanAngle * (0.5f + speedFactor * 0.5f));
+
+            // Board Y rotation (yaw) — points the board when carving
+            float carveAngle = Lean * 0.4f * (0.3f + speedFactor * 0.7f);
+
+            // Board Z rotation (roll) — tilts into the turn
+            float tiltAngle = Lean * 0.3f * (0.5f + speedFactor * 0.5f);
+
+            // Body counter-rotates slightly (stays more upright than board)
+            float bodyLean = -Lean * 0.1f;
+
+            _skaterRoot.Rotation = new Vector3(0, carveAngle, tiltAngle);
+
+            // Body group counter-rotates to stay facing forward-ish
+            if (_skaterRoot.GetChildCount() > 0)
+            {
+                var bodyGroup = _skaterRoot.GetChild<Node3D>(0);
+                if (bodyGroup != null)
+                    bodyGroup.Rotation = new Vector3(0, Mathf.Pi / 2f + bodyLean, 0);
+            }
         }
 
         // Dust particles

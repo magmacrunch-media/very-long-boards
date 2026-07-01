@@ -45,25 +45,25 @@ public class TerrainManager
 
     public void Create()
     {
-        // Asphalt road — darker, more realistic
+        // Asphalt road
         var roadMat = new StandardMaterial3D();
-        roadMat.AlbedoColor = new Color(0.25f, 0.25f, 0.28f);
+        roadMat.AlbedoColor = new Color(0.22f, 0.22f, 0.25f);
         roadMat.Roughness = 0.92f;
         roadMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _roadMesh = new MeshInstance3D();
         _roadMesh.MaterialOverride = roadMat;
 
-        // Road markings — bright white-yellow
+        // Road markings
         var lineMat = new StandardMaterial3D();
         lineMat.AlbedoColor = new Color(0.95f, 0.95f, 0.8f);
         lineMat.EmissionEnabled = true;
-        lineMat.Emission = new Color(0.25f, 0.25f, 0.18f);
+        lineMat.Emission = new Color(0.3f, 0.3f, 0.22f);
         lineMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineCenterMesh = new MeshInstance3D();
         _lineCenterMesh.MaterialOverride = lineMat;
 
         var edgeMat = new StandardMaterial3D();
-        edgeMat.AlbedoColor = new Color(0.9f, 0.9f, 0.75f);
+        edgeMat.AlbedoColor = new Color(0.92f, 0.92f, 0.78f);
         edgeMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineEdgeLMesh = new MeshInstance3D();
         _lineEdgeLMesh.MaterialOverride = edgeMat;
@@ -72,7 +72,7 @@ public class TerrainManager
 
         // Dirt shoulder
         var shoulderMat = new StandardMaterial3D();
-        shoulderMat.AlbedoColor = new Color(0.42f, 0.35f, 0.25f);
+        shoulderMat.AlbedoColor = new Color(0.38f, 0.32f, 0.22f);
         shoulderMat.Roughness = 0.95f;
         shoulderMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _shoulderLMesh = new MeshInstance3D();
@@ -80,9 +80,9 @@ public class TerrainManager
         _shoulderRMesh = new MeshInstance3D();
         _shoulderRMesh.MaterialOverride = shoulderMat;
 
-        // Summer grass — rich green
+        // Summer grass
         var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.16f, 0.42f, 0.1f);
+        grassMat.AlbedoColor = new Color(0.14f, 0.38f, 0.08f);
         grassMat.Roughness = 0.95f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
