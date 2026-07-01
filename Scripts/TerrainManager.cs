@@ -40,35 +40,35 @@ public class TerrainManager
 
     public void Create()
     {
-        // Asphalt with slight roughness
+        // Asphalt road — darker, more realistic
         var roadMat = new StandardMaterial3D();
-        roadMat.AlbedoColor = new Color(0.32f, 0.32f, 0.35f);
-        roadMat.Roughness = 0.85f;
+        roadMat.AlbedoColor = new Color(0.28f, 0.28f, 0.3f);
+        roadMat.Roughness = 0.9f;
         roadMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _roadMesh = new MeshInstance3D();
         _roadMesh.MaterialOverride = roadMat;
 
-        // Road markings
+        // Road markings — bright white-yellow
         var lineMat = new StandardMaterial3D();
-        lineMat.AlbedoColor = new Color(0.9f, 0.9f, 0.78f);
+        lineMat.AlbedoColor = new Color(0.92f, 0.92f, 0.78f);
         lineMat.EmissionEnabled = true;
-        lineMat.Emission = new Color(0.15f, 0.15f, 0.1f);
+        lineMat.Emission = new Color(0.2f, 0.2f, 0.15f);
         lineMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineCenterMesh = new MeshInstance3D();
         _lineCenterMesh.MaterialOverride = lineMat;
 
         var edgeMat = new StandardMaterial3D();
-        edgeMat.AlbedoColor = new Color(0.85f, 0.85f, 0.7f);
+        edgeMat.AlbedoColor = new Color(0.88f, 0.88f, 0.72f);
         edgeMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineEdgeLMesh = new MeshInstance3D();
         _lineEdgeLMesh.MaterialOverride = edgeMat;
         _lineEdgeRMesh = new MeshInstance3D();
         _lineEdgeRMesh.MaterialOverride = edgeMat;
 
-        // Grass with more vibrant color
+        // Summer grass — rich green
         var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.22f, 0.52f, 0.15f);
-        grassMat.Roughness = 0.9f;
+        grassMat.AlbedoColor = new Color(0.2f, 0.48f, 0.14f);
+        grassMat.Roughness = 0.92f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
         _groundMesh.MaterialOverride = grassMat;
