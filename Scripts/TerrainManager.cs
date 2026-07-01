@@ -55,9 +55,9 @@ public class TerrainManager
 
         // Road markings
         var lineMat = new StandardMaterial3D();
-        lineMat.AlbedoColor = new Color(0.98f, 0.98f, 0.82f);
+        lineMat.AlbedoColor = new Color(1f, 1f, 0.85f);
         lineMat.EmissionEnabled = true;
-        lineMat.Emission = new Color(0.35f, 0.35f, 0.25f);
+        lineMat.Emission = new Color(0.4f, 0.4f, 0.28f);
         lineMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineCenterMesh = new MeshInstance3D();
         _lineCenterMesh.MaterialOverride = lineMat;
