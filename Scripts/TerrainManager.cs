@@ -80,10 +80,10 @@ public class TerrainManager
         _shoulderRMesh = new MeshInstance3D();
         _shoulderRMesh.MaterialOverride = shoulderMat;
 
-        // Summer grass — rich green with slight variation
+        // Summer grass — rich green
         var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.22f, 0.52f, 0.16f);
-        grassMat.Roughness = 0.92f;
+        grassMat.AlbedoColor = new Color(0.18f, 0.45f, 0.12f);
+        grassMat.Roughness = 0.95f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
         _groundMesh.MaterialOverride = grassMat;
