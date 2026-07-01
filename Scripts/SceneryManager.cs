@@ -85,8 +85,8 @@ public class SceneryManager
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.12f + rng.RandfRange(0f, 0.3f);
             var rockMat = new StandardMaterial3D();
-            rockMat.AlbedoColor = new Color(0.48f + rng.RandfRange(0, 0.08f), 0.46f + rng.RandfRange(0, 0.06f), 0.42f + rng.RandfRange(0, 0.05f));
-            rockMat.Roughness = 0.92f;
+            rockMat.AlbedoColor = new Color(0.52f + rng.RandfRange(0, 0.06f), 0.5f + rng.RandfRange(0, 0.05f), 0.46f + rng.RandfRange(0, 0.04f));
+            rockMat.Roughness = 0.95f;
             rockMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
             var rock = MakeSphereWithMat(size, rockMat);
             rock.Scale = new Vector3(1f, 0.6f + rng.RandfRange(0, 0.2f), 1f);
