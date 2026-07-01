@@ -173,7 +173,7 @@ public class GameUI
         prompt.OffsetTop = 120;
         _titleScreen.AddChild(prompt);
 
-        var controls = Retro(7, "\u2190 \u2192 STEER    SPACE BRAKE    \u2191 KICK", new Color(0.4f, 0.4f, 0.5f));
+        var controls = Retro(7, "\u2190 \u2192 STEER    SPACE BRAKE    \u2191/ENTER KICK", new Color(0.4f, 0.4f, 0.5f));
         controls.SetAnchorsPreset(Control.LayoutPreset.Center);
         controls.OffsetTop = 170;
         _titleScreen.AddChild(controls);
