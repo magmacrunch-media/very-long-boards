@@ -104,15 +104,15 @@ public class SceneryManager
         }
 
         // Wildflowers — more variety and density
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 120; i++)
         {
-            float z = rng.RandfRange(-30f, 800f);
+            float z = rng.RandfRange(-10f, 800f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.2f + rng.RandfRange(0f, 3f));
             var col = new[] {
                 new Color(0.92f, 0.88f, 0.22f), new Color(0.92f, 0.42f, 0.52f),
                 new Color(0.82f, 0.82f, 0.88f), new Color(0.62f, 0.42f, 0.82f),
-                new Color(0.95f, 0.6f, 0.2f)  // orange
+                new Color(0.95f, 0.6f, 0.2f)
             }[rng.RandiRange(0, 4)];
             AddItem(z, offset, MakeSphere(0.04f + rng.RandfRange(0, 0.02f), col));
         }
