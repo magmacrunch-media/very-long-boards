@@ -580,7 +580,7 @@ public class SceneryManager
         var bannerMat = new StandardMaterial3D();
         bannerMat.AlbedoColor = new Color(1f, 1f, 0.98f);
         bannerMat.EmissionEnabled = true;
-        bannerMat.Emission = new Color(0.2f, 0.2f, 0.15f);
+        bannerMat.Emission = new Color(0.25f, 0.25f, 0.18f);
 
         // Posts
         _finishLine.AddChild(MakeCylinderWithMat(0.08f, 3.5f, postMat, new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.75f, 0)));
