@@ -173,41 +173,51 @@ public class SceneryManager
     {
         var tree = new Node3D();
 
-        // Trunk with slight taper
-        var trunk = MakeCylinder(0.04f, h * 0.45f, new Color(0.35f, 0.22f, 0.12f));
+        // Trunk
+        var trunkMat = new StandardMaterial3D();
+        trunkMat.AlbedoColor = new Color(0.38f, 0.24f, 0.14f);
+        trunkMat.Roughness = 0.85f;
+        trunkMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        var trunk = MakeCylinderWithMat(0.04f, h * 0.45f, trunkMat);
         trunk.Position = new Vector3(0, h * 0.22f, 0);
         tree.AddChild(trunk);
 
         if (isPine)
         {
-            // 4 layers of cone foliage for fuller look
+            // Pine: dark green layers
             for (int j = 0; j < 4; j++)
             {
                 float t = j / 4f;
                 float lh = h * 0.22f;
                 float lr = (1f - t * 0.3f) * h * 0.22f;
-                float green = 0.24f + rng.RandfRange(0, 0.12f);
-                var col = new Color(0.08f + rng.RandfRange(0, 0.05f), green, 0.06f + rng.RandfRange(0, 0.03f));
-                var foliage = MakeCylinder(lr, lh, col);
+                float green = 0.28f + rng.RandfRange(0, 0.1f);
+                var folMat = new StandardMaterial3D();
+                folMat.AlbedoColor = new Color(0.1f + rng.RandfRange(0, 0.04f), green, 0.08f + rng.RandfRange(0, 0.03f));
+                folMat.Roughness = 0.9f;
+                folMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+                var foliage = MakeCylinderWithMat(lr, lh, folMat);
                 foliage.Position = new Vector3(0, h * 0.3f + j * lh * 0.52f, 0);
                 tree.AddChild(foliage);
             }
         }
         else
         {
-            // Deciduous: multiple spheres for fuller canopy
+            // Deciduous: bright summer green, multiple spheres
             float canopyR = h * 0.24f;
-            var leafCol = new Color(0.22f + rng.RandfRange(0, 0.15f), 0.5f + rng.RandfRange(0, 0.15f), 0.12f + rng.RandfRange(0, 0.06f));
+            var leafMat = new StandardMaterial3D();
+            leafMat.AlbedoColor = new Color(0.22f + rng.RandfRange(0, 0.12f), 0.52f + rng.RandfRange(0, 0.12f), 0.14f + rng.RandfRange(0, 0.05f));
+            leafMat.Roughness = 0.85f;
+            leafMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-            var main = MakeSphere(canopyR, leafCol);
+            var main = MakeSphereWithMat(canopyR, leafMat);
             main.Position = new Vector3(0, h * 0.62f, 0);
             tree.AddChild(main);
 
-            var left = MakeSphere(canopyR * 0.7f, leafCol * 0.9f);
+            var left = MakeSphereWithMat(canopyR * 0.7f, leafMat);
             left.Position = new Vector3(-canopyR * 0.4f, h * 0.55f, canopyR * 0.2f);
             tree.AddChild(left);
 
-            var right = MakeSphere(canopyR * 0.65f, leafCol * 0.85f);
+            var right = MakeSphereWithMat(canopyR * 0.65f, leafMat);
             right.Position = new Vector3(canopyR * 0.35f, h * 0.58f, -canopyR * 0.15f);
             tree.AddChild(right);
         }
