@@ -40,10 +40,10 @@ public partial class Main : Node3D
         new Color(0.82f, 0.65f, 0.42f)   // Natural wood
     };
     public static readonly Color[] BoardGripColors = {
-        new Color(0.14f, 0.14f, 0.14f),  // Classic black
-        new Color(0.12f, 0.12f, 0.42f),  // Neon blue
-        new Color(0.32f, 0.02f, 0.52f),  // Dark purple
-        new Color(0.52f, 0.42f, 0.28f)   // Natural tan
+        new Color(0.16f, 0.16f, 0.16f),  // Classic black
+        new Color(0.15f, 0.15f, 0.45f),  // Neon blue
+        new Color(0.35f, 0.05f, 0.55f),  // Dark purple
+        new Color(0.55f, 0.45f, 0.3f)    // Natural tan
     };
     public const float CourseLength = 2000f;
 
