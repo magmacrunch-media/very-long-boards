@@ -219,9 +219,26 @@ public class SceneryManager
     private void AddMailbox(float z, float side)
     {
         var box = new Node3D();
-        box.AddChild(MakeCylinder(0.03f, 0.8f, new Color(0.35f, 0.22f, 0.1f), new Vector3(0, 0.4f, 0)));
-        box.AddChild(MakeBox(new Vector3(0.2f, 0.15f, 0.3f), new Color(0.2f, 0.2f, 0.7f), new Vector3(0, 0.85f, 0)));
-        box.AddChild(MakeBox(new Vector3(0.02f, 0.12f, 0.02f), new Color(0.8f, 0.1f, 0.1f), new Vector3(0.12f, 0.9f, 0)));
+
+        var postMat = new StandardMaterial3D();
+        postMat.AlbedoColor = new Color(0.38f, 0.24f, 0.12f);
+        postMat.Roughness = 0.85f;
+
+        var mailMat = new StandardMaterial3D();
+        mailMat.AlbedoColor = new Color(0.22f, 0.22f, 0.72f);
+        mailMat.Roughness = 0.6f;
+
+        var flagMat = new StandardMaterial3D();
+        flagMat.AlbedoColor = new Color(0.85f, 0.12f, 0.12f);
+        flagMat.Roughness = 0.5f;
+
+        // Post
+        box.AddChild(MakeCylinderWithMat(0.035f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
+        // Mailbox body
+        box.AddChild(MakeBoxWithMat(new Vector3(0.22f, 0.18f, 0.35f), mailMat, new Vector3(0, 0.92f, 0)));
+        // Flag
+        box.AddChild(MakeBoxWithMat(new Vector3(0.025f, 0.14f, 0.025f), flagMat, new Vector3(0.13f, 0.98f, 0)));
+
         _main.AddChild(box);
         Items.Add(new SceneryItem { Node = box, WorldZ = z, OffsetX = side * 5f });
     }
