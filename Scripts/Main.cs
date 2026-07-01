@@ -34,10 +34,10 @@ public partial class Main : Node3D
         new Color(0.12f, 0.12f, 0.15f)    // Dark: black
     };
     public static readonly Color[] BoardDeckColors = {
-        new Color(0.48f, 0.24f, 0.08f),  // Classic brown
-        new Color(0.92f, 0.22f, 0.92f),  // Neon pink
-        new Color(0.1f, 0.1f, 0.12f),    // Dark black
-        new Color(0.78f, 0.62f, 0.38f)   // Natural wood
+        new Color(0.52f, 0.26f, 0.1f),   // Classic brown
+        new Color(0.95f, 0.25f, 0.95f),  // Neon pink
+        new Color(0.12f, 0.12f, 0.15f),  // Dark black
+        new Color(0.82f, 0.65f, 0.42f)   // Natural wood
     };
     public static readonly Color[] BoardGripColors = {
         new Color(0.14f, 0.14f, 0.14f),  // Classic black
