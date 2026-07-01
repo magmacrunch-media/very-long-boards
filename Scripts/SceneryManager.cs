@@ -470,7 +470,7 @@ public class SceneryManager
 
         // Water surface with transparency and emission
         var waterMat = new StandardMaterial3D();
-        waterMat.AlbedoColor = new Color(0.35f, 0.62f, 0.85f, 0.8f);
+        waterMat.AlbedoColor = new Color(0.38f, 0.65f, 0.88f, 0.82f);
         waterMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
         waterMat.EmissionEnabled = true;
         waterMat.Emission = new Color(0.06f, 0.12f, 0.18f);
