@@ -82,7 +82,7 @@ public class TerrainManager
 
         // Summer grass
         var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.16f, 0.4f, 0.1f);
+        grassMat.AlbedoColor = new Color(0.18f, 0.42f, 0.12f);
         grassMat.Roughness = 0.95f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
