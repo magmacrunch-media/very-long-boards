@@ -25,10 +25,10 @@ public class TerrainManager
 
     public float CurveAt(float z)
     {
-        return Mathf.Sin(z * 0.002f) * 0.15f
-             + Mathf.Sin(z * 0.0008f) * 0.22f
-             + Mathf.Sin(z * 0.005f) * 0.06f
-             + Mathf.Sin(z * 0.012f) * 0.03f;
+        return Mathf.Sin(z * 0.002f) * 0.18f
+             + Mathf.Sin(z * 0.0008f) * 0.25f
+             + Mathf.Sin(z * 0.005f) * 0.08f
+             + Mathf.Sin(z * 0.012f) * 0.04f;
     }
 
     public float HillAt(float z)
