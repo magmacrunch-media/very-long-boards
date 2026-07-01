@@ -513,9 +513,9 @@ public class SceneryManager
         postMat.Roughness = 0.7f;
 
         var signMat = new StandardMaterial3D();
-        signMat.AlbedoColor = new Color(0.98f, 0.98f, 0.9f);
+        signMat.AlbedoColor = new Color(1f, 1f, 0.92f);
         signMat.EmissionEnabled = true;
-        signMat.Emission = new Color(0.12f, 0.12f, 0.1f);
+        signMat.Emission = new Color(0.15f, 0.15f, 0.12f);
 
         // Post
         marker.AddChild(MakeCylinderWithMat(0.03f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
