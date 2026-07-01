@@ -185,38 +185,38 @@ public class PlayerManager
 
     private void CreateParticles()
     {
-        // Dust
+        // Dust trail
         _dustParticles = new GpuParticles3D();
-        _dustParticles.Amount = 40;
-        _dustParticles.Lifetime = 0.8f;
-        _dustParticles.Transform = new Transform3D(Basis.Identity, new Vector3(0, 0.1f, -0.8f));
+        _dustParticles.Amount = 60;
+        _dustParticles.Lifetime = 1.0f;
+        _dustParticles.Transform = new Transform3D(Basis.Identity, new Vector3(0, 0.05f, -0.9f));
         var dustMat = new ParticleProcessMaterial();
-        dustMat.Direction = new Vector3(0, 0.5f, -1f);
-        dustMat.Spread = 30f;
-        dustMat.InitialVelocityMin = 0.5f;
-        dustMat.InitialVelocityMax = 1.5f;
-        dustMat.Gravity = new Vector3(0, -0.5f, 0);
-        dustMat.ScaleMin = 0.05f;
-        dustMat.ScaleMax = 0.15f;
-        dustMat.Color = new Color(0.6f, 0.55f, 0.4f, 0.6f);
+        dustMat.Direction = new Vector3(0, 0.3f, -1f);
+        dustMat.Spread = 40f;
+        dustMat.InitialVelocityMin = 0.3f;
+        dustMat.InitialVelocityMax = 1.2f;
+        dustMat.Gravity = new Vector3(0, -0.3f, 0);
+        dustMat.ScaleMin = 0.03f;
+        dustMat.ScaleMax = 0.12f;
+        dustMat.Color = new Color(0.55f, 0.5f, 0.38f, 0.5f);
         _dustParticles.ProcessMaterial = dustMat;
         _dustParticles.Emitting = false;
         _main.Player.AddChild(_dustParticles);
 
-        // Confetti
+        // Confetti celebration
         _confettiParticles = new GpuParticles3D();
-        _confettiParticles.Amount = 200;
-        _confettiParticles.Lifetime = 2.5f;
+        _confettiParticles.Amount = 300;
+        _confettiParticles.Lifetime = 3f;
         _confettiParticles.OneShot = true;
         _confettiParticles.Emitting = false;
         var confMat = new ParticleProcessMaterial();
         confMat.Direction = new Vector3(0, 1, 0);
-        confMat.Spread = 60f;
-        confMat.InitialVelocityMin = 3f;
-        confMat.InitialVelocityMax = 8f;
-        confMat.Gravity = new Vector3(0, -3f, 0);
-        confMat.ScaleMin = 0.03f;
-        confMat.ScaleMax = 0.08f;
+        confMat.Spread = 70f;
+        confMat.InitialVelocityMin = 4f;
+        confMat.InitialVelocityMax = 10f;
+        confMat.Gravity = new Vector3(0, -2.5f, 0);
+        confMat.ScaleMin = 0.02f;
+        confMat.ScaleMax = 0.06f;
         confMat.Color = new Color(1f, 0.2f, 0.6f, 1f);
         _confettiParticles.ProcessMaterial = confMat;
         _main.AddChild(_confettiParticles);
