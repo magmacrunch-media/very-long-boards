@@ -63,7 +63,7 @@ public class TerrainManager
         _lineCenterMesh.MaterialOverride = lineMat;
 
         var edgeMat = new StandardMaterial3D();
-        edgeMat.AlbedoColor = new Color(0.95f, 0.95f, 0.8f);
+        edgeMat.AlbedoColor = new Color(0.98f, 0.98f, 0.82f);
         edgeMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _lineEdgeLMesh = new MeshInstance3D();
         _lineEdgeLMesh.MaterialOverride = edgeMat;
