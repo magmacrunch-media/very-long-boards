@@ -72,7 +72,7 @@ public class TerrainManager
 
         // Dirt shoulder
         var shoulderMat = new StandardMaterial3D();
-        shoulderMat.AlbedoColor = new Color(0.38f, 0.32f, 0.22f);
+        shoulderMat.AlbedoColor = new Color(0.42f, 0.35f, 0.25f);
         shoulderMat.Roughness = 0.95f;
         shoulderMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _shoulderLMesh = new MeshInstance3D();
