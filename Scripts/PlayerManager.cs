@@ -95,7 +95,7 @@ public class PlayerManager
         AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
         AddBox(_skaterRoot, new Vector3(0.6f, 0.05f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
 
-        // Wheels (rubber)
+        // Wheels (rubber, smoother)
         var wheelMat = new StandardMaterial3D();
         wheelMat.AlbedoColor = new Color(0.1f, 0.1f, 0.1f);
         wheelMat.Roughness = 0.6f;
@@ -108,6 +108,7 @@ public class PlayerManager
             wMesh.TopRadius = 0.06f;
             wMesh.BottomRadius = 0.06f;
             wMesh.Height = 0.08f;
+            wMesh.RadialSegments = 16;
             wheel.Mesh = wMesh;
             wheel.MaterialOverride = wheelMat;
             wheel.Position = pos;
