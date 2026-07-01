@@ -126,41 +126,41 @@ public class PlayerManager
         skinMat.Roughness = 0.8f;
         skinMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-        // Shoes
+        // Shoes (rounded)
         var shoeMat = new StandardMaterial3D();
         shoeMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
         shoeMat.Roughness = 0.7f;
-        AddBox(bodyGroup, new Vector3(0.15f, 0.07f, 0.28f), shoeMat, new Vector3(-0.1f, 0.19f, -0.3f));
-        AddBox(bodyGroup, new Vector3(0.15f, 0.07f, 0.28f), shoeMat, new Vector3(0.1f, 0.19f, 0.25f));
+        AddCylinderTo(bodyGroup, 0.06f, 0.06f, 0.28f, shoeMat, new Vector3(-0.1f, 0.19f, -0.3f));
+        AddCylinderTo(bodyGroup, 0.06f, 0.06f, 0.28f, shoeMat, new Vector3(0.1f, 0.19f, 0.25f));
 
-        // Legs (jeans)
+        // Legs (cylinders for smoother look)
         var pantsMat = new StandardMaterial3D();
         pantsMat.AlbedoColor = Main.CarlPantsColors[(int)_main.Carl];
         pantsMat.Roughness = 0.85f;
         pantsMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        _pantsMesh = AddBox(bodyGroup, new Vector3(0.15f, 0.34f, 0.15f), pantsMat, new Vector3(-0.1f, 0.38f, -0.25f));
+        _pantsMesh = AddCylinderTo(bodyGroup, 0.065f, 0.065f, 0.34f, pantsMat, new Vector3(-0.1f, 0.38f, -0.25f));
         _pantsMesh.Rotation = new Vector3(0.1f, 0, 0);
-        AddBox(bodyGroup, new Vector3(0.15f, 0.34f, 0.15f), pantsMat, new Vector3(0.1f, 0.38f, 0.2f)).Rotation = new Vector3(-0.1f, 0, 0);
+        AddCylinderTo(bodyGroup, 0.065f, 0.065f, 0.34f, pantsMat, new Vector3(0.1f, 0.38f, 0.2f)).Rotation = new Vector3(-0.1f, 0, 0);
 
-        // Torso (t-shirt)
+        // Torso (rounded cylinder)
         var shirtMat = new StandardMaterial3D();
         shirtMat.AlbedoColor = Main.CarlShirtColors[(int)_main.Carl];
         shirtMat.Roughness = 0.8f;
         shirtMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        _shirtMesh = AddBox(bodyGroup, new Vector3(0.34f, 0.44f, 0.32f), shirtMat, new Vector3(0, 0.72f, -0.05f));
+        _shirtMesh = AddCylinderTo(bodyGroup, 0.18f, 0.16f, 0.44f, shirtMat, new Vector3(0, 0.72f, -0.05f));
 
-        // Arms
-        AddBox(bodyGroup, new Vector3(0.09f, 0.32f, 0.09f), skinMat, new Vector3(-0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, 0.2f);
-        AddBox(bodyGroup, new Vector3(0.09f, 0.32f, 0.09f), skinMat, new Vector3(0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, -0.2f);
+        // Arms (cylinders)
+        AddCylinderTo(bodyGroup, 0.04f, 0.04f, 0.32f, skinMat, new Vector3(-0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, 0.2f);
+        AddCylinderTo(bodyGroup, 0.04f, 0.04f, 0.32f, skinMat, new Vector3(0.24f, 0.78f, -0.05f)).Rotation = new Vector3(0, 0, -0.2f);
 
-        // Head
-        AddBox(bodyGroup, new Vector3(0.26f, 0.26f, 0.26f), skinMat, new Vector3(0, 1.08f, -0.05f));
+        // Head (sphere)
+        AddSphereTo(bodyGroup, 0.14f, skinMat, new Vector3(0, 1.08f, -0.05f));
 
-        // Hair
+        // Hair (flattened sphere)
         var hairMat = new StandardMaterial3D();
         hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
         hairMat.Roughness = 0.9f;
-        AddBox(bodyGroup, new Vector3(0.28f, 0.08f, 0.28f), hairMat, new Vector3(0, 1.22f, -0.05f));
+        AddCylinderTo(bodyGroup, 0.14f, 0.15f, 0.08f, hairMat, new Vector3(0, 1.22f, -0.05f));
 
         // Collision
         var col = new CollisionShape3D();
@@ -176,6 +176,36 @@ public class PlayerManager
         var m = new MeshInstance3D();
         var mesh = new BoxMesh();
         mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D AddCylinderTo(Node3D parent, float topR, float bottomR, float height, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new CylinderMesh();
+        mesh.TopRadius = topR;
+        mesh.BottomRadius = bottomR;
+        mesh.Height = height;
+        mesh.RadialSegments = 12;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
+        return m;
+    }
+
+    private MeshInstance3D AddSphereTo(Node3D parent, float radius, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new SphereMesh();
+        mesh.Radius = radius;
+        mesh.Height = radius * 2f;
+        mesh.Rings = 8;
+        mesh.RadialSegments = 12;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
