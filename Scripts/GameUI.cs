@@ -14,6 +14,7 @@ public class GameUI
     private Label _pauseLabel;
     private Label _countdownLabel;
     private Label _nearMissLabel;
+    private Label _wobbleLabel;
     private ColorRect _progressFill;
 
     // Screens
@@ -30,6 +31,11 @@ public class GameUI
     // Board Select
     private Label _boardName;
     private Label _boardDesc;
+
+    // Level Select
+    private Control _levelScreen;
+    private Label _levelName;
+    private Label _levelDesc;
 
     public GameUI(Main main)
     {
@@ -48,6 +54,7 @@ public class GameUI
         CreateLoadingScreen(canvas);
         CreateCharSelect(canvas);
         CreateBoardSelect(canvas);
+        CreateLevelSelect(canvas);
     }
 
     private Label Retro(int size, string text, Color color)
@@ -116,6 +123,12 @@ public class GameUI
         _nearMissLabel.OffsetTop = 80;
         hud.AddChild(_nearMissLabel);
 
+        // Wobble warning (center-low, below near miss)
+        _wobbleLabel = Retro(14, "", new Color(1f, 0.85f, 0.3f));
+        _wobbleLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _wobbleLabel.OffsetTop = 110;
+        hud.AddChild(_wobbleLabel);
+
         // Prompt (bottom-center)
         _promptLabel = Retro(10, "", new Color(1f, 0.88f, 0.23f));
         _promptLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
@@ -150,7 +163,7 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.85f);
+        bg.Color = new Color(0.04f, 0.02f, 0.08f, 0.88f);
         _titleScreen.AddChild(bg);
 
         var title = Retro(28, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f));
@@ -163,7 +176,7 @@ public class GameUI
         sub.OffsetTop = -50;
         _titleScreen.AddChild(sub);
 
-        var course = Retro(8, Main.CourseName, new Color(0.4f, 0.55f, 0.4f));
+        var course = Retro(8, Main.LevelNames[0], new Color(0.4f, 0.55f, 0.4f));
         course.SetAnchorsPreset(Control.LayoutPreset.Center);
         course.OffsetTop = -20;
         _titleScreen.AddChild(course);
@@ -209,7 +222,7 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.92f);
+        bg.Color = new Color(0.02f, 0.03f, 0.08f, 0.92f);
         _charScreen.AddChild(bg);
 
         var title = Retro(16, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
@@ -261,7 +274,7 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.03f, 0.02f, 0.06f, 0.92f);
+        bg.Color = new Color(0.02f, 0.06f, 0.03f, 0.92f);
         _boardScreen.AddChild(bg);
 
         var title = Retro(16, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
@@ -295,6 +308,53 @@ public class GameUI
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 120;
         _boardScreen.AddChild(hint);
+    }
+
+    // ── Level Select ─────────────────────────────
+
+    private void CreateLevelSelect(CanvasLayer canvas)
+    {
+        _levelScreen = new Control();
+        _levelScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _levelScreen.Visible = false;
+        canvas.AddChild(_levelScreen);
+
+        var bg = new ColorRect();
+        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        bg.Color = new Color(0.06f, 0.04f, 0.02f, 0.92f);
+        _levelScreen.AddChild(bg);
+
+        var title = Retro(16, "CHOOSE YOUR COURSE", new Color(1f, 0.18f, 0.61f));
+        title.SetAnchorsPreset(Control.LayoutPreset.Center);
+        title.OffsetTop = -100;
+        _levelScreen.AddChild(title);
+
+        _levelName = Retro(22, "", new Color(1f, 0.88f, 0.23f));
+        _levelName.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _levelName.OffsetTop = -20;
+        _levelScreen.AddChild(_levelName);
+
+        _levelDesc = Retro(10, "", new Color(0.7f, 0.7f, 0.8f));
+        _levelDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _levelDesc.OffsetTop = 20;
+        _levelScreen.AddChild(_levelDesc);
+
+        var arrowL = Retro(20, "\u25C0", new Color(0.5f, 0.5f, 0.6f));
+        arrowL.SetAnchorsPreset(Control.LayoutPreset.Center);
+        arrowL.OffsetLeft = -300;
+        arrowL.OffsetTop = -20;
+        _levelScreen.AddChild(arrowL);
+
+        var arrowR = Retro(20, "\u25B6", new Color(0.5f, 0.5f, 0.6f));
+        arrowR.SetAnchorsPreset(Control.LayoutPreset.Center);
+        arrowR.OffsetLeft = 300;
+        arrowR.OffsetTop = -20;
+        _levelScreen.AddChild(arrowR);
+
+        var hint = Retro(8, "\u2190 \u2192 SELECT    ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
+        hint.SetAnchorsPreset(Control.LayoutPreset.Center);
+        hint.OffsetTop = 120;
+        _levelScreen.AddChild(hint);
     }
 
     // ── Input Handlers ───────────────────────────
@@ -334,6 +394,23 @@ public class GameUI
             UpdateBoardSelect(main);
         }
         if (Input.IsActionJustPressed("kick_off"))
+            main.ShowLevelSelect();
+    }
+
+    public void HandleLevelSelectInput(Main main)
+    {
+        int levelCount = Main.LevelNames.Length;
+        if (Input.IsActionJustPressed("move_left"))
+        {
+            main.Level = (Main.LevelType)(((int)main.Level + levelCount - 1) % levelCount);
+            UpdateLevelSelect(main);
+        }
+        if (Input.IsActionJustPressed("move_right"))
+        {
+            main.Level = (Main.LevelType)(((int)main.Level + 1) % levelCount);
+            UpdateLevelSelect(main);
+        }
+        if (Input.IsActionJustPressed("kick_off"))
             main.StartRide();
     }
 
@@ -344,10 +421,12 @@ public class GameUI
         _titleScreen.Visible = true;
         _charScreen.Visible = false;
         _boardScreen.Visible = false;
+        _levelScreen.Visible = false;
         _loadingScreen.Visible = false;
         _promptLabel.Text = "";
         _countdownLabel.Text = "";
         _nearMissLabel.Text = "";
+        _wobbleLabel.Text = "";
         _progressFill.AnchorRight = 0f;
     }
 
@@ -366,11 +445,19 @@ public class GameUI
         UpdateBoardSelect(main);
     }
 
+    public void ShowLevelSelect(Main main)
+    {
+        _boardScreen.Visible = false;
+        _levelScreen.Visible = true;
+        UpdateLevelSelect(main);
+    }
+
     public void HideAllSelectors()
     {
         _titleScreen.Visible = false;
         _charScreen.Visible = false;
         _boardScreen.Visible = false;
+        _levelScreen.Visible = false;
         _loadingScreen.Visible = false;
         _promptLabel.Text = "";
     }
@@ -402,6 +489,12 @@ public class GameUI
         _boardDesc.Text = Main.BoardDescs[(int)main.Board];
     }
 
+    private void UpdateLevelSelect(Main main)
+    {
+        _levelName.Text = Main.LevelNames[(int)main.Level];
+        _levelDesc.Text = Main.LevelDescs[(int)main.Level];
+    }
+
     // ── HUD ──────────────────────────────────────
 
     public void UpdateHUD(Main main)
@@ -430,8 +523,20 @@ public class GameUI
             _bestLabel.Text = $"Best: {bMins}:{bSecs:00.0}";
         }
 
-        float progress = Mathf.Clamp(player.Distance / Main.CourseLength, 0f, 1f);
+        float progress = Mathf.Clamp(player.Distance / main.CourseLength, 0f, 1f);
         _progressFill.AnchorRight = progress;
+
+        // Wobble warning
+        if (player.WobbleLevel > 0.3f)
+        {
+            float wobbleT = (player.WobbleLevel - 0.3f) / 0.7f;
+            _wobbleLabel.Text = "WOBBLING!";
+            _wobbleLabel.Modulate = new Color(1f, Mathf.Lerp(0.85f, 0.2f, wobbleT), Mathf.Lerp(0.3f, 0.1f, wobbleT));
+        }
+        else
+        {
+            _wobbleLabel.Text = "";
+        }
     }
 
     public void ShowFinish(Main main)

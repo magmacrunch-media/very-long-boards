@@ -32,12 +32,27 @@ public class PlayerManager
     public float Lean = 0f;
     public bool Crashed = false;
     public float PushOffTimer = 0f;
+    private float _prevSteer = 0f;
+    private float _carveAngleSmooth = 0f;
+
+    // Speed wobble system
+    public float WobbleLevel = 0f;
+    public float TimeSinceCarve = 0f;
 
     private const float Gravity = 0.08f;
     private const float Friction = 0.998f;
     public const float MaxSpeed = 5f;
     private const float Handling = 0.18f;
     private const float AnimLerp = 8f;
+
+    // Wobble constants
+    private const float WobbleSpeedThreshold = 0.6f;
+    private const float BrakeSpeedThreshold = 0.7f;
+    private const float BrakeCutoff = 0.85f;
+    private const float WobbleBuildRate = 0.35f;
+    private const float WobbleDecayRate = 0.8f;
+    private const float CarveResetTime = 0.3f;
+    private const float WobbleCrashLevel = 1f;
 
     // Particles
     private GpuParticles3D _dustParticles;
@@ -435,16 +450,71 @@ public class PlayerManager
         Speed += -slope * Gravity * dt * 60f;
         Speed *= Mathf.Pow(Friction, dt * 60f);
 
+        float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
+
+        // Speed-dependent braking
         if (braking)
-            Speed *= Mathf.Pow(0.97f, dt * 60f);
+        {
+            if (speedFactor < BrakeSpeedThreshold)
+            {
+                Speed *= Mathf.Pow(0.97f, dt * 60f);
+            }
+            else if (speedFactor < BrakeCutoff)
+            {
+                float brakeFade = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
+                Speed *= Mathf.Pow(Mathf.Lerp(1f, 0.97f, brakeFade), dt * 60f);
+            }
+        }
 
         // Shoulder drag
         if (Mathf.Abs(PosX) > 3.5f)
             Speed *= Mathf.Pow(0.94f, dt * 60f);
 
-        Lean = Mathf.Lerp(Lean, steer, 6f * dt);
-        if (Mathf.Abs(Lean) < 0.005f) Lean = 0f; // snap to center to prevent drift
-        PosX += steer * Handling * dt * 60f * (0.3f + Speed * 0.5f);
+        // Wobble system — track carving and build wobble at high speed
+        bool isCarving = Mathf.Abs(steer) > 0.1f;
+        if (isCarving)
+        {
+            TimeSinceCarve = 0f;
+            WobbleLevel -= WobbleDecayRate * dt;
+        }
+        else
+        {
+            TimeSinceCarve += dt;
+            if (speedFactor >= WobbleSpeedThreshold && TimeSinceCarve > CarveResetTime)
+            {
+                WobbleLevel += WobbleBuildRate * dt * (0.5f + (speedFactor - WobbleSpeedThreshold) / (1f - WobbleSpeedThreshold) * 0.5f);
+            }
+            else
+            {
+                WobbleLevel -= WobbleDecayRate * 0.5f * dt;
+            }
+        }
+        WobbleLevel = Mathf.Clamp(WobbleLevel, 0f, 1f);
+
+        // Wobble crash
+        if (WobbleLevel >= WobbleCrashLevel)
+        {
+            Crashed = true;
+            Speed = 0f;
+        }
+
+        // Turn anticipation — brief counter-lean when steer changes from 0
+        float leanTarget = steer;
+        if (steer != 0f && _prevSteer == 0f)
+            leanTarget = -steer * 0.4f;
+        Lean = Mathf.Lerp(Lean, leanTarget, 12f * dt);
+        if (Mathf.Abs(Lean) < 0.005f) Lean = 0f;
+        float handlingScale = 1f - WobbleLevel * 0.4f;
+        PosX += steer * Handling * handlingScale * dt * 60f * (0.3f + Speed * 0.5f);
+
+        // Wobble drift — random lateral push when wobbling
+        if (WobbleLevel > 0.2f)
+        {
+            float time = (float)Time.GetTicksMsec() * 0.001f;
+            float drift = Mathf.Sin(time * 11f) * WobbleLevel * 0.12f * Speed * dt * 60f;
+            PosX += drift;
+        }
+
         PosX = Mathf.Clamp(PosX, -4.5f, 4.5f);
         Speed = Mathf.Clamp(Speed, 0.02f, MaxSpeed);
 
@@ -463,18 +533,31 @@ public class PlayerManager
         // Board carve — the board points in direction of travel
         if (_skaterRoot != null)
         {
-            float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
-            float carveAngle = Lean * 0.7f * (0.3f + speedFactor * 0.7f);
+            float targetCarve = Lean * 0.7f * (0.3f + speedFactor * 0.7f);
+            _carveAngleSmooth = Mathf.Lerp(_carveAngleSmooth, targetCarve, 6f * dt);
+            if (Mathf.Abs(_carveAngleSmooth) < 0.001f) _carveAngleSmooth = 0f;
             float tiltAngle = Lean * 0.35f * (0.5f + speedFactor * 0.5f);
 
-            // Subtle wobble only at high speed
-            float time = (float)Time.GetTicksMsec() * 0.001f;
-            float wobble = Mathf.Sin(time * 6f) * 0.008f * speedFactor * speedFactor;
+            // Board nod during push-off — brief pitch dip and roll wobble
+            float pushNod = 0f;
+            float pushTilt = 0f;
+            if (PushOffTimer > 0f)
+            {
+                float pt = PushOffTimer / 0.4f;
+                pushNod = Mathf.Sin(pt * Mathf.Pi) * 0.06f;
+                pushTilt = Mathf.Sin(pt * Mathf.Pi) * 0.03f;
+            }
 
-            _skaterRoot.Rotation = new Vector3(0, carveAngle, tiltAngle + wobble);
+            // Dynamic wobble driven by WobbleLevel
+            float time = (float)Time.GetTicksMsec() * 0.001f;
+            float wobbleFreq = 6f + WobbleLevel * 18f;
+            float wobbleAmp = 0.008f + WobbleLevel * 0.06f;
+            float wobble = Mathf.Sin(time * wobbleFreq) * wobbleAmp * speedFactor;
+
+            _skaterRoot.Rotation = new Vector3(pushNod, _carveAngleSmooth, tiltAngle + wobble + pushTilt);
         }
 
-        // Body stays in sideways stance — no counter-rotation
+        // Body stays in sideways stance
         if (_bodyGroup != null)
             _bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0);
 
@@ -490,15 +573,18 @@ public class PlayerManager
             dustMat.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
         }
 
-        // Speed lines
+        // Speed lines — pulse when wobbling
         float spdFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
         _speedLines.Emitting = spdFactor > 0.7f && Kicked;
         var speedMat = _speedLines.ProcessMaterial as ParticleProcessMaterial;
         if (speedMat != null)
         {
             float lineIntensity = (spdFactor - 0.7f) / 0.3f;
-            speedMat.Color = new Color(1f, 1f, 1f, 0.1f + lineIntensity * 0.3f);
+            float wobbleBoost = 1f + WobbleLevel * 0.5f;
+            speedMat.Color = new Color(1f, 1f, 1f, (0.1f + lineIntensity * 0.3f) * wobbleBoost);
         }
+
+        _prevSteer = steer;
     }
 
     // ═══════════════════════════════════════════
@@ -509,19 +595,18 @@ public class PlayerManager
     {
         float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
         float time = (float)Time.GetTicksMsec() * 0.001f;
-        bool pushing = PushOffTimer > 0f;
 
         // ── Defaults: relaxed riding stance (body faces right, board points forward) ──
         float hipYaw = 0f;
         float hipPitch = 0f;
-        float hipRoll = Lean * 0.08f;
+        float hipRoll = Lean * 0.12f;
 
         float spinePitch = -0.1f - speedFactor * 0.15f; // lean forward at speed
-        float spineRoll = 0f;
-        float spineYaw = Lean * 0.1f; // twist slightly into the turn
+        float spineRoll = Lean * 0.06f;
+        float spineYaw = Lean * 0.15f; // twist into the turn
 
         float neckPitch = 0.1f; // look ahead
-        float neckYaw = -Lean * 0.15f; // head looks into the turn
+        float neckYaw = -Lean * 0.2f; // head looks into the turn (leads body)
         float neckRoll = 0f;
 
         // Arms: out for balance, tighter at speed
@@ -546,23 +631,40 @@ public class PlayerManager
             armOutBase = 0.5f;
         }
 
-        // ── Push-off animation ──
-        if (pushing)
+        // ── Speed wobble — body shakes when not carving at high speed ──
+        if (WobbleLevel > 0.2f)
         {
-            float t = PushOffTimer / 0.4f; // 1→0
-            // Back leg extends down and back
-            legRPitch = Mathf.Lerp(0.15f, 0.5f, t);
-            kneeRBend = Mathf.Lerp(-0.3f, -0.6f, t);
-            // Body leans forward
-            spinePitch = Mathf.Lerp(-0.1f, -0.3f, t);
-            // Front leg stays planted
-            legLPitch = 0.1f;
-            kneeLBend = -0.2f;
+            float wobbleShake = (WobbleLevel - 0.2f) / 0.8f;
+            float shakeX = Mathf.Sin(time * 13f) * 0.04f * wobbleShake;
+            float shakeZ = Mathf.Cos(time * 17f) * 0.03f * wobbleShake;
+            hipPitch += shakeX;
+            hipRoll += shakeZ;
+            spinePitch += shakeX * 0.6f;
+            spineRoll += shakeZ * 0.5f;
+            armOutBase += wobbleShake * 0.15f;
+            armLPitch += Mathf.Sin(time * 15f) * 0.05f * wobbleShake;
+            armRPitch -= Mathf.Sin(time * 15f + 1f) * 0.05f * wobbleShake;
         }
 
-        // Arms adjust with steering
-        armLPitch -= Lean * 0.1f;
-        armRPitch += Lean * 0.1f;
+        // Arms adjust with steering — outside arm extends, inside arm tucks
+        float leanAbs = Mathf.Abs(Lean);
+        float turnArmFactor = leanAbs * speedFactor;
+        // Left arm: outside when turning right (Lean < 0), inside when turning left (Lean > 0)
+        armLPitch -= Lean * 0.12f;
+        armRPitch += Lean * 0.12f;
+        armOutBase += Lean * 0.08f * speedFactor;
+
+        // Knee compression — inside knee bends more, outside straightens
+        if (Lean > 0f)
+        {
+            kneeLBend -= leanAbs * 0.1f * speedFactor;
+            kneeRBend += leanAbs * 0.05f * speedFactor;
+        }
+        else if (Lean < 0f)
+        {
+            kneeRBend -= leanAbs * 0.1f * speedFactor;
+            kneeLBend += leanAbs * 0.05f * speedFactor;
+        }
 
         // ── Braking ──
         if (braking && Speed > 0.3f)
@@ -634,6 +736,9 @@ public class PlayerManager
         Lean = 0f;
         Crashed = false;
         PushOffTimer = 0f;
+        WobbleLevel = 0f;
+        TimeSinceCarve = 0f;
+        _carveAngleSmooth = 0f;
         _main.Player.Position = new Vector3(0, 0.1f, 0);
         if (_skaterRoot != null) _skaterRoot.Rotation = Vector3.Zero;
         ApplyStance(0f, 0f, false);

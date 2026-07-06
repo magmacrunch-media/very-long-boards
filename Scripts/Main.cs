@@ -3,14 +3,16 @@ using System.Collections.Generic;
 
 public partial class Main : Node3D
 {
-    public enum GameState { Title, CharSelect, BoardSelect, Riding, Paused, Finished, Countdown }
+    public enum GameState { Title, CharSelect, BoardSelect, LevelSelect, Riding, Paused, Finished, Countdown }
     public enum CarlType { Office, Party, Dark }
     public enum BoardType { Classic, Neon, Dark, Natural }
+    public enum LevelType { NewHampshire }
 
     // State
     public GameState State = GameState.Title;
     public CarlType Carl = CarlType.Office;
     public BoardType Board = BoardType.Classic;
+    public LevelType Level = LevelType.NewHampshire;
     public float Timer = 0f;
     public float BestTime = 0f;
     public float FinishTime = 0f;
@@ -22,7 +24,10 @@ public partial class Main : Node3D
     public static readonly string[] CarlDescs = { "The everyman", "The maniac", "The enigma" };
     public static readonly string[] BoardNames = { "Classic", "Neon", "Dark", "Natural" };
     public static readonly string[] BoardDescs = { "Brown wood deck", "Bright neon colors", "Black with purple accent", "Light natural wood" };
-    public static readonly string CourseName = "New Hampshire Summer";
+    public static readonly string[] LevelNames = { "New Hampshire Summer" };
+    public static readonly string[] LevelDescs = { "Rolling hills through a quiet New England town" };
+    public static readonly float[] LevelLengths = { 2000f };
+    public static readonly string[] LevelSeasons = { "Summer" };
     public static readonly Color[] CarlShirtColors = {
         new Color(0.65f, 0.22f, 0.22f),   // Office: red
         new Color(0.28f, 0.2f, 0.7f),     // Party: purple
@@ -45,7 +50,7 @@ public partial class Main : Node3D
         new Color(0.35f, 0.05f, 0.55f),  // Dark purple
         new Color(0.55f, 0.45f, 0.3f)    // Natural tan
     };
-    public const float CourseLength = 2000f;
+    public float CourseLength { get { return LevelLengths[(int)Level]; } }
 
     // Node references
     public CharacterBody3D Player;
@@ -95,14 +100,20 @@ public partial class Main : Node3D
 
             case GameState.CharSelect:
                 Scenery.UpdateClouds(dt);
-                Cam.UpdateTitle(TitleTime);
+                Cam.UpdateCharSelect();
                 UI.HandleCharSelectInput(this);
                 break;
 
             case GameState.BoardSelect:
                 Scenery.UpdateClouds(dt);
-                Cam.UpdateTitle(TitleTime);
+                Cam.UpdateBoardSelect();
                 UI.HandleBoardSelectInput(this);
+                break;
+
+            case GameState.LevelSelect:
+                Scenery.UpdateClouds(dt);
+                Cam.UpdateLevelSelect(TitleTime);
+                UI.HandleLevelSelectInput(this);
                 break;
 
             case GameState.Countdown:
@@ -185,6 +196,12 @@ public partial class Main : Node3D
     {
         State = GameState.BoardSelect;
         UI.ShowBoardSelect(this);
+    }
+
+    public void ShowLevelSelect()
+    {
+        State = GameState.LevelSelect;
+        UI.ShowLevelSelect(this);
     }
 
     public void StartRide()

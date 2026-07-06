@@ -213,7 +213,7 @@ public class SceneryManager
         }
 
         // Distance markers
-        for (float mz = 500f; mz < Main.CourseLength; mz += 500f)
+        for (float mz = 500f; mz < _main.CourseLength; mz += 500f)
             AddDistanceMarker(mz);
 
         UpdatePositions(0f);
@@ -769,9 +769,9 @@ public class SceneryManager
     private void UpdateFinishLine()
     {
         var terrain = _main.Terrain;
-        float relZ = Main.CourseLength - terrain.ScrollOffset;
-        float cx = terrain.CurveAt(Main.CourseLength) * relZ;
-        float cy = terrain.HillAt(Main.CourseLength);
+        float relZ = _main.CourseLength - terrain.ScrollOffset;
+        float cx = terrain.CurveAt(_main.CourseLength) * relZ;
+        float cy = terrain.HillAt(_main.CourseLength);
         _finishLine.Position = new Vector3(cx, cy, relZ);
     }
 
