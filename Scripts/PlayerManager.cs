@@ -479,7 +479,7 @@ public class PlayerManager
             // Terrain pitch — board pitches to match the slope, dampened during steering
             if (PushOffTimer <= 0f)
             {
-                float slopeTarget = (terrain.HillAt(Distance + 0.5f) - terrain.HillAt(Distance - 0.5f)) * 0.2f;
+                float slopeTarget = (terrain.HillAt(Distance + 0.5f) - terrain.HillAt(Distance - 0.5f)) * 0.08f;
                 float pitchDampening = 1f - Mathf.Abs(_steerSmooth) * 0.5f;
                 slopeTarget *= pitchDampening;
                 _boardPitch = Mathf.Lerp(_boardPitch, slopeTarget, 3f * dt);
