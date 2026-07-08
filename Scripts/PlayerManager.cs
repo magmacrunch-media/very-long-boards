@@ -41,10 +41,10 @@ public class PlayerManager
     private float _timeSinceCarve = 0f;
 
     // Constants
-    private const float Gravity = 0.08f;
-    private const float Friction = 0.998f;
-    public const float MaxSpeed = 5f;
-    private const float Handling = 0.18f;
+    private const float Gravity = 0.5f;
+    private const float Friction = 0.9998f;
+    public const float MaxSpeed = 8f;
+    private const float Handling = 0.15f;
     private const float AnimLerp = 8f;
 
     private const float SteerSmoothRate = 10f;
@@ -387,9 +387,9 @@ public class PlayerManager
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
 
         // ── Push off ──
-        if (Input.IsActionJustPressed("kick_off") && Speed < 0.5f)
+        if (Input.IsActionJustPressed("kick_off") && Speed < 0.2f)
         {
-            Speed += 0.25f;
+            Speed += 0.5f;
             Kicked = true;
             PushOffTimer = 0.4f;
             _steerSmooth = 0f;
@@ -407,17 +407,17 @@ public class PlayerManager
         if (braking)
         {
             if (speedFactor < BrakeSpeedThreshold)
-                Speed *= Mathf.Pow(0.97f, dt * 60f);
+                Speed *= Mathf.Pow(0.95f, dt * 60f);
             else if (speedFactor < BrakeCutoff)
             {
                 float brakeFade = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
-                Speed *= Mathf.Pow(Mathf.Lerp(1f, 0.97f, brakeFade), dt * 60f);
+                Speed *= Mathf.Pow(Mathf.Lerp(1f, 0.95f, brakeFade), dt * 60f);
             }
         }
 
         // ── Shoulder drag ──
         if (Mathf.Abs(PosX) > 3.5f)
-            Speed *= Mathf.Pow(0.94f, dt * 60f);
+            Speed *= Mathf.Pow(0.97f, dt * 60f);
 
         // ── Steering ──
         float targetSteer = (PushOffTimer > 0f) ? 0f : steer;

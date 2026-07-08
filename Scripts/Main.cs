@@ -123,7 +123,7 @@ public partial class Main : Node3D
                 {
                     State = GameState.Riding;
                     PlayerMgr.Kicked = true;
-                    PlayerMgr.Speed = 0.3f;
+                    PlayerMgr.Speed = 0.1f;
                     Timer = 0f;
                     UI.SetCountdown("", new Color(1, 1, 1));
                 }
