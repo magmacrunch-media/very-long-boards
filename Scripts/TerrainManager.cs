@@ -38,10 +38,10 @@ public class TerrainManager
         // Flat start area, then rolling hills
         if (z < 20f) return 0f;
         float adjustedZ = z - 20f;
-        float baseHill = Mathf.Sin(adjustedZ * 0.004f) * 10f
-                       + Mathf.Sin(adjustedZ * 0.009f) * 5f
-                       + Mathf.Sin(adjustedZ * 0.02f) * 2f;
-        float downhill = -adjustedZ * 0.02f;
+        float baseHill = Mathf.Sin(adjustedZ * 0.004f) * 18f
+                       + Mathf.Sin(adjustedZ * 0.009f) * 10f
+                       + Mathf.Sin(adjustedZ * 0.02f) * 5f;
+        float downhill = -adjustedZ * 0.05f;
         return baseHill + downhill;
     }
 

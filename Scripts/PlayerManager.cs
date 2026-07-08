@@ -41,7 +41,7 @@ public class PlayerManager
     private float _timeSinceCarve = 0f;
 
     // Constants
-    private const float Gravity = 0.5f;
+    private const float Gravity = 0.12f;
     private const float Friction = 0.9998f;
     public const float MaxSpeed = 8f;
     private const float Handling = 0.15f;
@@ -387,7 +387,7 @@ public class PlayerManager
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
 
         // ── Push off ──
-        if (Input.IsActionJustPressed("kick_off") && Speed < 0.2f)
+        if (Input.IsActionJustPressed("kick_off") && Speed < 0.3f)
         {
             Speed += 0.5f;
             Kicked = true;
