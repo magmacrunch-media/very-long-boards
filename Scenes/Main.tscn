@@ -43,7 +43,7 @@ light_color = Color(1, 0.98, 0.95, 1)
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env_1")
 
-[node name="Player" type="CharacterBody3D" parent="."]
+[node name="Player" type="Node3D" parent="."]
 
 [node name="CameraMount" type="Node3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -7)

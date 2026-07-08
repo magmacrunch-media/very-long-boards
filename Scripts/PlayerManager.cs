@@ -11,47 +11,52 @@ public class PlayerManager
     private MeshInstance3D _deckTailMesh;
     private MeshInstance3D _gripMesh;
 
-    // Joint hierarchy — each is a Node3D we can rotate for animation
-    private Node3D _bodyGroup;   // body counter-lean
-    private Node3D _hip;         // root of skeleton
-    private Node3D _spine;       // torso sway / forward lean
-    private Node3D _neck;        // head look
-    private Node3D _armL;        // left shoulder
-    private Node3D _forearmL;    // left elbow
-    private Node3D _armR;        // right shoulder
-    private Node3D _forearmR;    // right elbow
-    private Node3D _legL;        // left hip
-    private Node3D _kneeL;       // left knee
-    private Node3D _legR;        // right hip
-    private Node3D _kneeR;       // right knee
+    // Joint hierarchy
+    private Node3D _bodyGroup;
+    private Node3D _hip;
+    private Node3D _spine;
+    private Node3D _neck;
+    private Node3D _armL;
+    private Node3D _forearmL;
+    private Node3D _armR;
+    private Node3D _forearmR;
+    private Node3D _legL;
+    private Node3D _kneeL;
+    private Node3D _legR;
+    private Node3D _kneeR;
 
+    // Public state (read by Main, UI, Camera)
     public float Speed = 0f;
     public float PosX = 0f;
     public float Distance = 0f;
     public bool Kicked = false;
-    public float Lean = 0f;
     public bool Crashed = false;
     public float PushOffTimer = 0f;
-    private float _prevSteer = 0f;
-    private float _carveAngleSmooth = 0f;
 
-    // Speed wobble system
+    // Internal state
+    private float _steerSmooth = 0f;
+    private float _boardYaw = 0f;
+    private float _boardRoll = 0f;
     public float WobbleLevel = 0f;
-    public float TimeSinceCarve = 0f;
+    private float _timeSinceCarve = 0f;
 
+    // Constants
     private const float Gravity = 0.08f;
     private const float Friction = 0.998f;
     public const float MaxSpeed = 5f;
     private const float Handling = 0.18f;
     private const float AnimLerp = 8f;
 
-    // Wobble constants
-    private const float WobbleSpeedThreshold = 0.6f;
+    private const float SteerSmoothRate = 10f;
+    private const float YawPerSteer = 0.4f;
+    private const float RollPerSteer = 0.25f;
+
+    private const float WobbleSpeedThreshold = 0.65f;
     private const float BrakeSpeedThreshold = 0.7f;
     private const float BrakeCutoff = 0.85f;
-    private const float WobbleBuildRate = 0.35f;
-    private const float WobbleDecayRate = 0.8f;
-    private const float CarveResetTime = 0.3f;
+    private const float WobbleBuildRate = 0.15f;
+    private const float WobbleDecayRate = 1.0f;
+    private const float CarveResetTime = 0.5f;
     private const float WobbleCrashLevel = 1f;
 
     // Particles
@@ -85,7 +90,6 @@ public class PlayerManager
         deckMat.Roughness = 0.7f;
         deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-        // ── Deck: center strip (flat) ──
         _deckMesh = new MeshInstance3D();
         var deckCenter = new BoxMesh();
         deckCenter.Size = new Vector3(0.62f, 0.045f, 1.4f);
@@ -94,7 +98,6 @@ public class PlayerManager
         _deckMesh.Position = new Vector3(0, 0.13f, 0);
         _skaterRoot.AddChild(_deckMesh);
 
-        // Nose extension (tapers narrower, flat)
         _deckNoseMesh = new MeshInstance3D();
         var deckNose = new BoxMesh();
         deckNose.Size = new Vector3(0.48f, 0.04f, 0.4f);
@@ -103,7 +106,6 @@ public class PlayerManager
         _deckNoseMesh.Position = new Vector3(0, 0.13f, 0.9f);
         _skaterRoot.AddChild(_deckNoseMesh);
 
-        // Tail extension
         _deckTailMesh = new MeshInstance3D();
         var deckTail = new BoxMesh();
         deckTail.Size = new Vector3(0.48f, 0.04f, 0.35f);
@@ -112,7 +114,6 @@ public class PlayerManager
         _deckTailMesh.Position = new Vector3(0, 0.13f, -0.88f);
         _skaterRoot.AddChild(_deckTailMesh);
 
-        // ── Grip tape ──
         var gripMat = new StandardMaterial3D();
         gripMat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
         gripMat.Roughness = 0.95f;
@@ -124,13 +125,11 @@ public class PlayerManager
         _gripMesh.Position = new Vector3(0, 0.16f, 0);
         _skaterRoot.AddChild(_gripMesh);
 
-        // ── Trucks ──
         var truckMat = new StandardMaterial3D();
         truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
         truckMat.Metallic = 0.5f;
         truckMat.Roughness = 0.3f;
 
-        // Front truck: baseplate + axle
         AddBox(_skaterRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
         var axleMat = new StandardMaterial3D();
         axleMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
@@ -138,11 +137,9 @@ public class PlayerManager
         axleMat.Roughness = 0.25f;
         AddCylinder(_skaterRoot, 0.015f, 0.015f, 0.58f, axleMat, new Vector3(0, 0.06f, 0.55f), new Vector3(0, 0, Mathf.Pi / 2f));
 
-        // Rear truck
         AddBox(_skaterRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
         AddCylinder(_skaterRoot, 0.015f, 0.015f, 0.58f, axleMat, new Vector3(0, 0.06f, -0.55f), new Vector3(0, 0, Mathf.Pi / 2f));
 
-        // ── Wheels ──
         var wheelMat = new StandardMaterial3D();
         wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
         wheelMat.Roughness = 0.55f;
@@ -168,7 +165,6 @@ public class PlayerManager
             wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
             _skaterRoot.AddChild(wheel);
 
-            // Hub
             var hub = new MeshInstance3D();
             var hMesh = new CylinderMesh();
             hMesh.TopRadius = 0.025f;
@@ -189,7 +185,6 @@ public class PlayerManager
 
     private void CreateBody()
     {
-        // Materials
         var skinMat = new StandardMaterial3D();
         skinMat.AlbedoColor = new Color(0.9f, 0.78f, 0.6f);
         skinMat.Roughness = 0.75f;
@@ -217,36 +212,28 @@ public class PlayerManager
         hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
         hairMat.Roughness = 0.9f;
 
-        // ── Body group — sideways stance (facing right) ──
         _bodyGroup = new Node3D();
         _bodyGroup.Position = new Vector3(0, 0.05f, 0);
-        _bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0); // face right (+X)
+        _bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0);
         _skaterRoot.AddChild(_bodyGroup);
 
-        // ── Hip (skeleton root) ──
         _hip = new Node3D();
         _hip.Position = new Vector3(0, 0.2f, 0);
         _bodyGroup.AddChild(_hip);
 
-        // ── Spine (torso) ──
         _spine = new Node3D();
         _spine.Position = new Vector3(0, 0.35f, 0);
         _hip.AddChild(_spine);
 
-        // Waist (lower torso)
         AddCylinderTo(_spine, 0.13f, 0.11f, 0.18f, shirtMat, new Vector3(0, 0.09f, 0));
-        // Chest (upper torso)
         AddCylinderTo(_spine, 0.15f, 0.13f, 0.22f, shirtMat, new Vector3(0, 0.29f, -0.02f));
-        // Shoulders (wider cap)
         AddCylinderTo(_spine, 0.16f, 0.15f, 0.06f, shirtMat, new Vector3(0, 0.42f, -0.02f));
 
-        // ── Neck ──
         _neck = new Node3D();
         _neck.Position = new Vector3(0, 0.46f, -0.02f);
         _spine.AddChild(_neck);
         AddCylinderTo(_neck, 0.05f, 0.06f, 0.08f, skinMat, new Vector3(0, 0.04f, 0));
 
-        // Head
         var head = new MeshInstance3D();
         var headMesh = new SphereMesh();
         headMesh.Radius = 0.12f;
@@ -258,7 +245,6 @@ public class PlayerManager
         head.Position = new Vector3(0, 0.14f, -0.02f);
         _neck.AddChild(head);
 
-        // Hair (flat cap)
         var hair = new MeshInstance3D();
         var hairMesh = new CylinderMesh();
         hairMesh.TopRadius = 0.11f;
@@ -270,21 +256,16 @@ public class PlayerManager
         hair.Position = new Vector3(0, 0.24f, -0.02f);
         _neck.AddChild(hair);
 
-        // ── Left arm ──
         _armL = new Node3D();
         _armL.Position = new Vector3(-0.17f, 0.4f, -0.02f);
         _spine.AddChild(_armL);
-        // Upper arm
         AddCylinderTo(_armL, 0.035f, 0.03f, 0.2f, skinMat, new Vector3(0, -0.1f, 0));
-        // Forearm joint
         _forearmL = new Node3D();
         _forearmL.Position = new Vector3(0, -0.2f, 0);
         _armL.AddChild(_forearmL);
         AddCylinderTo(_forearmL, 0.03f, 0.025f, 0.18f, skinMat, new Vector3(0, -0.09f, 0));
-        // Hand
         AddSphereTo(_forearmL, 0.03f, skinMat, new Vector3(0, -0.2f, 0));
 
-        // ── Right arm ──
         _armR = new Node3D();
         _armR.Position = new Vector3(0.17f, 0.4f, -0.02f);
         _spine.AddChild(_armR);
@@ -295,19 +276,14 @@ public class PlayerManager
         AddCylinderTo(_forearmR, 0.03f, 0.025f, 0.18f, skinMat, new Vector3(0, -0.09f, 0));
         AddSphereTo(_forearmR, 0.03f, skinMat, new Vector3(0, -0.2f, 0));
 
-        // ── Left leg ──
         _legL = new Node3D();
         _legL.Position = new Vector3(-0.08f, 0.0f, 0);
         _hip.AddChild(_legL);
-        // Upper leg (thigh)
         AddCylinderTo(_legL, 0.06f, 0.055f, 0.22f, pantsMat, new Vector3(0, -0.11f, 0));
-        // Knee joint
         _kneeL = new Node3D();
         _kneeL.Position = new Vector3(0, -0.22f, 0);
         _legL.AddChild(_kneeL);
-        // Lower leg (shin)
         AddCylinderTo(_kneeL, 0.05f, 0.045f, 0.2f, pantsMat, new Vector3(0, -0.1f, 0));
-        // Shoe
         var shoeL = new MeshInstance3D();
         var shoeLMesh = new BoxMesh();
         shoeLMesh.Size = new Vector3(0.1f, 0.06f, 0.22f);
@@ -315,10 +291,8 @@ public class PlayerManager
         shoeL.MaterialOverride = shoeMat;
         shoeL.Position = new Vector3(0, -0.22f, -0.02f);
         _kneeL.AddChild(shoeL);
-        // Sole
         AddBoxTo(_kneeL, new Vector3(0.1f, 0.02f, 0.22f), soleMat, new Vector3(0, -0.25f, -0.02f));
 
-        // ── Right leg ──
         _legR = new Node3D();
         _legR.Position = new Vector3(0.08f, 0.0f, 0);
         _hip.AddChild(_legR);
@@ -336,7 +310,6 @@ public class PlayerManager
         _kneeR.AddChild(shoeR);
         AddBoxTo(_kneeR, new Vector3(0.1f, 0.02f, 0.22f), soleMat, new Vector3(0, -0.25f, -0.02f));
 
-        // ── Collision ──
         var col = new CollisionShape3D();
         var shape = new BoxShape3D();
         shape.Size = new Vector3(0.7f, 1.3f, 1.8f);
@@ -344,28 +317,7 @@ public class PlayerManager
         col.Position = new Vector3(0, 0.65f, 0);
         _main.Player.AddChild(col);
 
-        // ── Initial riding stance ──
-        ApplyStance(0f, 0f, false);
-    }
-
-    private void ApplyStance(float speedFactor, float lean, bool braking)
-    {
-        // Set joints to a relaxed riding pose
-        float kneeBend = -0.25f - speedFactor * 0.15f;
-        float spinePitch = -0.1f - speedFactor * 0.15f;
-        float armOut = 0.7f - speedFactor * 0.3f;
-
-        if (_hip != null) _hip.Rotation = new Vector3(0, 0, lean * 0.08f);
-        if (_spine != null) _spine.Rotation = new Vector3(spinePitch, lean * 0.1f, 0);
-        if (_neck != null) _neck.Rotation = new Vector3(0.1f, -lean * 0.15f, 0);
-        if (_armL != null) _armL.Rotation = new Vector3(0.1f, 0, -armOut);
-        if (_forearmL != null) _forearmL.Rotation = new Vector3(-0.3f, 0, 0);
-        if (_armR != null) _armR.Rotation = new Vector3(0.1f, 0, armOut);
-        if (_forearmR != null) _forearmR.Rotation = new Vector3(-0.3f, 0, 0);
-        if (_legL != null) _legL.Rotation = new Vector3(0.15f + speedFactor * 0.1f, 0, 0);
-        if (_kneeL != null) _kneeL.Rotation = new Vector3(kneeBend, 0, 0);
-        if (_legR != null) _legR.Rotation = new Vector3(0.15f + speedFactor * 0.1f, 0, 0);
-        if (_kneeR != null) _kneeR.Rotation = new Vector3(kneeBend, 0, 0);
+        Animate(0f, 0f, false);
     }
 
     // ═══════════════════════════════════════════
@@ -374,7 +326,6 @@ public class PlayerManager
 
     private void CreateParticles()
     {
-        // Dust trail
         _dustParticles = new GpuParticles3D();
         _dustParticles.Amount = 60;
         _dustParticles.Lifetime = 1.0f;
@@ -392,7 +343,6 @@ public class PlayerManager
         _dustParticles.Emitting = false;
         _main.Player.AddChild(_dustParticles);
 
-        // Confetti celebration
         _confettiParticles = new GpuParticles3D();
         _confettiParticles.Amount = 300;
         _confettiParticles.Lifetime = 3f;
@@ -410,7 +360,6 @@ public class PlayerManager
         _confettiParticles.ProcessMaterial = confMat;
         _main.AddChild(_confettiParticles);
 
-        // Speed lines (at high speed)
         _speedLines = new GpuParticles3D();
         _speedLines.Amount = 30;
         _speedLines.Lifetime = 0.4f;
@@ -437,28 +386,28 @@ public class PlayerManager
         var terrain = _main.Terrain;
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
 
-        // Push off
+        // ── Push off ──
         if (Input.IsActionJustPressed("kick_off") && Speed < 0.5f)
         {
             Speed += 0.25f;
             Kicked = true;
             PushOffTimer = 0.4f;
+            _steerSmooth = 0f;
+            _boardYaw = 0f;
+            _boardRoll = 0f;
         }
         PushOffTimer = Mathf.Max(0f, PushOffTimer - dt);
 
-        // Slope acceleration
+        // ── Slope & friction ──
         Speed += -slope * Gravity * dt * 60f;
         Speed *= Mathf.Pow(Friction, dt * 60f);
-
         float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
 
-        // Speed-dependent braking
+        // ── Braking ──
         if (braking)
         {
             if (speedFactor < BrakeSpeedThreshold)
-            {
                 Speed *= Mathf.Pow(0.97f, dt * 60f);
-            }
             else if (speedFactor < BrakeCutoff)
             {
                 float brakeFade = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
@@ -466,125 +415,128 @@ public class PlayerManager
             }
         }
 
-        // Shoulder drag
+        // ── Shoulder drag ──
         if (Mathf.Abs(PosX) > 3.5f)
             Speed *= Mathf.Pow(0.94f, dt * 60f);
 
-        // Wobble system — track carving and build wobble at high speed
-        bool isCarving = Mathf.Abs(steer) > 0.1f;
-        if (isCarving)
+        // ── Steering ──
+        float targetSteer = (PushOffTimer > 0f) ? 0f : steer;
+        _steerSmooth = Mathf.Lerp(_steerSmooth, targetSteer, SteerSmoothRate * dt);
+        if (Mathf.Abs(_steerSmooth) < 0.005f) _steerSmooth = 0f;
+
+        float handlingScale = 1f - WobbleLevel * 0.4f;
+        PosX += _steerSmooth * Handling * handlingScale * dt * 60f * (0.3f + Speed * 0.5f);
+
+        // ── Wobble ──
+        bool isSteering = Mathf.Abs(_steerSmooth) > 0.1f;
+        if (isSteering)
         {
-            TimeSinceCarve = 0f;
-            WobbleLevel -= WobbleDecayRate * dt;
+            _timeSinceCarve = 0f;
+            WobbleLevel = Mathf.Max(0f, WobbleLevel - WobbleDecayRate * dt);
         }
         else
         {
-            TimeSinceCarve += dt;
-            if (speedFactor >= WobbleSpeedThreshold && TimeSinceCarve > CarveResetTime)
-            {
+            _timeSinceCarve += dt;
+            if (speedFactor >= WobbleSpeedThreshold && _timeSinceCarve > CarveResetTime)
                 WobbleLevel += WobbleBuildRate * dt * (0.5f + (speedFactor - WobbleSpeedThreshold) / (1f - WobbleSpeedThreshold) * 0.5f);
-            }
             else
-            {
-                WobbleLevel -= WobbleDecayRate * 0.5f * dt;
-            }
+                WobbleLevel = Mathf.Max(0f, WobbleLevel - WobbleDecayRate * 2f * dt);
         }
         WobbleLevel = Mathf.Clamp(WobbleLevel, 0f, 1f);
 
-        // Wobble crash
         if (WobbleLevel >= WobbleCrashLevel)
         {
             Crashed = true;
             Speed = 0f;
         }
 
-        // Turn anticipation — brief counter-lean when steer changes from 0
-        float leanTarget = steer;
-        if (steer != 0f && _prevSteer == 0f)
-            leanTarget = -steer * 0.4f;
-        Lean = Mathf.Lerp(Lean, leanTarget, 12f * dt);
-        if (Mathf.Abs(Lean) < 0.005f) Lean = 0f;
-        float handlingScale = 1f - WobbleLevel * 0.4f;
-        PosX += steer * Handling * handlingScale * dt * 60f * (0.3f + Speed * 0.5f);
-
-        // Wobble drift — random lateral push when wobbling
-        if (WobbleLevel > 0.2f)
+        if (WobbleLevel > 0.3f)
         {
             float time = (float)Time.GetTicksMsec() * 0.001f;
-            float drift = Mathf.Sin(time * 11f) * WobbleLevel * 0.12f * Speed * dt * 60f;
+            float drift = Mathf.Sin(time * 11f) * WobbleLevel * 0.08f * Speed * dt * 60f;
             PosX += drift;
         }
 
         PosX = Mathf.Clamp(PosX, -4.5f, 4.5f);
         Speed = Mathf.Clamp(Speed, 0.02f, MaxSpeed);
-
         Distance += Speed * dt * 60f;
 
         float groundY = terrain.HillAt(Distance);
         _main.Player.Position = new Vector3(PosX, groundY + 0.1f, 0);
 
-        // Off-road crash check
         if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
         {
             Crashed = true;
             Speed = 0f;
         }
 
-        // Board carve — the board points in direction of travel
+        // ── Board rotation ──
         if (_skaterRoot != null)
         {
-            float targetCarve = Lean * 0.7f * (0.3f + speedFactor * 0.7f);
-            _carveAngleSmooth = Mathf.Lerp(_carveAngleSmooth, targetCarve, 6f * dt);
-            if (Mathf.Abs(_carveAngleSmooth) < 0.001f) _carveAngleSmooth = 0f;
-            float tiltAngle = Lean * 0.35f * (0.5f + speedFactor * 0.5f);
+            float time = (float)Time.GetTicksMsec() * 0.001f;
 
-            // Board nod during push-off — brief pitch dip and roll wobble
-            float pushNod = 0f;
-            float pushTilt = 0f;
-            if (PushOffTimer > 0f)
+            // Steering yaw & roll
+            float yawTarget = _steerSmooth * YawPerSteer * (0.3f + speedFactor * 0.7f);
+            float rollTarget = _steerSmooth * RollPerSteer * (0.3f + speedFactor * 0.7f);
+            if (Mathf.Abs(_steerSmooth) < 0.05f)
             {
-                float pt = PushOffTimer / 0.4f;
-                pushNod = Mathf.Sin(pt * Mathf.Pi) * 0.06f;
-                pushTilt = Mathf.Sin(pt * Mathf.Pi) * 0.03f;
+                _boardYaw = MoveToward(_boardYaw, 0f, 6f * dt);
+                _boardRoll = MoveToward(_boardRoll, 0f, 8f * dt);
+            }
+            else
+            {
+                _boardYaw = Mathf.Lerp(_boardYaw, yawTarget, 8f * dt);
+                _boardRoll = Mathf.Lerp(_boardRoll, rollTarget, 8f * dt);
+            }
+            if (Mathf.Abs(_boardYaw) < 0.001f) _boardYaw = 0f;
+            if (Mathf.Abs(_boardRoll) < 0.001f) _boardRoll = 0f;
+
+            // Wobble roll
+            float wobbleRoll = 0f;
+            if (WobbleLevel > 0.01f)
+            {
+                float wobbleFreq = 8f + WobbleLevel * 14f;
+                float wobbleAmp = WobbleLevel * 0.05f;
+                wobbleRoll = Mathf.Sin(time * wobbleFreq) * wobbleAmp * speedFactor;
             }
 
-            // Dynamic wobble driven by WobbleLevel
-            float time = (float)Time.GetTicksMsec() * 0.001f;
-            float wobbleFreq = 6f + WobbleLevel * 18f;
-            float wobbleAmp = 0.008f + WobbleLevel * 0.06f;
-            float wobble = Mathf.Sin(time * wobbleFreq) * wobbleAmp * speedFactor;
-
-            _skaterRoot.Rotation = new Vector3(pushNod, _carveAngleSmooth, tiltAngle + wobble + pushTilt);
+            float finalYaw = (PushOffTimer > 0f) ? 0f : _boardYaw;
+            float finalRoll = (PushOffTimer > 0f) ? 0f : _boardRoll + wobbleRoll;
+            _skaterRoot.Rotation = new Vector3(0f, finalYaw, finalRoll);
         }
 
-        // Body stays in sideways stance
+        // Body sideways stance
         if (_bodyGroup != null)
             _bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0);
 
         // Procedural animation
         Animate(dt, steer, braking);
 
-        // Dust particles
+        // Dust
         _dustParticles.Emitting = Speed > 0.3f && Kicked;
-        var dustMat = _dustParticles.ProcessMaterial as ParticleProcessMaterial;
-        if (dustMat != null)
+        var dustMat2 = _dustParticles.ProcessMaterial as ParticleProcessMaterial;
+        if (dustMat2 != null)
         {
             float intensity = Mathf.Clamp(Speed / MaxSpeed, 0.1f, 1f);
-            dustMat.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
+            dustMat2.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
         }
 
-        // Speed lines — pulse when wobbling
+        // Speed lines
         float spdFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
         _speedLines.Emitting = spdFactor > 0.7f && Kicked;
-        var speedMat = _speedLines.ProcessMaterial as ParticleProcessMaterial;
-        if (speedMat != null)
+        var speedMat2 = _speedLines.ProcessMaterial as ParticleProcessMaterial;
+        if (speedMat2 != null)
         {
             float lineIntensity = (spdFactor - 0.7f) / 0.3f;
             float wobbleBoost = 1f + WobbleLevel * 0.5f;
-            speedMat.Color = new Color(1f, 1f, 1f, (0.1f + lineIntensity * 0.3f) * wobbleBoost);
+            speedMat2.Color = new Color(1f, 1f, 1f, (0.1f + lineIntensity * 0.3f) * wobbleBoost);
         }
+    }
 
-        _prevSteer = steer;
+    private static float MoveToward(float current, float target, float maxDelta)
+    {
+        if (Mathf.Abs(target - current) <= maxDelta) return target;
+        return current + Mathf.Sign(target - current) * maxDelta;
     }
 
     // ═══════════════════════════════════════════
@@ -595,117 +547,100 @@ public class PlayerManager
     {
         float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
         float time = (float)Time.GetTicksMsec() * 0.001f;
+        float lean = _steerSmooth;
 
-        // ── Defaults: relaxed riding stance (body faces right, board points forward) ──
-        float hipYaw = 0f;
         float hipPitch = 0f;
-        float hipRoll = Lean * 0.12f;
+        float hipYaw = 0f;
+        float hipRoll = lean * 0.1f;
 
-        float spinePitch = -0.1f - speedFactor * 0.15f; // lean forward at speed
-        float spineRoll = Lean * 0.06f;
-        float spineYaw = Lean * 0.15f; // twist into the turn
+        float spinePitch = -0.1f - speedFactor * 0.15f;
+        float spineRoll = lean * 0.05f;
+        float spineYaw = lean * 0.12f;
 
-        float neckPitch = 0.1f; // look ahead
-        float neckYaw = -Lean * 0.2f; // head looks into the turn (leads body)
+        float neckPitch = 0.1f;
+        float neckYaw = -lean * 0.15f;
         float neckRoll = 0f;
 
-        // Arms: out for balance, tighter at speed
         float armOutBase = 0.8f - speedFactor * 0.3f;
         float armLPitch = 0.1f;
         float armRPitch = 0.1f;
         float forearmLBend = -0.3f;
         float forearmRBend = -0.3f;
 
-        // Legs: bent knees
         float legLPitch = 0.15f + speedFactor * 0.1f;
         float legRPitch = 0.15f + speedFactor * 0.1f;
         float kneeLBend = -0.3f - speedFactor * 0.15f;
         float kneeRBend = -0.3f - speedFactor * 0.15f;
 
-        // ── Idle sway (when slow/stopped) ──
-        if (Speed < 0.3f)
+        // Idle sway — only when truly stopped
+        if (Speed < 0.15f && WobbleLevel < 0.01f)
         {
-            float sway = Mathf.Sin(time * 1.2f) * 0.04f;
+            float sway = Mathf.Sin(time * 1.2f) * 0.01f;
             hipRoll += sway;
-            spineRoll += sway * 0.5f;
             armOutBase = 0.5f;
         }
 
-        // ── Speed wobble — body shakes when not carving at high speed ──
-        if (WobbleLevel > 0.2f)
+        // Push-off kick animation — back leg extends, torso leans forward
+        if (PushOffTimer > 0f)
         {
-            float wobbleShake = (WobbleLevel - 0.2f) / 0.8f;
-            float shakeX = Mathf.Sin(time * 13f) * 0.04f * wobbleShake;
-            float shakeZ = Mathf.Cos(time * 17f) * 0.03f * wobbleShake;
-            hipPitch += shakeX;
-            hipRoll += shakeZ;
-            spinePitch += shakeX * 0.6f;
-            spineRoll += shakeZ * 0.5f;
-            armOutBase += wobbleShake * 0.15f;
-            armLPitch += Mathf.Sin(time * 15f) * 0.05f * wobbleShake;
-            armRPitch -= Mathf.Sin(time * 15f + 1f) * 0.05f * wobbleShake;
+            float pt = PushOffTimer / 0.4f;
+            float kick = Mathf.Sin(pt * Mathf.Pi) * 0.3f;
+            legRPitch += kick;
+            kneeRBend += kick * 0.5f;
+            spinePitch -= kick * 0.15f;
         }
 
-        // Arms adjust with steering — outside arm extends, inside arm tucks
-        float leanAbs = Mathf.Abs(Lean);
-        float turnArmFactor = leanAbs * speedFactor;
-        // Left arm: outside when turning right (Lean < 0), inside when turning left (Lean > 0)
-        armLPitch -= Lean * 0.12f;
-        armRPitch += Lean * 0.12f;
-        armOutBase += Lean * 0.08f * speedFactor;
-
-        // Knee compression — inside knee bends more, outside straightens
-        if (Lean > 0f)
+        // Wobble shake
+        if (WobbleLevel > 0.3f)
         {
-            kneeLBend -= leanAbs * 0.1f * speedFactor;
-            kneeRBend += leanAbs * 0.05f * speedFactor;
-        }
-        else if (Lean < 0f)
-        {
-            kneeRBend -= leanAbs * 0.1f * speedFactor;
-            kneeLBend += leanAbs * 0.05f * speedFactor;
+            float wobbleShake = (WobbleLevel - 0.3f) / 0.7f;
+            hipPitch += Mathf.Sin(time * 13f) * 0.015f * wobbleShake;
+            hipRoll += Mathf.Cos(time * 17f) * 0.01f * wobbleShake;
+            spinePitch += Mathf.Sin(time * 13f) * 0.01f * wobbleShake;
+            spineRoll += Mathf.Cos(time * 17f) * 0.008f * wobbleShake;
+            armOutBase += wobbleShake * 0.08f;
+            armLPitch += Mathf.Sin(time * 15f) * 0.02f * wobbleShake;
+            armRPitch -= Mathf.Sin(time * 15f + 1f) * 0.02f * wobbleShake;
         }
 
-        // ── Braking ──
+        // Steering body adjustments
+        float leanAbs = Mathf.Abs(lean);
+        armLPitch -= lean * 0.1f;
+        armRPitch += lean * 0.1f;
+        armOutBase += lean * 0.06f * speedFactor;
+
+        if (lean > 0f)
+        {
+            kneeLBend -= leanAbs * 0.08f * speedFactor;
+            kneeRBend += leanAbs * 0.04f * speedFactor;
+        }
+        else if (lean < 0f)
+        {
+            kneeRBend -= leanAbs * 0.08f * speedFactor;
+            kneeLBend += leanAbs * 0.04f * speedFactor;
+        }
+
+        // Braking
         if (braking && Speed > 0.3f)
         {
-            // Back foot presses down, torso leans back
             legRPitch += 0.1f;
             kneeRBend -= 0.1f;
             spinePitch += 0.1f;
         }
 
-        // ── Arm sway at speed ──
-        float armSway = Mathf.Sin(time * 2.5f) * 0.05f * speedFactor;
-        armLPitch += armSway;
-        armRPitch -= armSway;
-
-        // ── Lerp all joints toward targets ──
+        // Lerp joints
         float lerp = AnimLerp * dt;
-        if (_hip != null)
-            _hip.Rotation = LerpVec(_hip.Rotation, new Vector3(hipPitch, hipYaw, hipRoll), lerp);
-        if (_spine != null)
-            _spine.Rotation = LerpVec(_spine.Rotation, new Vector3(spinePitch, spineYaw, spineRoll), lerp);
-        if (_neck != null)
-            _neck.Rotation = LerpVec(_neck.Rotation, new Vector3(neckPitch, neckYaw, neckRoll), lerp);
-
-        if (_armL != null)
-            _armL.Rotation = LerpVec(_armL.Rotation, new Vector3(armLPitch, 0, -armOutBase), lerp);
-        if (_forearmL != null)
-            _forearmL.Rotation = LerpVec(_forearmL.Rotation, new Vector3(forearmLBend, 0, 0), lerp);
-        if (_armR != null)
-            _armR.Rotation = LerpVec(_armR.Rotation, new Vector3(armRPitch, 0, armOutBase), lerp);
-        if (_forearmR != null)
-            _forearmR.Rotation = LerpVec(_forearmR.Rotation, new Vector3(forearmRBend, 0, 0), lerp);
-
-        if (_legL != null)
-            _legL.Rotation = LerpVec(_legL.Rotation, new Vector3(legLPitch, 0, 0), lerp);
-        if (_kneeL != null)
-            _kneeL.Rotation = LerpVec(_kneeL.Rotation, new Vector3(kneeLBend, 0, 0), lerp);
-        if (_legR != null)
-            _legR.Rotation = LerpVec(_legR.Rotation, new Vector3(legRPitch, 0, 0), lerp);
-        if (_kneeR != null)
-            _kneeR.Rotation = LerpVec(_kneeR.Rotation, new Vector3(kneeRBend, 0, 0), lerp);
+        if (_hip != null) _hip.Rotation = LerpVec(_hip.Rotation, new Vector3(hipPitch, hipYaw, hipRoll), lerp);
+        if (_spine != null) _spine.Rotation = LerpVec(_spine.Rotation, new Vector3(spinePitch, spineYaw, spineRoll), lerp);
+        if (_neck != null) _neck.Rotation = LerpVec(_neck.Rotation, new Vector3(neckPitch, neckYaw, neckRoll), lerp);
+        if (_armL != null) _armL.Rotation = LerpVec(_armL.Rotation, new Vector3(armLPitch, 0, -armOutBase), lerp);
+        if (_forearmL != null) _forearmL.Rotation = LerpVec(_forearmL.Rotation, new Vector3(forearmLBend, 0, 0), lerp);
+        if (_armR != null) _armR.Rotation = LerpVec(_armR.Rotation, new Vector3(armRPitch, 0, armOutBase), lerp);
+        if (_forearmR != null) _forearmR.Rotation = LerpVec(_forearmR.Rotation, new Vector3(forearmRBend, 0, 0), lerp);
+        if (_legL != null) _legL.Rotation = LerpVec(_legL.Rotation, new Vector3(legLPitch, 0, 0), lerp);
+        if (_kneeL != null) _kneeL.Rotation = LerpVec(_kneeL.Rotation, new Vector3(kneeLBend, 0, 0), lerp);
+        if (_legR != null) _legR.Rotation = LerpVec(_legR.Rotation, new Vector3(legRPitch, 0, 0), lerp);
+        if (_kneeR != null) _kneeR.Rotation = LerpVec(_kneeR.Rotation, new Vector3(kneeRBend, 0, 0), lerp);
     }
 
     private static Vector3 LerpVec(Vector3 from, Vector3 to, float t)
@@ -733,16 +668,16 @@ public class PlayerManager
         PosX = 0f;
         Distance = 0f;
         Kicked = false;
-        Lean = 0f;
         Crashed = false;
         PushOffTimer = 0f;
         WobbleLevel = 0f;
-        TimeSinceCarve = 0f;
-        _carveAngleSmooth = 0f;
+        _timeSinceCarve = 0f;
+        _steerSmooth = 0f;
+        _boardYaw = 0f;
+        _boardRoll = 0f;
         _main.Player.Position = new Vector3(0, 0.1f, 0);
         if (_skaterRoot != null) _skaterRoot.Rotation = Vector3.Zero;
-        ApplyStance(0f, 0f, false);
-        if (_kneeR != null) _kneeR.Rotation = Vector3.Zero;
+        Animate(0f, 0f, false);
     }
 
     public void ApplyBoard()

@@ -53,7 +53,7 @@ public partial class Main : Node3D
     public float CourseLength { get { return LevelLengths[(int)Level]; } }
 
     // Node references
-    public CharacterBody3D Player;
+    public Node3D Player;
     public Node3D CameraMount;
 
     // Subsystems
@@ -65,7 +65,7 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        Player = GetNode<CharacterBody3D>("Player");
+        Player = GetNode<Node3D>("Player");
         CameraMount = GetNode<Node3D>("Player/CameraMount");
 
         Terrain = new TerrainManager(this);
