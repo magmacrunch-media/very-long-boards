@@ -25,7 +25,8 @@ public class GameCamera
         _main.CameraMount.Position = new Vector3(0, camH, -camD);
 
         var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
-        cam.LookAt(new Vector3(player.PosX, groundY + 0.3f, 10f), Vector3.Up);
+        float curve = terrain.CurveAt(player.Distance);
+        cam.LookAt(new Vector3(player.PosX + curve * 20f, groundY + 0.3f, 10f), Vector3.Up);
 
         cam.Fov = 65f + speedFactor * 4f;
     }

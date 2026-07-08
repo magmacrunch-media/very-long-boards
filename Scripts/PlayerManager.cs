@@ -500,7 +500,9 @@ public class PlayerManager
                 wobbleRoll = Mathf.Sin(time * wobbleFreq) * wobbleAmp * speedFactor;
             }
 
-            float finalYaw = (PushOffTimer > 0f) ? 0f : _boardYaw;
+            // Road direction — board yaw aligns with the road's curve
+            float roadYaw = terrain.CurveAt(Distance);
+            float finalYaw = (PushOffTimer > 0f) ? 0f : roadYaw + _boardYaw;
             float finalRoll = (PushOffTimer > 0f) ? 0f : _boardRoll + wobbleRoll;
             _skaterRoot.Rotation = new Vector3(0f, finalYaw, finalRoll);
         }
