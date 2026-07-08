@@ -37,6 +37,7 @@ public class PlayerManager
     private float _steerSmooth = 0f;
     private float _boardYaw = 0f;
     private float _boardRoll = 0f;
+    private float _boardPitch = 0f;
     public float WobbleLevel = 0f;
     private float _timeSinceCarve = 0f;
 
@@ -51,10 +52,10 @@ public class PlayerManager
     private const float YawPerSteer = 0.4f;
     private const float RollPerSteer = 0.25f;
 
-    private const float WobbleSpeedThreshold = 0.65f;
+    private const float WobbleSpeedThreshold = 0.55f;
     private const float BrakeSpeedThreshold = 0.7f;
     private const float BrakeCutoff = 0.85f;
-    private const float WobbleBuildRate = 0.15f;
+    private const float WobbleBuildRate = 0.25f;
     private const float WobbleDecayRate = 1.0f;
     private const float CarveResetTime = 0.5f;
     private const float WobbleCrashLevel = 1f;
@@ -475,36 +476,49 @@ public class PlayerManager
         {
             float time = (float)Time.GetTicksMsec() * 0.001f;
 
-            // Steering yaw & roll
+            // Terrain pitch — board pitches to match the slope
+            if (PushOffTimer <= 0f)
+            {
+                float slopeTarget = (terrain.HillAt(Distance + 0.5f) - terrain.HillAt(Distance - 0.5f)) * 0.35f;
+                _boardPitch = Mathf.Lerp(_boardPitch, slopeTarget, 3f * dt);
+            }
+            else
+            {
+                // During push-off, board stays flat
+                _boardPitch = Mathf.Lerp(_boardPitch, 0f, 10f * dt);
+            }
+
+            // Steering yaw & roll — responsive carving
             float yawTarget = _steerSmooth * YawPerSteer * (0.3f + speedFactor * 0.7f);
             float rollTarget = _steerSmooth * RollPerSteer * (0.3f + speedFactor * 0.7f);
             if (Mathf.Abs(_steerSmooth) < 0.05f)
             {
-                _boardYaw = MoveToward(_boardYaw, 0f, 6f * dt);
-                _boardRoll = MoveToward(_boardRoll, 0f, 8f * dt);
+                _boardYaw = MoveToward(_boardYaw, 0f, 10f * dt);
+                _boardRoll = MoveToward(_boardRoll, 0f, 12f * dt);
             }
             else
             {
-                _boardYaw = Mathf.Lerp(_boardYaw, yawTarget, 8f * dt);
-                _boardRoll = Mathf.Lerp(_boardRoll, rollTarget, 8f * dt);
+                _boardYaw = Mathf.Lerp(_boardYaw, yawTarget, 15f * dt);
+                _boardRoll = Mathf.Lerp(_boardRoll, rollTarget, 15f * dt);
             }
             if (Mathf.Abs(_boardYaw) < 0.001f) _boardYaw = 0f;
             if (Mathf.Abs(_boardRoll) < 0.001f) _boardRoll = 0f;
 
-            // Wobble roll
+            // Wobble roll — more dramatic at high speed
             float wobbleRoll = 0f;
             if (WobbleLevel > 0.01f)
             {
                 float wobbleFreq = 8f + WobbleLevel * 14f;
-                float wobbleAmp = WobbleLevel * 0.05f;
+                float wobbleAmp = WobbleLevel * 0.08f;
                 wobbleRoll = Mathf.Sin(time * wobbleFreq) * wobbleAmp * speedFactor;
             }
 
             // Road direction — board yaw aligns with the road's curve
             float roadYaw = terrain.CurveAt(Distance);
+            float finalPitch = (PushOffTimer > 0f) ? 0f : _boardPitch;
             float finalYaw = (PushOffTimer > 0f) ? 0f : roadYaw + _boardYaw;
             float finalRoll = (PushOffTimer > 0f) ? 0f : _boardRoll + wobbleRoll;
-            _skaterRoot.Rotation = new Vector3(0f, finalYaw, finalRoll);
+            _skaterRoot.Rotation = new Vector3(finalPitch, finalYaw, finalRoll);
         }
 
         // Body sideways stance
@@ -582,14 +596,18 @@ public class PlayerManager
             armOutBase = 0.5f;
         }
 
-        // Push-off kick animation — back leg extends, torso leans forward
+        // Push-off kick animation — back leg extends, torso leans forward, arms swing
         if (PushOffTimer > 0f)
         {
             float pt = PushOffTimer / 0.4f;
-            float kick = Mathf.Sin(pt * Mathf.Pi) * 0.3f;
+            float kick = Mathf.Sin(pt * Mathf.Pi) * 0.45f;
             legRPitch += kick;
             kneeRBend += kick * 0.5f;
-            spinePitch -= kick * 0.15f;
+            spinePitch -= kick * 0.2f;
+            // Arms swing forward during kick
+            armLPitch += kick * 0.3f;
+            armRPitch += kick * 0.3f;
+            armOutBase -= kick * 0.2f;
         }
 
         // Wobble shake
@@ -677,6 +695,7 @@ public class PlayerManager
         _steerSmooth = 0f;
         _boardYaw = 0f;
         _boardRoll = 0f;
+        _boardPitch = 0f;
         _main.Player.Position = new Vector3(0, 0.1f, 0);
         if (_skaterRoot != null) _skaterRoot.Rotation = Vector3.Zero;
         Animate(0f, 0f, false);
