@@ -47,6 +47,7 @@ public class PlayerManager
     public const float MaxSpeed = 8f;
     private const float Handling = 0.15f;
     private const float AnimLerp = 8f;
+    private const float CarvingDrag = 0.25f;
 
     private const float SteerSmoothRate = 10f;
     private const float YawPerSteer = 0.4f;
@@ -419,6 +420,10 @@ public class PlayerManager
         // ── Shoulder drag ──
         if (Mathf.Abs(PosX) > 3.5f)
             Speed *= Mathf.Pow(0.97f, dt * 60f);
+
+        // ── Carving drag — steering bleeds speed ──
+        float carveDrag = Mathf.Abs(_steerSmooth) * CarvingDrag * speedFactor;
+        Speed *= Mathf.Pow(1f - carveDrag, dt * 60f);
 
         // ── Steering ──
         float targetSteer = (PushOffTimer > 0f) ? 0f : steer;
