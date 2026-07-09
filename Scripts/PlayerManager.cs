@@ -47,7 +47,7 @@ public class PlayerManager
     public const float MaxSpeed = 8f;
     private const float Handling = 0.15f;
     private const float AnimLerp = 8f;
-    private const float CarvingDrag = 0.25f;
+    private const float CarvingDrag = 0.01f;
 
     private const float SteerSmoothRate = 10f;
     private const float YawPerSteer = 0.4f;
@@ -421,8 +421,9 @@ public class PlayerManager
         if (Mathf.Abs(PosX) > 3.5f)
             Speed *= Mathf.Pow(0.97f, dt * 60f);
 
-        // ── Carving drag — steering bleeds speed ──
-        float carveDrag = Mathf.Abs(_steerSmooth) * CarvingDrag * speedFactor;
+        // ── Carving drag — steering bleeds speed (quadratic: gentle carving negligible, hard carving significant) ──
+        float steerAmount = _steerSmooth * _steerSmooth;
+        float carveDrag = steerAmount * CarvingDrag * speedFactor;
         Speed *= Mathf.Pow(1f - carveDrag, dt * 60f);
 
         // ── Steering ──
@@ -468,7 +469,8 @@ public class PlayerManager
         Distance += Speed * dt * 60f;
 
         float groundY = terrain.HillAt(Distance);
-        _main.Player.Position = new Vector3(PosX, groundY + 0.1f, 0);
+        float wheelOffset = 0.0225f;
+        _main.Player.Position = new Vector3(PosX, groundY + wheelOffset * Mathf.Cos(_boardPitch), 0);
 
         if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
         {
