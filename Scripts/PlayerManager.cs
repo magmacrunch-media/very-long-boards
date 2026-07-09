@@ -469,7 +469,7 @@ public class PlayerManager
         Distance += Speed * dt * 60f;
 
         float groundY = terrain.HillAt(Distance);
-        float wheelOffset = 0.05f;
+        float wheelOffset = 0.05f + Mathf.Abs(_boardRoll) * 0.3f;
         _main.Player.Position = new Vector3(PosX, groundY + wheelOffset * Mathf.Cos(_boardPitch), 0);
 
         if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
