@@ -483,18 +483,17 @@ public class PlayerManager
         {
             float time = (float)Time.GetTicksMsec() * 0.001f;
 
-            // Terrain pitch — board pitches to match the slope, dampened during steering
+            // Terrain pitch — gentle slope matching, dampened during steering
             if (PushOffTimer <= 0f)
             {
-                float slopeTarget = terrain.HillAt(Distance + 0.5f) - terrain.HillAt(Distance - 0.5f);
+                float slopeTarget = (terrain.HillAt(Distance + 0.5f) - terrain.HillAt(Distance - 0.5f)) * 0.15f;
                 float pitchDampening = 1f - Mathf.Abs(_steerSmooth) * 0.5f;
                 slopeTarget *= pitchDampening;
-                _boardPitch = Mathf.Lerp(_boardPitch, slopeTarget, 3f * dt);
+                _boardPitch = Mathf.Lerp(_boardPitch, slopeTarget, 1.5f * dt);
             }
             else
             {
-                // During push-off, board stays flat
-                _boardPitch = Mathf.Lerp(_boardPitch, 0f, 10f * dt);
+                _boardPitch = Mathf.Lerp(_boardPitch, 0f, 8f * dt);
             }
 
             // Steering yaw & roll — responsive carving
