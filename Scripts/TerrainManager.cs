@@ -12,6 +12,7 @@ public class TerrainManager
     private MeshInstance3D _groundMesh;
 
     public float ScrollOffset = 0f;
+    private int _debugFrameCount = 0;
     public const float RoadW = 8f;
     public const float GroundW = 300f;
     public const int Segs = 400;
@@ -111,6 +112,15 @@ public class TerrainManager
         _shoulderLMesh.Mesh = BuildRibbon(2f, -0.05f, -RoadW / 2f - 1f);
         _shoulderRMesh.Mesh = BuildRibbon(2f, -0.05f, RoadW / 2f + 1f);
         _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f);
+
+        // DIAGNOSTIC: log road surface Y vs player Y every 30 frames
+        _debugFrameCount++;
+        if (_debugFrameCount % 30 == 0)
+        {
+            float roadSurfaceY = HillAt(ScrollOffset);
+            float playerY = _main.PlayerMgr.Distance;
+            GD.Print($"[TERRAIN] roadSurfaceY={roadSurfaceY:F3} scrollOffset={ScrollOffset:F1}");
+        }
     }
 
     private MeshInstance3D MakeMesh(Color color)

@@ -40,6 +40,7 @@ public class PlayerManager
     private float _boardPitch = 0f;
     public float WobbleLevel = 0f;
     private float _timeSinceCarve = 0f;
+    private int _debugFrameCount = 0;
 
     // Constants
     private const float Gravity = 0.04f;
@@ -469,8 +470,15 @@ public class PlayerManager
         Distance += Speed * dt * 60f;
 
         float groundY = terrain.HillAt(Distance);
-        float wheelOffset = 0.05f + Mathf.Abs(_boardRoll) * 0.3f;
-        _main.Player.Position = new Vector3(PosX, groundY + wheelOffset * Mathf.Cos(_boardPitch), 0);
+        float playerY = groundY + 0.045f + Mathf.Sin(Mathf.Abs(_boardPitch)) * 0.55f + Mathf.Sin(Mathf.Abs(_boardRoll)) * 0.3f;
+        _main.Player.Position = new Vector3(PosX, playerY, 0);
+
+        // DEBUG: dump values every 30 frames
+        _debugFrameCount++;
+        if (_debugFrameCount % 30 == 0)
+        {
+            GD.Print($"[DBG] groundY={groundY:F3} playerY={playerY:F3} pitch={_boardPitch:F4} roll={_boardRoll:F4} yaw={_boardYaw:F4} Speed={Speed:F2} Distance={Distance:F1}");
+        }
 
         if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
         {
@@ -483,18 +491,8 @@ public class PlayerManager
         {
             float time = (float)Time.GetTicksMsec() * 0.001f;
 
-            // Terrain pitch — gentle slope matching, dampened during steering
-            if (PushOffTimer <= 0f)
-            {
-                float slopeTarget = (terrain.HillAt(Distance + 0.5f) - terrain.HillAt(Distance - 0.5f)) * 0.15f;
-                float pitchDampening = 1f - Mathf.Abs(_steerSmooth) * 0.5f;
-                slopeTarget *= pitchDampening;
-                _boardPitch = Mathf.Lerp(_boardPitch, slopeTarget, 1.5f * dt);
-            }
-            else
-            {
-                _boardPitch = Mathf.Lerp(_boardPitch, 0f, 8f * dt);
-            }
+            // Terrain pitch disabled — board stays flat so wheels always touch road
+            _boardPitch = Mathf.Lerp(_boardPitch, 0f, 8f * dt);
 
             // Steering yaw & roll — responsive carving
             float yawTarget = _steerSmooth * YawPerSteer * (0.3f + speedFactor * 0.7f);
