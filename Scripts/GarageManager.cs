@@ -253,7 +253,7 @@ public class GarageManager
         // VLB sign using Label3D
         var sign = new Label3D();
         sign.Text = "VLB";
-        sign.FontSize = 64;
+        sign.FontSize = 20;
         sign.OutlineSize = 0;
         var signMat = new StandardMaterial3D();
         signMat.AlbedoColor = new Color(1f, 0.18f, 0.61f);
@@ -267,7 +267,7 @@ public class GarageManager
         // Tagline
         var tagline = new Label3D();
         tagline.Text = "DOWNHILL SKATEBOARDS";
-        tagline.FontSize = 12;
+        tagline.FontSize = 6;
         var tagMat = new StandardMaterial3D();
         tagMat.AlbedoColor = new Color(1f, 0.18f, 0.61f, 0.5f);
         tagMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
@@ -358,7 +358,7 @@ public class GarageManager
 
         _posterLeftText = new Label3D();
         _posterLeftText.Text = "FROGWOOD";
-        _posterLeftText.FontSize = 20;
+        _posterLeftText.FontSize = 10;
         var leftTextMat = new StandardMaterial3D();
         leftTextMat.AlbedoColor = new Color(0.15f, 0.15f, 0.15f);
         _posterLeftText.MaterialOverride = leftTextMat;
@@ -367,7 +367,7 @@ public class GarageManager
 
         _posterLeftSubtext = new Label3D();
         _posterLeftSubtext.Text = "NH";
-        _posterLeftSubtext.FontSize = 14;
+        _posterLeftSubtext.FontSize = 7;
         _posterLeftSubtext.MaterialOverride = leftTextMat;
         _posterLeftSubtext.Position = new Vector3(0.8f, 3.15f, -2.73f);
         _garageRoot.AddChild(_posterLeftSubtext);
@@ -383,7 +383,7 @@ public class GarageManager
 
         _posterRightText = new Label3D();
         _posterRightText.Text = "BLOCK ISLAND";
-        _posterRightText.FontSize = 16;
+        _posterRightText.FontSize = 8;
         var rightTextMat = new StandardMaterial3D();
         rightTextMat.AlbedoColor = new Color(0.35f, 0.35f, 0.35f);
         _posterRightText.MaterialOverride = rightTextMat;
@@ -392,7 +392,7 @@ public class GarageManager
 
         _posterRightSubtext = new Label3D();
         _posterRightSubtext.Text = "COMING SOON";
-        _posterRightSubtext.FontSize = 10;
+        _posterRightSubtext.FontSize = 4;
         var comingSoonMat = new StandardMaterial3D();
         comingSoonMat.AlbedoColor = new Color(0.5f, 0.3f, 0.3f);
         comingSoonMat.EmissionEnabled = true;
@@ -647,17 +647,17 @@ public class GarageManager
 
         if (isCharSelect)
         {
-            targetPos = new Vector3(3f, 2.5f, 3f);
+            targetPos = new Vector3(3.5f, 2.8f, 4f);
             targetLook = new Vector3(-2f, 1f, 0f);
         }
         else if (isBoardSelect)
         {
-            targetPos = new Vector3(-3f, 2f, 3f);
+            targetPos = new Vector3(-3.5f, 2.2f, 4f);
             targetLook = new Vector3(2f, 0.5f, 0f);
         }
         else // level select
         {
-            targetPos = new Vector3(0f, 3f, 4f);
+            targetPos = new Vector3(0f, 3.2f, 5f);
             targetLook = new Vector3(1.8f, 3f, -3f);
         }
 
@@ -675,7 +675,7 @@ public class GarageManager
         var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
         cam.LookAt(_camLookAt, Vector3.Up);
         cam.Rotation = Vector3.Zero;
-        cam.Fov = 50f;
+        cam.Fov = 55f;
     }
 
     // ═══════════════════════════════════════════
