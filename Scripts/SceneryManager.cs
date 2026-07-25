@@ -86,7 +86,6 @@ public class SceneryManager
             float size = 0.12f + rng.RandfRange(0f, 0.3f);
             var rockMat = new StandardMaterial3D();
             rockMat.AlbedoColor = new Color(0.58f + rng.RandfRange(0, 0.04f), 0.56f + rng.RandfRange(0, 0.03f), 0.53f + rng.RandfRange(0, 0.02f));
-            rockMat.Roughness = 0.95f;
             rockMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
             var rock = MakeSphereWithMat(size, rockMat);
             rock.Scale = new Vector3(1f, 0.6f + rng.RandfRange(0, 0.2f), 1f);
@@ -125,7 +124,6 @@ public class SceneryManager
             float offset = side * (4.5f + rng.RandfRange(0f, 3f));
             var fernMat = new StandardMaterial3D();
             fernMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.06f), 0.45f + rng.RandfRange(0, 0.1f), 0.1f);
-            fernMat.Roughness = 0.9f;
             fernMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
             var fern = new Node3D();
             // Multiple small flat ellipses for fern fronds
@@ -154,7 +152,6 @@ public class SceneryManager
             float size = 0.15f + rng.RandfRange(0f, 0.25f);
             var bushMat = new StandardMaterial3D();
             bushMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.04f), 0.38f + rng.RandfRange(0, 0.05f), 0.1f + rng.RandfRange(0, 0.02f));
-            bushMat.Roughness = 0.92f;
             bushMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
             var bush = new Node3D();
@@ -226,7 +223,6 @@ public class SceneryManager
         // Trunk
         var trunkMat = new StandardMaterial3D();
         trunkMat.AlbedoColor = new Color(0.45f, 0.3f, 0.18f);
-        trunkMat.Roughness = 0.88f;
         trunkMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         var trunk = MakeCylinderWithMat(0.04f, h * 0.45f, trunkMat);
         trunk.Position = new Vector3(0, h * 0.22f, 0);
@@ -243,7 +239,6 @@ public class SceneryManager
                 float green = 0.3f + rng.RandfRange(0, 0.05f);
                 var folMat = new StandardMaterial3D();
                 folMat.AlbedoColor = new Color(0.08f + rng.RandfRange(0, 0.03f), green, 0.06f + rng.RandfRange(0, 0.02f));
-                folMat.Roughness = 0.9f;
                 folMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
                 var foliage = MakeCylinderWithMat(lr, lh, folMat);
                 foliage.Position = new Vector3(0, h * 0.3f + j * lh * 0.52f, 0);
@@ -256,7 +251,6 @@ public class SceneryManager
             float canopyR = h * 0.24f;
             var leafMat = new StandardMaterial3D();
             leafMat.AlbedoColor = new Color(0.2f + rng.RandfRange(0, 0.07f), 0.52f + rng.RandfRange(0, 0.07f), 0.12f + rng.RandfRange(0, 0.03f));
-            leafMat.Roughness = 0.88f;
             leafMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
             var main = MakeSphereWithMat(canopyR, leafMat);
@@ -282,15 +276,12 @@ public class SceneryManager
 
         var postMat = new StandardMaterial3D();
         postMat.AlbedoColor = new Color(0.38f, 0.24f, 0.12f);
-        postMat.Roughness = 0.85f;
 
         var mailMat = new StandardMaterial3D();
         mailMat.AlbedoColor = new Color(0.3f, 0.3f, 0.8f);
-        mailMat.Roughness = 0.45f;
 
         var flagMat = new StandardMaterial3D();
         flagMat.AlbedoColor = new Color(0.95f, 0.2f, 0.2f);
-        flagMat.Roughness = 0.35f;
 
         // Post
         box.AddChild(MakeCylinderWithMat(0.035f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
@@ -308,7 +299,6 @@ public class SceneryManager
         var sign = new Node3D();
         var postMat = new StandardMaterial3D();
         postMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
-        postMat.Metallic = 0.2f;
 
         var signColors = new[] {
             new Color(1f, 0.9f, 0.2f),      // yellow warning
@@ -317,7 +307,6 @@ public class SceneryManager
         };
         var signMat = new StandardMaterial3D();
         signMat.AlbedoColor = signColors[rng.RandiRange(0, 2)];
-        signMat.Roughness = 0.6f;
 
         sign.AddChild(MakeCylinderWithMat(0.03f, 1.5f, postMat, new Vector3(0, 0.75f, 0)));
         sign.AddChild(MakeBoxWithMat(new Vector3(0.55f, 0.45f, 0.04f), signMat, new Vector3(0, 1.65f, 0)));
@@ -346,23 +335,18 @@ public class SceneryManager
         // Materials
         var wallMat = new StandardMaterial3D();
         wallMat.AlbedoColor = w;
-        wallMat.Roughness = 0.85f;
         wallMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var roofMat = new StandardMaterial3D();
         roofMat.AlbedoColor = r;
-        roofMat.Roughness = 0.9f;
         roofMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var doorMat = new StandardMaterial3D();
         doorMat.AlbedoColor = new Color(0.48f, 0.3f, 0.18f);
-        doorMat.Roughness = 0.65f;
 
         var winMat = new StandardMaterial3D();
         winMat.AlbedoColor = new Color(0.82f, 0.92f, 1f, 0.92f);
         winMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        winMat.EmissionEnabled = true;
-        winMat.Emission = new Color(0.1f, 0.08f, 0.04f);
 
         // Main body
         AddBoxTo(house, new Vector3(2.5f, 1.8f, 2f), wallMat, new Vector3(0, 0.9f, 0));
@@ -374,7 +358,6 @@ public class SceneryManager
         // Door handle
         var handleMat = new StandardMaterial3D();
         handleMat.AlbedoColor = new Color(0.7f, 0.65f, 0.3f);
-        handleMat.Metallic = 0.4f;
         AddBoxTo(house, new Vector3(0.04f, 0.04f, 0.04f), handleMat, new Vector3(0.12f, 0.45f, 1.06f));
         // Windows
         foreach (var wp in new[] { new Vector3(-0.7f, 1.15f, 1.02f), new Vector3(0.7f, 1.15f, 1.02f) })
@@ -396,13 +379,10 @@ public class SceneryManager
         var bridge = new Node3D();
         var woodMat = new StandardMaterial3D();
         woodMat.AlbedoColor = new Color(0.52f, 0.42f, 0.3f);
-        woodMat.Roughness = 0.82f;
         woodMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var railMat = new StandardMaterial3D();
         railMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
-        railMat.Metallic = 0.3f;
-        railMat.Roughness = 0.4f;
 
         // Bridge deck (wooden planks)
         AddBoxTo(bridge, new Vector3(TerrainManager.RoadW + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
@@ -438,10 +418,6 @@ public class SceneryManager
         var waterMat = new StandardMaterial3D();
         waterMat.AlbedoColor = new Color(0.38f, 0.65f, 0.88f, 0.82f);
         waterMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        waterMat.EmissionEnabled = true;
-        waterMat.Emission = new Color(0.06f, 0.12f, 0.18f);
-        waterMat.Roughness = 0.15f;
-        waterMat.Metallic = 0.15f;
 
         var water = new MeshInstance3D();
         var waterMesh = new CylinderMesh();
@@ -456,7 +432,6 @@ public class SceneryManager
         // Rocks around the edge
         var rockMat = new StandardMaterial3D();
         rockMat.AlbedoColor = new Color(0.48f, 0.46f, 0.42f);
-        rockMat.Roughness = 0.9f;
         for (int i = 0; i < 6; i++)
         {
             float angle = i * Mathf.Pi / 3f;
@@ -476,12 +451,9 @@ public class SceneryManager
 
         var postMat = new StandardMaterial3D();
         postMat.AlbedoColor = new Color(0.82f, 0.82f, 0.72f);
-        postMat.Roughness = 0.7f;
 
         var signMat = new StandardMaterial3D();
         signMat.AlbedoColor = new Color(1f, 1f, 0.92f);
-        signMat.EmissionEnabled = true;
-        signMat.Emission = new Color(0.15f, 0.15f, 0.12f);
 
         // Post
         marker.AddChild(MakeCylinderWithMat(0.03f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
@@ -497,32 +469,31 @@ public class SceneryManager
         var rng = new RandomNumberGenerator();
         rng.Seed = 77;
 
-        for (int i = 0; i < 25; i++)
+        for (int i = 0; i < 18; i++)
         {
             var cloud = new Node3D();
             float w = rng.RandfRange(8f, 22f);
             float h = 0.3f + rng.RandfRange(0f, 0.2f);
             float d = rng.RandfRange(4f, 12f);
 
-            // Cloud is multiple overlapping boxes for fluffy look
+            // Cloud is flat overlapping boxes — N64 style
             var cloudMat = new StandardMaterial3D();
             cloudMat.AlbedoColor = new Color(0.99f, 0.99f, 1f, 0.88f);
             cloudMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-            cloudMat.Roughness = 1f;
             cloudMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
             // Main body
             var main = MakeBoxWithMat(new Vector3(w, h, d), cloudMat);
             cloud.AddChild(main);
 
-            // Puffs on top
-            for (int j = 0; j < 3; j++)
+            // Flat puff on top
+            for (int j = 0; j < 2; j++)
             {
                 float px = rng.RandfRange(-w * 0.3f, w * 0.3f);
                 float pz = rng.RandfRange(-d * 0.3f, d * 0.3f);
-                float puffSize = rng.RandfRange(2f, 5f);
-                var puff = MakeSphereWithMat(puffSize, cloudMat);
-                puff.Position = new Vector3(px, h * 0.4f + puffSize * 0.3f, pz);
+                float puffW = rng.RandfRange(3f, 7f);
+                float puffH = rng.RandfRange(0.5f, 1.5f);
+                var puff = MakeBoxWithMat(new Vector3(puffW, puffH, puffW * 0.6f), cloudMat, new Vector3(px, h * 0.5f + puffH * 0.3f, pz));
                 cloud.AddChild(puff);
             }
 
@@ -541,12 +512,9 @@ public class SceneryManager
 
         var postMat = new StandardMaterial3D();
         postMat.AlbedoColor = new Color(0.95f, 0.2f, 0.2f);
-        postMat.Roughness = 0.6f;
 
         var bannerMat = new StandardMaterial3D();
         bannerMat.AlbedoColor = new Color(1f, 1f, 0.98f);
-        bannerMat.EmissionEnabled = true;
-        bannerMat.Emission = new Color(0.25f, 0.25f, 0.18f);
 
         // Posts
         _finishLine.AddChild(MakeCylinderWithMat(0.08f, 3.5f, postMat, new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.75f, 0)));
@@ -567,8 +535,6 @@ public class SceneryManager
         // "FINISH" text area (white box)
         var textMat = new StandardMaterial3D();
         textMat.AlbedoColor = new Color(0.98f, 0.98f, 0.95f);
-        textMat.EmissionEnabled = true;
-        textMat.Emission = new Color(0.18f, 0.18f, 0.14f);
         _finishLine.AddChild(MakeBoxWithMat(new Vector3(2f, 0.3f, 0.07f), textMat, new Vector3(0, 3.6f, 0)));
 
         _main.AddChild(_finishLine);
@@ -623,7 +589,6 @@ public class SceneryManager
         rng.Seed = 789;
         var squirrelMat = new StandardMaterial3D();
         squirrelMat.AlbedoColor = new Color(0.55f, 0.35f, 0.15f);
-        squirrelMat.Roughness = 0.8f;
         squirrelMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         for (int i = 0; i < 6; i++)
@@ -703,8 +668,6 @@ public class SceneryManager
             var bf = new Node3D();
             var wingMat = new StandardMaterial3D();
             wingMat.AlbedoColor = colors[rng.RandiRange(0, 3)];
-            wingMat.EmissionEnabled = true;
-            wingMat.Emission = wingMat.AlbedoColor * 0.2f;
 
             // Two wings
             var wingL = new MeshInstance3D();
@@ -845,7 +808,7 @@ public class SceneryManager
         mesh.TopRadius = topR;
         mesh.BottomRadius = topR;
         mesh.Height = height;
-        mesh.RadialSegments = 12;
+        mesh.RadialSegments = 6;
         m.Mesh = mesh;
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = color;
@@ -861,8 +824,8 @@ public class SceneryManager
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
-        mesh.Rings = 8;
-        mesh.RadialSegments = 12;
+        mesh.Rings = 6;
+        mesh.RadialSegments = 6;
         m.Mesh = mesh;
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = color;
@@ -897,7 +860,7 @@ public class SceneryManager
         mesh.TopRadius = topR;
         mesh.BottomRadius = topR;
         mesh.Height = height;
-        mesh.RadialSegments = 12;
+        mesh.RadialSegments = 6;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
@@ -921,8 +884,8 @@ public class SceneryManager
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
-        mesh.Rings = 8;
-        mesh.RadialSegments = 12;
+        mesh.Rings = 6;
+        mesh.RadialSegments = 6;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         return m;

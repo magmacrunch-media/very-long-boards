@@ -16,6 +16,7 @@ public class GameUI
     private Label _nearMissLabel;
     private Label _wobbleLabel;
     private ColorRect _progressFill;
+    private ColorRect _speedVignette;
 
     // Screens
     private Control _titleScreen;
@@ -151,6 +152,13 @@ public class GameUI
         _progressFill.AnchorRight = 0f;
         _progressFill.OffsetTop = 0;
         hud.AddChild(_progressFill);
+
+        // Speed vignette — darkens edges at high speed
+        _speedVignette = new ColorRect();
+        _speedVignette.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _speedVignette.Color = new Color(0, 0, 0, 0f);
+        _speedVignette.MouseFilter = Control.MouseFilterEnum.Ignore;
+        hud.AddChild(_speedVignette);
     }
 
     // ── Title Screen ─────────────────────────────
@@ -500,7 +508,7 @@ public class GameUI
     public void UpdateHUD(Main main)
     {
         var player = main.PlayerMgr;
-        float kmh = player.Speed * 18f;
+        float kmh = player.Speed * 14f;
         _speedLabel.Text = $"{kmh:F0} km/h";
 
         float speedRatio = Mathf.Clamp(player.Speed / PlayerManager.MaxSpeed, 0f, 1f);
@@ -525,6 +533,10 @@ public class GameUI
 
         float progress = Mathf.Clamp(player.Distance / main.CourseLength, 0f, 1f);
         _progressFill.AnchorRight = progress;
+
+        // Speed vignette — darken edges at high speed
+        float vignetteAlpha = Mathf.Clamp((speedRatio - 0.6f) / 0.4f, 0f, 1f) * 0.35f;
+        _speedVignette.Color = new Color(0, 0, 0, vignetteAlpha);
 
         // Wobble warning
         if (player.WobbleLevel > 0.3f)

@@ -32,6 +32,7 @@ public class PlayerManager
     public bool Kicked = false;
     public bool Crashed = false;
     public float PushOffTimer = 0f;
+    public float SteerSmooth => _steerSmooth;
 
     // Internal state
     private float _steerSmooth = 0f;
@@ -40,24 +41,23 @@ public class PlayerManager
     private float _boardPitch = 0f;
     public float WobbleLevel = 0f;
     private float _timeSinceCarve = 0f;
-    private int _debugFrameCount = 0;
 
     // Constants
-    private const float Gravity = 0.04f;
-    private const float Friction = 0.9998f;
-    public const float MaxSpeed = 8f;
+    private const float Gravity = 0.07f;
+    private const float Friction = 0.9995f;
+    public const float MaxSpeed = 11f;
     private const float Handling = 0.15f;
     private const float AnimLerp = 8f;
     private const float CarvingDrag = 0.01f;
 
-    private const float SteerSmoothRate = 10f;
-    private const float YawPerSteer = 0.4f;
-    private const float RollPerSteer = 0.25f;
+    private const float SteerSmoothRate = 12f;
+    private const float YawPerSteer = 0.55f;
+    private const float RollPerSteer = 0.35f;
 
-    private const float WobbleSpeedThreshold = 0.55f;
+    private const float WobbleSpeedThreshold = 0.50f;
     private const float BrakeSpeedThreshold = 0.7f;
     private const float BrakeCutoff = 0.85f;
-    private const float WobbleBuildRate = 0.25f;
+    private const float WobbleBuildRate = 0.35f;
     private const float WobbleDecayRate = 1.0f;
     private const float CarveResetTime = 0.5f;
     private const float WobbleCrashLevel = 1f;
@@ -90,7 +90,6 @@ public class PlayerManager
 
         var deckMat = new StandardMaterial3D();
         deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
-        deckMat.Roughness = 0.7f;
         deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         _deckMesh = new MeshInstance3D();
@@ -119,7 +118,6 @@ public class PlayerManager
 
         var gripMat = new StandardMaterial3D();
         gripMat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
-        gripMat.Roughness = 0.95f;
         _gripMesh = new MeshInstance3D();
         var gripMesh = new BoxMesh();
         gripMesh.Size = new Vector3(0.58f, 0.015f, 1.3f);
@@ -130,14 +128,10 @@ public class PlayerManager
 
         var truckMat = new StandardMaterial3D();
         truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
-        truckMat.Metallic = 0.5f;
-        truckMat.Roughness = 0.3f;
 
         AddBox(_skaterRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, 0.08f, 0.55f));
         var axleMat = new StandardMaterial3D();
         axleMat.AlbedoColor = new Color(0.55f, 0.55f, 0.58f);
-        axleMat.Metallic = 0.6f;
-        axleMat.Roughness = 0.25f;
         AddCylinder(_skaterRoot, 0.015f, 0.015f, 0.58f, axleMat, new Vector3(0, 0.06f, 0.55f), new Vector3(0, 0, Mathf.Pi / 2f));
 
         AddBox(_skaterRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, 0.08f, -0.55f));
@@ -145,12 +139,9 @@ public class PlayerManager
 
         var wheelMat = new StandardMaterial3D();
         wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
-        wheelMat.Roughness = 0.55f;
 
         var hubMat = new StandardMaterial3D();
         hubMat.AlbedoColor = new Color(0.45f, 0.45f, 0.48f);
-        hubMat.Metallic = 0.4f;
-        hubMat.Roughness = 0.3f;
 
         foreach (var pos in new[] {
             new Vector3(-0.30f, 0.03f, 0.55f), new Vector3(0.30f, 0.03f, 0.55f),
@@ -161,7 +152,7 @@ public class PlayerManager
             wMesh.TopRadius = 0.055f;
             wMesh.BottomRadius = 0.055f;
             wMesh.Height = 0.07f;
-            wMesh.RadialSegments = 20;
+            wMesh.RadialSegments = 6;
             wheel.Mesh = wMesh;
             wheel.MaterialOverride = wheelMat;
             wheel.Position = pos;
@@ -173,7 +164,7 @@ public class PlayerManager
             hMesh.TopRadius = 0.025f;
             hMesh.BottomRadius = 0.025f;
             hMesh.Height = 0.075f;
-            hMesh.RadialSegments = 12;
+            hMesh.RadialSegments = 6;
             hub.Mesh = hMesh;
             hub.MaterialOverride = hubMat;
             hub.Position = pos;
@@ -190,30 +181,24 @@ public class PlayerManager
     {
         var skinMat = new StandardMaterial3D();
         skinMat.AlbedoColor = new Color(0.9f, 0.78f, 0.6f);
-        skinMat.Roughness = 0.75f;
         skinMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var shoeMat = new StandardMaterial3D();
         shoeMat.AlbedoColor = new Color(0.14f, 0.14f, 0.14f);
-        shoeMat.Roughness = 0.6f;
 
         var soleMat = new StandardMaterial3D();
         soleMat.AlbedoColor = new Color(0.08f, 0.08f, 0.08f);
-        soleMat.Roughness = 0.7f;
 
         var pantsMat = new StandardMaterial3D();
         pantsMat.AlbedoColor = Main.CarlPantsColors[(int)_main.Carl];
-        pantsMat.Roughness = 0.85f;
         pantsMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var shirtMat = new StandardMaterial3D();
         shirtMat.AlbedoColor = Main.CarlShirtColors[(int)_main.Carl];
-        shirtMat.Roughness = 0.75f;
         shirtMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         var hairMat = new StandardMaterial3D();
         hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
-        hairMat.Roughness = 0.9f;
 
         _bodyGroup = new Node3D();
         _bodyGroup.Position = new Vector3(0, 0.05f, 0);
@@ -241,8 +226,8 @@ public class PlayerManager
         var headMesh = new SphereMesh();
         headMesh.Radius = 0.12f;
         headMesh.Height = 0.24f;
-        headMesh.Rings = 10;
-        headMesh.RadialSegments = 16;
+        headMesh.Rings = 6;
+        headMesh.RadialSegments = 8;
         head.Mesh = headMesh;
         head.MaterialOverride = skinMat;
         head.Position = new Vector3(0, 0.14f, -0.02f);
@@ -253,7 +238,7 @@ public class PlayerManager
         hairMesh.TopRadius = 0.11f;
         hairMesh.BottomRadius = 0.13f;
         hairMesh.Height = 0.06f;
-        hairMesh.RadialSegments = 16;
+        hairMesh.RadialSegments = 8;
         hair.Mesh = hairMesh;
         hair.MaterialOverride = hairMat;
         hair.Position = new Vector3(0, 0.24f, -0.02f);
@@ -330,7 +315,7 @@ public class PlayerManager
     private void CreateParticles()
     {
         _dustParticles = new GpuParticles3D();
-        _dustParticles.Amount = 60;
+        _dustParticles.Amount = 20;
         _dustParticles.Lifetime = 1.0f;
         _dustParticles.Transform = new Transform3D(Basis.Identity, new Vector3(0, 0.05f, -0.9f));
         var dustMat = new ParticleProcessMaterial();
@@ -347,7 +332,7 @@ public class PlayerManager
         _main.Player.AddChild(_dustParticles);
 
         _confettiParticles = new GpuParticles3D();
-        _confettiParticles.Amount = 300;
+        _confettiParticles.Amount = 50;
         _confettiParticles.Lifetime = 3f;
         _confettiParticles.OneShot = true;
         _confettiParticles.Emitting = false;
@@ -364,7 +349,7 @@ public class PlayerManager
         _main.AddChild(_confettiParticles);
 
         _speedLines = new GpuParticles3D();
-        _speedLines.Amount = 30;
+        _speedLines.Amount = 15;
         _speedLines.Lifetime = 0.4f;
         _speedLines.Transform = new Transform3D(Basis.Identity, new Vector3(0, 0.5f, 2f));
         var speedMat = new ParticleProcessMaterial();
@@ -473,13 +458,6 @@ public class PlayerManager
         float playerY = groundY + 0.045f + Mathf.Sin(Mathf.Abs(_boardPitch)) * 0.55f + Mathf.Sin(Mathf.Abs(_boardRoll)) * 0.3f;
         _main.Player.Position = new Vector3(PosX, playerY, 0);
 
-        // DEBUG: dump values every 30 frames
-        _debugFrameCount++;
-        if (_debugFrameCount % 30 == 0)
-        {
-            GD.Print($"[DBG] groundY={groundY:F3} playerY={playerY:F3} pitch={_boardPitch:F4} roll={_boardRoll:F4} yaw={_boardYaw:F4} Speed={Speed:F2} Distance={Distance:F1}");
-        }
-
         if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
         {
             Crashed = true;
@@ -491,8 +469,9 @@ public class PlayerManager
         {
             float time = (float)Time.GetTicksMsec() * 0.001f;
 
-            // Terrain pitch disabled — board stays flat so wheels always touch road
-            _boardPitch = Mathf.Lerp(_boardPitch, 0f, 8f * dt);
+            // Board pitch tracks terrain slope — communicates acceleration to the player
+            float pitchTarget = -slope * 1.2f;
+            _boardPitch = Mathf.Lerp(_boardPitch, pitchTarget, 6f * dt);
 
             // Steering yaw & roll — responsive carving
             float yawTarget = _steerSmooth * YawPerSteer * (0.3f + speedFactor * 0.7f);
@@ -534,24 +513,24 @@ public class PlayerManager
         // Procedural animation
         Animate(dt, steer, braking);
 
-        // Dust
-        _dustParticles.Emitting = Speed > 0.3f && Kicked;
+        // Dust — always on when moving
+        _dustParticles.Emitting = Speed > 0.3f;
         var dustMat2 = _dustParticles.ProcessMaterial as ParticleProcessMaterial;
         if (dustMat2 != null)
         {
             float intensity = Mathf.Clamp(Speed / MaxSpeed, 0.1f, 1f);
-            dustMat2.Color = new Color(0.6f, 0.55f, 0.4f, 0.3f + intensity * 0.4f);
+            dustMat2.Color = new Color(0.6f, 0.55f, 0.4f, 0.2f + intensity * 0.5f);
         }
 
-        // Speed lines
+        // Speed lines — kick in at 50% speed
         float spdFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
-        _speedLines.Emitting = spdFactor > 0.7f && Kicked;
+        _speedLines.Emitting = spdFactor > 0.5f;
         var speedMat2 = _speedLines.ProcessMaterial as ParticleProcessMaterial;
         if (speedMat2 != null)
         {
-            float lineIntensity = (spdFactor - 0.7f) / 0.3f;
+            float lineIntensity = Mathf.Clamp((spdFactor - 0.5f) / 0.5f, 0f, 1f);
             float wobbleBoost = 1f + WobbleLevel * 0.5f;
-            speedMat2.Color = new Color(1f, 1f, 1f, (0.1f + lineIntensity * 0.3f) * wobbleBoost);
+            speedMat2.Color = new Color(1f, 1f, 1f, (0.15f + lineIntensity * 0.35f) * wobbleBoost);
         }
     }
 
@@ -576,8 +555,8 @@ public class PlayerManager
         float hipRoll = lean * 0.1f;
 
         float spinePitch = -0.1f - speedFactor * 0.15f;
-        float spineRoll = lean * 0.05f;
-        float spineYaw = lean * 0.12f;
+        float spineRoll = lean * 0.1f;
+        float spineYaw = lean * 0.18f;
 
         float neckPitch = 0.1f;
         float neckYaw = -lean * 0.15f;
@@ -631,19 +610,19 @@ public class PlayerManager
 
         // Steering body adjustments
         float leanAbs = Mathf.Abs(lean);
-        armLPitch -= lean * 0.1f;
-        armRPitch += lean * 0.1f;
-        armOutBase += lean * 0.06f * speedFactor;
+        armLPitch -= lean * 0.18f;
+        armRPitch += lean * 0.18f;
+        armOutBase += lean * 0.12f * speedFactor;
 
         if (lean > 0f)
         {
-            kneeLBend -= leanAbs * 0.08f * speedFactor;
-            kneeRBend += leanAbs * 0.04f * speedFactor;
+            kneeLBend -= leanAbs * 0.14f * speedFactor;
+            kneeRBend += leanAbs * 0.07f * speedFactor;
         }
         else if (lean < 0f)
         {
-            kneeRBend -= leanAbs * 0.08f * speedFactor;
-            kneeLBend += leanAbs * 0.04f * speedFactor;
+            kneeRBend -= leanAbs * 0.14f * speedFactor;
+            kneeLBend += leanAbs * 0.07f * speedFactor;
         }
 
         // Braking
@@ -711,7 +690,6 @@ public class PlayerManager
     {
         var deckMat = new StandardMaterial3D();
         deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
-        deckMat.Roughness = 0.7f;
         deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
         if (_deckMesh != null) _deckMesh.MaterialOverride = deckMat;
@@ -722,7 +700,6 @@ public class PlayerManager
         {
             var mat = new StandardMaterial3D();
             mat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
-            mat.Roughness = 0.95f;
             _gripMesh.MaterialOverride = mat;
         }
     }
@@ -762,7 +739,7 @@ public class PlayerManager
         mesh.TopRadius = topR;
         mesh.BottomRadius = bottomR;
         mesh.Height = height;
-        mesh.RadialSegments = 16;
+        mesh.RadialSegments = 8;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
@@ -778,7 +755,7 @@ public class PlayerManager
         mesh.TopRadius = topR;
         mesh.BottomRadius = bottomR;
         mesh.Height = height;
-        mesh.RadialSegments = 16;
+        mesh.RadialSegments = 8;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
@@ -792,8 +769,8 @@ public class PlayerManager
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
-        mesh.Rings = 10;
-        mesh.RadialSegments = 16;
+        mesh.Rings = 6;
+        mesh.RadialSegments = 8;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;

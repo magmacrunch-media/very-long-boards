@@ -12,7 +12,6 @@ public class TerrainManager
     private MeshInstance3D _groundMesh;
 
     public float ScrollOffset = 0f;
-    private int _debugFrameCount = 0;
     public const float RoadW = 8f;
     public const float GroundW = 300f;
     public const int Segs = 400;
@@ -51,7 +50,6 @@ public class TerrainManager
         // Asphalt road
         var roadMat = new StandardMaterial3D();
         roadMat.AlbedoColor = new Color(0.28f, 0.28f, 0.3f);
-        roadMat.Roughness = 0.92f;
         roadMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _roadMesh = new MeshInstance3D();
         _roadMesh.MaterialOverride = roadMat;
@@ -76,7 +74,6 @@ public class TerrainManager
         // Dirt shoulder
         var shoulderMat = new StandardMaterial3D();
         shoulderMat.AlbedoColor = new Color(0.45f, 0.38f, 0.28f);
-        shoulderMat.Roughness = 0.95f;
         shoulderMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _shoulderLMesh = new MeshInstance3D();
         _shoulderLMesh.MaterialOverride = shoulderMat;
@@ -86,7 +83,6 @@ public class TerrainManager
         // Summer grass
         var grassMat = new StandardMaterial3D();
         grassMat.AlbedoColor = new Color(0.18f, 0.42f, 0.12f);
-        grassMat.Roughness = 0.95f;
         grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
         _groundMesh = new MeshInstance3D();
         _groundMesh.MaterialOverride = grassMat;
@@ -112,25 +108,6 @@ public class TerrainManager
         _shoulderLMesh.Mesh = BuildRibbon(2f, -0.05f, -RoadW / 2f - 1f);
         _shoulderRMesh.Mesh = BuildRibbon(2f, -0.05f, RoadW / 2f + 1f);
         _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f);
-
-        // DIAGNOSTIC: log road surface Y vs player Y every 30 frames
-        _debugFrameCount++;
-        if (_debugFrameCount % 30 == 0)
-        {
-            float roadSurfaceY = HillAt(ScrollOffset);
-            float playerY = _main.PlayerMgr.Distance;
-            GD.Print($"[TERRAIN] roadSurfaceY={roadSurfaceY:F3} scrollOffset={ScrollOffset:F1}");
-        }
-    }
-
-    private MeshInstance3D MakeMesh(Color color)
-    {
-        var m = new MeshInstance3D();
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        return m;
     }
 
     private Mesh BuildRibbon(float width, float yOffset, float xOffset = 0f)
