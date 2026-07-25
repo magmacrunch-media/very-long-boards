@@ -67,32 +67,4 @@ using Godot;
         cam.Rotation = Vector3.Zero;
         cam.Fov = 65f;
     }
-
-    public void UpdateCharSelect()
-    {
-        _main.CameraMount.Position = new Vector3(1.5f, 3f, -5f);
-        var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
-        cam.LookAt(new Vector3(0f, 0.8f, 0f), Vector3.Up);
-        cam.Rotation = Vector3.Zero;
-        cam.Fov = 55f;
-    }
-
-    public void UpdateBoardSelect()
-    {
-        _main.CameraMount.Position = new Vector3(-1.5f, 2f, -4f);
-        var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
-        cam.LookAt(new Vector3(0f, 0.3f, 0f), Vector3.Up);
-        cam.Rotation = Vector3.Zero;
-        cam.Fov = 50f;
-    }
-
-    public void UpdateLevelSelect(float titleTime)
-    {
-        float sway = Mathf.Sin(titleTime * 0.3f) * 0.5f;
-        _main.CameraMount.Position = new Vector3(sway, 8f, -12f);
-        var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
-        cam.LookAt(new Vector3(sway * 0.5f, 0f, 30f), Vector3.Up);
-        cam.Rotation = Vector3.Zero;
-        cam.Fov = 70f;
-    }
 }

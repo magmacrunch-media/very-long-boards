@@ -43,8 +43,8 @@ public class PlayerManager
     private float _timeSinceCarve = 0f;
 
     // Constants
-    private const float Gravity = 0.07f;
-    private const float Friction = 0.9995f;
+    private const float Gravity = 0.05f;
+    private const float Friction = 0.9997f;
     public const float MaxSpeed = 11f;
     private const float Handling = 0.15f;
     private const float AnimLerp = 8f;

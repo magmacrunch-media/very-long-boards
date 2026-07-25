@@ -704,6 +704,21 @@ public class SceneryManager
         UpdateSquirrels(dt);
     }
 
+    public void SetItemsVisible(bool visible)
+    {
+        foreach (var item in Items)
+            item.Node.Visible = visible;
+        foreach (var cloud in Clouds)
+            cloud.Node.Visible = visible;
+        foreach (var bf in Butterflies)
+            bf.Node.Visible = visible;
+        foreach (var bird in Birds)
+            bird.Node.Visible = visible;
+        foreach (var sq in Squirrels)
+            sq.Node.Visible = visible;
+        _finishLine.Visible = visible;
+    }
+
     public void UpdatePositions(float scrollOffset)
     {
         var terrain = _main.Terrain;

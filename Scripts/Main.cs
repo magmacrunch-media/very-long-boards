@@ -6,13 +6,13 @@ public partial class Main : Node3D
     public enum GameState { Title, CharSelect, BoardSelect, LevelSelect, Riding, Paused, Finished, Countdown }
     public enum CarlType { Office, Party, Dark }
     public enum BoardType { Classic, Neon, Dark, Natural }
-    public enum LevelType { NewHampshire }
+    public enum LevelType { FrogwoodNH, BlockIsland }
 
     // State
     public GameState State = GameState.Title;
     public CarlType Carl = CarlType.Office;
     public BoardType Board = BoardType.Classic;
-    public LevelType Level = LevelType.NewHampshire;
+    public LevelType Level = LevelType.FrogwoodNH;
     public float Timer = 0f;
     public float BestTime = 0f;
     public float FinishTime = 0f;
@@ -24,10 +24,10 @@ public partial class Main : Node3D
     public static readonly string[] CarlDescs = { "The everyman", "The maniac", "The enigma" };
     public static readonly string[] BoardNames = { "Classic", "Neon", "Dark", "Natural" };
     public static readonly string[] BoardDescs = { "Brown wood deck", "Bright neon colors", "Black with purple accent", "Light natural wood" };
-    public static readonly string[] LevelNames = { "New Hampshire Summer" };
-    public static readonly string[] LevelDescs = { "Rolling hills through a quiet New England town" };
-    public static readonly float[] LevelLengths = { 2000f };
-    public static readonly string[] LevelSeasons = { "Summer" };
+    public static readonly string[] LevelNames = { "Frogwood, NH", "Block Island" };
+    public static readonly string[] LevelDescs = { "Rolling hills through quiet Frogwood", "Coastal cliffs over the Atlantic" };
+    public static readonly float[] LevelLengths = { 2000f, 0f };
+    public static readonly string[] LevelSeasons = { "Summer", "Fall" };
     public static readonly Color[] CarlShirtColors = {
         new Color(0.65f, 0.22f, 0.22f),   // Office: red
         new Color(0.28f, 0.2f, 0.7f),     // Party: purple
@@ -62,6 +62,7 @@ public partial class Main : Node3D
     public SceneryManager Scenery;
     public GameUI UI;
     public GameCamera Cam;
+    public GarageManager Garage;
 
     public override void _Ready()
     {
@@ -73,12 +74,14 @@ public partial class Main : Node3D
         Scenery = new SceneryManager(this);
         UI = new GameUI(this);
         Cam = new GameCamera(this);
+        Garage = new GarageManager(this);
 
         Terrain.Create();
         PlayerMgr.Create();
         Scenery.Create();
         Cam.Create();
         UI.Create();
+        Garage.Create();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -99,20 +102,17 @@ public partial class Main : Node3D
                 break;
 
             case GameState.CharSelect:
-                Scenery.UpdateClouds(dt);
-                Cam.UpdateCharSelect();
+                Garage.UpdateCamera(dt, true, false, false);
                 UI.HandleCharSelectInput(this);
                 break;
 
             case GameState.BoardSelect:
-                Scenery.UpdateClouds(dt);
-                Cam.UpdateBoardSelect();
+                Garage.UpdateCamera(dt, false, true, false);
                 UI.HandleBoardSelectInput(this);
                 break;
 
             case GameState.LevelSelect:
-                Scenery.UpdateClouds(dt);
-                Cam.UpdateLevelSelect(TitleTime);
+                Garage.UpdateCamera(dt, false, false, true);
                 UI.HandleLevelSelectInput(this);
                 break;
 
@@ -189,23 +189,27 @@ public partial class Main : Node3D
     public void ShowCharSelect()
     {
         State = GameState.CharSelect;
+        Garage.Show();
         UI.ShowCharSelect(this);
     }
 
     public void ShowBoardSelect()
     {
         State = GameState.BoardSelect;
+        Garage.UpdateDisplayModel();
         UI.ShowBoardSelect(this);
     }
 
     public void ShowLevelSelect()
     {
         State = GameState.LevelSelect;
+        Garage.UpdatePosterHighlight();
         UI.ShowLevelSelect(this);
     }
 
     public void StartRide()
     {
+        Garage.Hide();
         State = GameState.Countdown;
         CountdownTimer = 3f;
         UI.HideAllSelectors();
@@ -214,6 +218,7 @@ public partial class Main : Node3D
 
     public void ResetGame()
     {
+        Garage.Hide();
         State = GameState.Title;
         PlayerMgr.Reset();
         UI.ShowTitle(this);

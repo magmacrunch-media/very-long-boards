@@ -230,7 +230,7 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.02f, 0.03f, 0.08f, 0.92f);
+        bg.Color = new Color(0.02f, 0.03f, 0.08f, 0.5f);
         _charScreen.AddChild(bg);
 
         var title = Retro(16, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
@@ -282,7 +282,7 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.02f, 0.06f, 0.03f, 0.92f);
+        bg.Color = new Color(0.02f, 0.06f, 0.03f, 0.5f);
         _boardScreen.AddChild(bg);
 
         var title = Retro(16, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
@@ -329,7 +329,7 @@ public class GameUI
 
         var bg = new ColorRect();
         bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.06f, 0.04f, 0.02f, 0.92f);
+        bg.Color = new Color(0.06f, 0.04f, 0.02f, 0.5f);
         _levelScreen.AddChild(bg);
 
         var title = Retro(16, "CHOOSE YOUR COURSE", new Color(1f, 0.18f, 0.61f));
@@ -378,11 +378,13 @@ public class GameUI
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Carl = (Main.CarlType)(((int)main.Carl + 2) % 3);
+            main.Garage.UpdateDisplayModel();
             UpdateCharSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Carl = (Main.CarlType)(((int)main.Carl + 1) % 3);
+            main.Garage.UpdateDisplayModel();
             UpdateCharSelect(main);
         }
         if (Input.IsActionJustPressed("kick_off"))
@@ -394,11 +396,13 @@ public class GameUI
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Board = (Main.BoardType)(((int)main.Board + 3) % 4);
+            main.Garage.UpdateDisplayModel();
             UpdateBoardSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Board = (Main.BoardType)(((int)main.Board + 1) % 4);
+            main.Garage.UpdateDisplayModel();
             UpdateBoardSelect(main);
         }
         if (Input.IsActionJustPressed("kick_off"))
@@ -411,14 +415,16 @@ public class GameUI
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Level = (Main.LevelType)(((int)main.Level + levelCount - 1) % levelCount);
+            main.Garage.UpdatePosterHighlight();
             UpdateLevelSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Level = (Main.LevelType)(((int)main.Level + 1) % levelCount);
+            main.Garage.UpdatePosterHighlight();
             UpdateLevelSelect(main);
         }
-        if (Input.IsActionJustPressed("kick_off"))
+        if (Input.IsActionJustPressed("kick_off") && main.Level == Main.LevelType.FrogwoodNH)
             main.StartRide();
     }
 

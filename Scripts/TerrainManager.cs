@@ -110,6 +110,17 @@ public class TerrainManager
         _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f);
     }
 
+    public void SetMeshesVisible(bool visible)
+    {
+        _roadMesh.Visible = visible;
+        _lineCenterMesh.Visible = visible;
+        _lineEdgeLMesh.Visible = visible;
+        _lineEdgeRMesh.Visible = visible;
+        _shoulderLMesh.Visible = visible;
+        _shoulderRMesh.Visible = visible;
+        _groundMesh.Visible = visible;
+    }
+
     private Mesh BuildRibbon(float width, float yOffset, float xOffset = 0f)
     {
         var st = new SurfaceTool();
