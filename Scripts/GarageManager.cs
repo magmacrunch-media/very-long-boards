@@ -49,11 +49,11 @@ public class GarageManager
 
         // Character and board displays
         _charDisplay = new Node3D();
-        _charDisplay.Position = new Vector3(-2f, 0f, 0.5f);
+        _charDisplay.Position = new Vector3(-1.5f, 0.2f, 0.5f);
         _garageRoot.AddChild(_charDisplay);
 
         _boardDisplay = new Node3D();
-        _boardDisplay.Position = new Vector3(2f, 0.6f, 0.5f);
+        _boardDisplay.Position = new Vector3(1.5f, 0.7f, 0.5f);
         _garageRoot.AddChild(_boardDisplay);
 
         _posterSelectedMat = new StandardMaterial3D();
@@ -75,11 +75,41 @@ public class GarageManager
 
     private void BuildRoom()
     {
-        // Back wall
-        AddBox(new Vector3(12f, 5f, 0.3f), new Color(0.23f, 0.23f, 0.23f),
+        // Back wall (thickened)
+        AddBox(new Vector3(12f, 5f, 0.5f), new Color(0.23f, 0.23f, 0.23f),
             new Vector3(0, 2.5f, -3f));
 
-        // Cinder block texture — horizontal grooves
+        // Left wall (thickened)
+        AddBox(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f),
+            new Vector3(-6f, 2.5f, 0.75f));
+
+        // Right wall (thickened)
+        AddBox(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f),
+            new Vector3(6f, 2.5f, 0.75f));
+
+        // Garage door (front wall at z=5)
+        var doorMat = new Color(0.18f, 0.18f, 0.18f);
+        AddBox(new Vector3(8f, 4.5f, 0.3f), doorMat,
+            new Vector3(0, 2.25f, 5f));
+        // Door frame — left
+        AddBox(new Vector3(0.15f, 4.8f, 0.4f), new Color(0.15f, 0.15f, 0.15f),
+            new Vector3(-4.1f, 2.4f, 5f));
+        // Door frame — right
+        AddBox(new Vector3(0.15f, 4.8f, 0.4f), new Color(0.15f, 0.15f, 0.15f),
+            new Vector3(4.1f, 2.4f, 5f));
+        // Door frame — top
+        AddBox(new Vector3(8.3f, 0.15f, 0.4f), new Color(0.15f, 0.15f, 0.15f),
+            new Vector3(0, 4.65f, 5f));
+        // Horizontal panel lines on garage door
+        var panelLine = new Color(0.14f, 0.14f, 0.14f);
+        for (int i = 1; i <= 5; i++)
+        {
+            float y = i * 0.8f;
+            AddBox(new Vector3(7.8f, 0.03f, 0.01f), panelLine,
+                new Vector3(0, y, 4.84f));
+        }
+
+        // Cinder block texture — horizontal grooves on back wall
         var grooveMat = new StandardMaterial3D();
         grooveMat.AlbedoColor = new Color(0.2f, 0.2f, 0.2f);
         grooveMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
@@ -87,25 +117,62 @@ public class GarageManager
         {
             float y = row * 0.8f + 0.4f;
             AddBox(new Vector3(12f, 0.02f, 0.01f), grooveMat.AlbedoColor,
-                new Vector3(0, y, -2.83f));
+                new Vector3(0, y, -2.73f));
         }
-        // Vertical grooves
+        // Vertical grooves on back wall
         for (int col = 0; col < 8; col++)
         {
             float x = -5f + col * 1.5f;
-            int offset = col % 2;
             for (int row = 0; row < 6; row++)
             {
                 float y = row * 0.8f + 0.4f;
                 float xOffset = (row % 2 == 0) ? 0f : 0.75f;
                 AddBox(new Vector3(0.02f, 0.8f, 0.01f), grooveMat.AlbedoColor,
-                    new Vector3(x + xOffset, y, -2.83f));
+                    new Vector3(x + xOffset, y, -2.73f));
+            }
+        }
+
+        // Cinder block grooves on left wall (inner face at x=-5.75)
+        for (int row = 0; row < 6; row++)
+        {
+            float y = row * 0.8f + 0.4f;
+            AddBox(new Vector3(0.01f, 0.02f, 8.5f), grooveMat.AlbedoColor,
+                new Vector3(-5.73f, y, 0.75f));
+        }
+        for (int col = 0; col < 6; col++)
+        {
+            float z = -2.5f + col * 1.5f;
+            for (int row = 0; row < 6; row++)
+            {
+                float y = row * 0.8f + 0.4f;
+                float zOffset = (row % 2 == 0) ? 0f : 0.75f;
+                AddBox(new Vector3(0.01f, 0.8f, 0.02f), grooveMat.AlbedoColor,
+                    new Vector3(-5.73f, y, z + zOffset));
+            }
+        }
+
+        // Cinder block grooves on right wall (inner face at x=5.75)
+        for (int row = 0; row < 6; row++)
+        {
+            float y = row * 0.8f + 0.4f;
+            AddBox(new Vector3(0.01f, 0.02f, 8.5f), grooveMat.AlbedoColor,
+                new Vector3(5.73f, y, 0.75f));
+        }
+        for (int col = 0; col < 6; col++)
+        {
+            float z = -2.5f + col * 1.5f;
+            for (int row = 0; row < 6; row++)
+            {
+                float y = row * 0.8f + 0.4f;
+                float zOffset = (row % 2 == 0) ? 0f : 0.75f;
+                AddBox(new Vector3(0.01f, 0.8f, 0.02f), grooveMat.AlbedoColor,
+                    new Vector3(5.73f, y, z + zOffset));
             }
         }
 
         // Floor
-        AddBox(new Vector3(12f, 0.1f, 8f), new Color(0.33f, 0.33f, 0.33f),
-            new Vector3(0, -0.05f, 1f));
+        AddBox(new Vector3(12f, 0.1f, 8.5f), new Color(0.33f, 0.33f, 0.33f),
+            new Vector3(0, -0.05f, 0.75f));
 
         // Floor perspective lines
         var lineMat = new StandardMaterial3D();
@@ -135,8 +202,8 @@ public class GarageManager
         _garageRoot.AddChild(stain);
 
         // Ceiling
-        AddBox(new Vector3(12f, 0.15f, 8f), new Color(0.2f, 0.2f, 0.2f),
-            new Vector3(0, 5.05f, 1f));
+        AddBox(new Vector3(12f, 0.15f, 8.5f), new Color(0.2f, 0.2f, 0.2f),
+            new Vector3(0, 5.05f, 0.75f));
     }
 
     private void BuildWorkbench()
@@ -647,17 +714,17 @@ public class GarageManager
 
         if (isCharSelect)
         {
-            targetPos = new Vector3(3f, 2.5f, 3.5f);
+            targetPos = new Vector3(3f, 2.5f, 3f);
             targetLook = new Vector3(-1.5f, 1.2f, -1f);
         }
         else if (isBoardSelect)
         {
-            targetPos = new Vector3(-3f, 2f, 3.5f);
+            targetPos = new Vector3(-3f, 2f, 3f);
             targetLook = new Vector3(1.5f, 0.6f, -1f);
         }
         else // level select
         {
-            targetPos = new Vector3(0f, 2.8f, 4f);
+            targetPos = new Vector3(0f, 2.8f, 3.5f);
             targetLook = new Vector3(1.5f, 3f, -2.5f);
         }
 

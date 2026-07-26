@@ -182,44 +182,15 @@ public class GameUI
         _titleScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         canvas.AddChild(_titleScreen);
 
-        var bg = new ColorRect();
-        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.04f, 0.02f, 0.08f, 0.88f);
-        _titleScreen.AddChild(bg);
+        // 2D pixel-art backdrop
+        var painter = new TitlePainter();
+        painter.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _titleScreen.AddChild(painter);
+    }
 
-        // Backing behind title group
-        Backing(_titleScreen, 40, 70, 240, 70);
-
-        var title = Retro(10, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f));
-        title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.OffsetTop = -25;
-        _titleScreen.AddChild(title);
-
-        var sub = Retro(5, "A Carl Spatski Game", new Color(0.6f, 0.6f, 0.7f));
-        sub.SetAnchorsPreset(Control.LayoutPreset.Center);
-        sub.OffsetTop = -12;
-        _titleScreen.AddChild(sub);
-
-        var course = Retro(5, Main.LevelNames[0], new Color(0.4f, 0.55f, 0.4f));
-        course.SetAnchorsPreset(Control.LayoutPreset.Center);
-        course.OffsetTop = -5;
-        _titleScreen.AddChild(course);
-
-        // Backing behind prompt
-        Backing(_titleScreen, 60, 140, 200, 20);
-
-        var prompt = Retro(5, "PRESS \u2191 TO START", new Color(1f, 0.88f, 0.23f));
-        prompt.SetAnchorsPreset(Control.LayoutPreset.Center);
-        prompt.OffsetTop = 28;
-        _titleScreen.AddChild(prompt);
-
-        // Backing behind controls
-        Backing(_titleScreen, 20, 168, 280, 14);
-
-        var controls = Retro(5, "\u2190\u2192 STEER  SPACE BRAKE  \u2191/ENTER KICK", new Color(0.4f, 0.4f, 0.5f));
-        controls.SetAnchorsPreset(Control.LayoutPreset.Center);
-        controls.OffsetTop = 40;
-        _titleScreen.AddChild(controls);
+    public void AddTitleOverlay(Control node)
+    {
+        _titleScreen.AddChild(node);
     }
 
     // ── Loading Screen ───────────────────────────

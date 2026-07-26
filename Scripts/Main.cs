@@ -56,6 +56,11 @@ public partial class Main : Node3D
     public Node3D Player;
     public Node3D CameraMount;
 
+    // Title screen 3D board display
+    private SubViewport _titleViewport;
+    private Node3D _titleBoardRoot;
+    private TextureRect _titleBoardRect;
+
     // Subsystems
     public TerrainManager Terrain;
     public PlayerManager PlayerMgr;
@@ -82,6 +87,8 @@ public partial class Main : Node3D
         Cam.Create();
         UI.Create();
         Garage.Create();
+        CreateTitleBoardDisplay();
+        UI.AddTitleOverlay(_titleBoardRect);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -96,8 +103,11 @@ public partial class Main : Node3D
         {
             case GameState.Title:
                 TitleTime += dt;
-                Scenery.UpdateClouds(dt);
-                Cam.UpdateTitle(TitleTime);
+                if (_titleBoardRoot != null)
+                {
+                    _titleBoardRoot.Rotation = new Vector3(0.3f, TitleTime * 0.8f, 0f);
+                    _titleBoardRect.Visible = true;
+                }
                 UI.HandleTitleInput(this);
                 break;
 
@@ -188,6 +198,7 @@ public partial class Main : Node3D
 
     public void ShowCharSelect()
     {
+        if (_titleBoardRect != null) _titleBoardRect.Visible = false;
         State = GameState.CharSelect;
         Garage.Show();
         UI.ShowCharSelect(this);
@@ -225,5 +236,108 @@ public partial class Main : Node3D
         Terrain.Update();
         Scenery.UpdatePositions(Terrain.ScrollOffset);
         Cam.Update();
+        if (_titleBoardRoot != null) _titleBoardRoot.Visible = true;
+    }
+
+    // ═══════════════════════════════════════════
+    //  TITLE SCREEN 3D BOARD
+    // ═══════════════════════════════════════════
+
+    private void CreateTitleBoardDisplay()
+    {
+        // SubViewport for the rotating board
+        _titleViewport = new SubViewport();
+        _titleViewport.Size = new Vector2I(80, 80);
+        _titleViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+        AddChild(_titleViewport);
+
+        // Camera inside the viewport
+        var cam = new Camera3D();
+        cam.Position = new Vector3(0, 0.8f, 2f);
+        cam.LookAt(Vector3.Zero);
+        cam.Fov = 35f;
+        _titleViewport.AddChild(cam);
+
+        // Light
+        var light = new DirectionalLight3D();
+        light.Position = new Vector3(2, 3, 1);
+        light.LightEnergy = 1.5f;
+        light.LightColor = new Color(1f, 0.95f, 0.9f);
+        _titleViewport.AddChild(light);
+
+        // Board root
+        _titleBoardRoot = new Node3D();
+        _titleViewport.AddChild(_titleBoardRoot);
+
+        // Build board mesh (same as PlayerManager)
+        var deckMat = new StandardMaterial3D();
+        deckMat.AlbedoColor = BoardDeckColors[(int)Board];
+        deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        var gripMat = new StandardMaterial3D();
+        gripMat.AlbedoColor = BoardGripColors[(int)Board];
+
+        var truckMat = new StandardMaterial3D();
+        truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
+
+        var wheelMat = new StandardMaterial3D();
+        wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
+
+        // Deck
+        AddTitleBox(_titleBoardRoot, new Vector3(0.62f, 0.045f, 1.4f), deckMat, new Vector3(0, 0, 0));
+        AddTitleBox(_titleBoardRoot, new Vector3(0.48f, 0.04f, 0.4f), deckMat, new Vector3(0, 0, 0.9f));
+        AddTitleBox(_titleBoardRoot, new Vector3(0.48f, 0.04f, 0.35f), deckMat, new Vector3(0, 0, -0.88f));
+        AddTitleBox(_titleBoardRoot, new Vector3(0.58f, 0.015f, 1.3f), gripMat, new Vector3(0, 0.03f, 0));
+
+        // Trucks
+        AddTitleBox(_titleBoardRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, -0.05f, 0.55f));
+        AddTitleBox(_titleBoardRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, -0.05f, -0.55f));
+
+        // Wheels
+        foreach (var pos in new[] {
+            new Vector3(-0.30f, -0.08f, 0.55f), new Vector3(0.30f, -0.08f, 0.55f),
+            new Vector3(-0.30f, -0.08f, -0.55f), new Vector3(0.30f, -0.08f, -0.55f) })
+        {
+            var wheel = new MeshInstance3D();
+            var wMesh = new CylinderMesh();
+            wMesh.TopRadius = 0.055f;
+            wMesh.BottomRadius = 0.055f;
+            wMesh.Height = 0.07f;
+            wMesh.RadialSegments = 6;
+            wheel.Mesh = wMesh;
+            wheel.MaterialOverride = wheelMat;
+            wheel.Position = pos;
+            wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
+            _titleBoardRoot.AddChild(wheel);
+        }
+
+        // TextureRect to display the viewport in the UI
+        _titleBoardRect = new TextureRect();
+        _titleBoardRect.Texture = _titleViewport.GetTexture();
+        _titleBoardRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _titleBoardRect.AnchorLeft = 0.7f;
+        _titleBoardRect.AnchorTop = 0.55f;
+        _titleBoardRect.AnchorRight = 0.95f;
+        _titleBoardRect.AnchorBottom = 0.9f;
+        _titleBoardRect.OffsetLeft = 0;
+        _titleBoardRect.OffsetTop = 0;
+        _titleBoardRect.OffsetRight = 0;
+        _titleBoardRect.OffsetBottom = 0;
+        _titleBoardRect.StretchMode = TextureRect.StretchModeEnum.Scale;
+        _titleBoardRect.Visible = false;
+
+        // Add to canvas (need to find the canvas layer)
+        // We'll add it via ShowTitle instead
+    }
+
+    private void AddTitleBox(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new BoxMesh();
+        mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        parent.AddChild(m);
     }
 }
