@@ -49,11 +49,11 @@ public class GarageManager
 
         // Character and board displays
         _charDisplay = new Node3D();
-        _charDisplay.Position = new Vector3(-1.5f, 0.2f, 0.5f);
+        _charDisplay.Position = new Vector3(-1.5f, 0.2f, 1f);
         _garageRoot.AddChild(_charDisplay);
 
         _boardDisplay = new Node3D();
-        _boardDisplay.Position = new Vector3(1.5f, 0.7f, 0.5f);
+        _boardDisplay.Position = new Vector3(1f, 0.7f, 1.2f);
         _garageRoot.AddChild(_boardDisplay);
 
         _posterSelectedMat = new StandardMaterial3D();
@@ -357,7 +357,7 @@ public class GarageManager
         deckMesh.Size = new Vector3(0.4f, 0.03f, 1.2f);
         deck.Mesh = deckMesh;
         deck.MaterialOverride = deckMat;
-        deck.Position = new Vector3(5.3f, 0.8f, -1f);
+        deck.Position = new Vector3(4.5f, 0.8f, -1f);
         deck.Rotation = new Vector3(-0.15f, 0f, -0.15f);
         _garageRoot.AddChild(deck);
 
@@ -725,7 +725,7 @@ public class GarageManager
         else // level select
         {
             targetPos = new Vector3(0f, 2.8f, 3.5f);
-            targetLook = new Vector3(1.5f, 3f, -2.5f);
+            targetLook = new Vector3(0f, 2.5f, -1f);
         }
 
         if (!_camInitialized)

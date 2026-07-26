@@ -6,6 +6,7 @@ public class GameUI
     private FontFile _font;
 
     // HUD
+    private Control _hud;
     private Label _speedLabel;
     private Label _distLabel;
     private Label _timerLabel;
@@ -56,6 +57,7 @@ public class GameUI
         CreateCharSelect(canvas);
         CreateBoardSelect(canvas);
         CreateLevelSelect(canvas);
+        HideHUD();
     }
 
     private Label Retro(int size, string text, Color color)
@@ -84,70 +86,70 @@ public class GameUI
 
     private void CreateHUD(CanvasLayer canvas)
     {
-        var hud = new Control();
-        hud.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        canvas.AddChild(hud);
+        _hud = new Control();
+        _hud.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        canvas.AddChild(_hud);
 
         // Dark backing behind top-left HUD cluster
-        Backing(hud, 0, 0, 80, 30);
+        Backing(_hud, 0, 0, 80, 30);
 
         // Speed (top-left, big)
         _speedLabel = Retro(7, "0 km/h", new Color(1, 1, 1));
         _speedLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _speedLabel.OffsetLeft = 3;
         _speedLabel.OffsetTop = 2;
-        hud.AddChild(_speedLabel);
+        _hud.AddChild(_speedLabel);
 
         // Distance
         _distLabel = Retro(5, "0 m", new Color(1, 1, 1));
         _distLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _distLabel.OffsetLeft = 3;
         _distLabel.OffsetTop = 10;
-        hud.AddChild(_distLabel);
+        _hud.AddChild(_distLabel);
 
         // Timer
         _timerLabel = Retro(5, "0:00.0", new Color(1, 1, 1));
         _timerLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _timerLabel.OffsetLeft = 3;
         _timerLabel.OffsetTop = 16;
-        hud.AddChild(_timerLabel);
+        _hud.AddChild(_timerLabel);
 
         // Best time
         _bestLabel = Retro(5, "", new Color(0.7f, 0.85f, 1f));
         _bestLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _bestLabel.OffsetLeft = 3;
         _bestLabel.OffsetTop = 22;
-        hud.AddChild(_bestLabel);
+        _hud.AddChild(_bestLabel);
 
         // Pause (center)
         _pauseLabel = Retro(8, "", new Color(0.8f, 0.6f, 1f));
         _pauseLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _pauseLabel.OffsetTop = -5;
-        hud.AddChild(_pauseLabel);
+        _hud.AddChild(_pauseLabel);
 
         // Countdown (center)
         _countdownLabel = Retro(16, "", new Color(1f, 0.88f, 0.23f));
         _countdownLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _countdownLabel.OffsetTop = -8;
-        hud.AddChild(_countdownLabel);
+        _hud.AddChild(_countdownLabel);
 
         // Near miss (center-low)
         _nearMissLabel = Retro(5, "", new Color(1f, 0.85f, 0.3f));
         _nearMissLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _nearMissLabel.OffsetTop = 18;
-        hud.AddChild(_nearMissLabel);
+        _hud.AddChild(_nearMissLabel);
 
         // Wobble warning (center-low, below near miss)
         _wobbleLabel = Retro(5, "", new Color(1f, 0.85f, 0.3f));
         _wobbleLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _wobbleLabel.OffsetTop = 24;
-        hud.AddChild(_wobbleLabel);
+        _hud.AddChild(_wobbleLabel);
 
         // Prompt (bottom-center)
         _promptLabel = Retro(5, "", new Color(1f, 0.88f, 0.23f));
         _promptLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _promptLabel.OffsetTop = 45;
-        hud.AddChild(_promptLabel);
+        _hud.AddChild(_promptLabel);
 
         // Progress bar background
         var barBg = new ColorRect();
@@ -155,7 +157,7 @@ public class GameUI
         barBg.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
         barBg.AnchorTop = 0.96f;
         barBg.OffsetTop = 0;
-        hud.AddChild(barBg);
+        _hud.AddChild(barBg);
 
         // Progress bar fill
         _progressFill = new ColorRect();
@@ -164,14 +166,14 @@ public class GameUI
         _progressFill.AnchorTop = 0.96f;
         _progressFill.AnchorRight = 0f;
         _progressFill.OffsetTop = 0;
-        hud.AddChild(_progressFill);
+        _hud.AddChild(_progressFill);
 
         // Speed vignette — darkens edges at high speed
         _speedVignette = new ColorRect();
         _speedVignette.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _speedVignette.Color = new Color(0, 0, 0, 0f);
         _speedVignette.MouseFilter = Control.MouseFilterEnum.Ignore;
-        hud.AddChild(_speedVignette);
+        _hud.AddChild(_speedVignette);
     }
 
     // ── Title Screen ─────────────────────────────
@@ -221,15 +223,11 @@ public class GameUI
         _charScreen.Visible = false;
         canvas.AddChild(_charScreen);
 
-        // Backing behind title
-        Backing(_charScreen, 60, 12, 200, 14);
         var title = Retro(6, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -28;
         _charScreen.AddChild(title);
 
-        // Backing behind name/desc/stats
-        Backing(_charScreen, 60, 80, 200, 30);
         _charName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
         _charName.SetAnchorsPreset(Control.LayoutPreset.Center);
         _charName.OffsetTop = -10;
@@ -257,8 +255,6 @@ public class GameUI
         arrowR.OffsetTop = -10;
         _charScreen.AddChild(arrowR);
 
-        // Backing behind hint
-        Backing(_charScreen, 60, 152, 200, 12);
         var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 28;
@@ -274,15 +270,11 @@ public class GameUI
         _boardScreen.Visible = false;
         canvas.AddChild(_boardScreen);
 
-        // Backing behind title
-        Backing(_boardScreen, 50, 16, 220, 14);
         var title = Retro(6, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -24;
         _boardScreen.AddChild(title);
 
-        // Backing behind name/desc
-        Backing(_boardScreen, 60, 84, 200, 22);
         _boardName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
         _boardName.SetAnchorsPreset(Control.LayoutPreset.Center);
         _boardName.OffsetTop = -5;
@@ -305,8 +297,6 @@ public class GameUI
         arrowR.OffsetTop = -5;
         _boardScreen.AddChild(arrowR);
 
-        // Backing behind hint
-        Backing(_boardScreen, 60, 156, 200, 12);
         var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 22;
@@ -322,15 +312,11 @@ public class GameUI
         _levelScreen.Visible = false;
         canvas.AddChild(_levelScreen);
 
-        // Backing behind title
-        Backing(_levelScreen, 40, 16, 240, 14);
         var title = Retro(6, "CHOOSE YOUR COURSE", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -24;
         _levelScreen.AddChild(title);
 
-        // Backing behind name/desc
-        Backing(_levelScreen, 60, 84, 200, 22);
         _levelName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
         _levelName.SetAnchorsPreset(Control.LayoutPreset.Center);
         _levelName.OffsetTop = -5;
@@ -353,8 +339,6 @@ public class GameUI
         arrowR.OffsetTop = -5;
         _levelScreen.AddChild(arrowR);
 
-        // Backing behind hint
-        Backing(_levelScreen, 60, 156, 200, 12);
         var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 22;
@@ -428,6 +412,7 @@ public class GameUI
 
     public void ShowTitle(Main main)
     {
+        HideHUD();
         _titleScreen.Visible = true;
         _charScreen.Visible = false;
         _boardScreen.Visible = false;
@@ -442,6 +427,7 @@ public class GameUI
 
     public void ShowCharSelect(Main main)
     {
+        HideHUD();
         _titleScreen.Visible = false;
         _charScreen.Visible = true;
         _boardScreen.Visible = false;
@@ -450,6 +436,7 @@ public class GameUI
 
     public void ShowBoardSelect(Main main)
     {
+        HideHUD();
         _charScreen.Visible = false;
         _boardScreen.Visible = true;
         UpdateBoardSelect(main);
@@ -457,6 +444,7 @@ public class GameUI
 
     public void ShowLevelSelect(Main main)
     {
+        HideHUD();
         _boardScreen.Visible = false;
         _levelScreen.Visible = true;
         UpdateLevelSelect(main);
@@ -470,6 +458,16 @@ public class GameUI
         _levelScreen.Visible = false;
         _loadingScreen.Visible = false;
         _promptLabel.Text = "";
+    }
+
+    public void HideHUD()
+    {
+        if (_hud != null) _hud.Visible = false;
+    }
+
+    public void ShowHUD()
+    {
+        if (_hud != null) _hud.Visible = true;
     }
 
     private void UpdateCharSelect(Main main)
