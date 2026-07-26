@@ -786,6 +786,9 @@ public class GarageManager
             _camPos = targetPos;
             _camLookAt = targetLook;
             _camInitialized = true;
+            // Snap FOV immediately
+            var snapCam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
+            snapCam.Fov = targetFov;
         }
 
         _camPos = _camPos.Lerp(targetPos, CamLerpSpeed * dt);
