@@ -260,9 +260,9 @@ public partial class Main : Node3D
         // Camera inside the viewport
         var cam = new Camera3D();
         cam.Position = new Vector3(0, 0.8f, 2f);
-        cam.LookAt(Vector3.Zero);
         cam.Fov = 35f;
         _titleViewport.AddChild(cam);
+        cam.LookAt(Vector3.Zero);
 
         // Light
         var light = new DirectionalLight3D();
