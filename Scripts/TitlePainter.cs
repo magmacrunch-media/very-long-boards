@@ -80,12 +80,12 @@ public partial class TitlePainter : Control
         DrawRect(new Rect2(wbX + wbW * 0.04f, wbY + wbLegH * 0.55f, wbW * 0.92f, 4), darkWoodColor);
 
         // Items on workbench (proportional to table width)
-        float itemY = wbY - h * 0.04f;
-        float itemH = h * 0.035f;
-        DrawRect(new Rect2(wbX + wbW * 0.06f, itemY, wbW * 0.07f, itemH), new Color(0.55f, 0.55f, 0.55f)); // box
-        DrawRect(new Rect2(wbX + wbW * 0.18f, itemY + h * 0.008f, wbW * 0.05f, itemH * 0.75f), new Color(0.4f, 0.4f, 0.4f)); // can
-        DrawRect(new Rect2(wbX + wbW * 0.32f, itemY + h * 0.005f, wbW * 0.14f, itemH * 0.85f), new Color(0.6f, 0.6f, 0.6f)); // toolbox
-        DrawRect(new Rect2(wbX + wbW * 0.36f, itemY + h * 0.005f, wbW * 0.06f, itemH * 0.3f), new Color(1f, 0.42f, 0.21f)); // handle
+        float itemY = wbY - h * 0.05f;
+        float itemH = h * 0.045f;
+        DrawRect(new Rect2(wbX + wbW * 0.05f, itemY, wbW * 0.08f, itemH), new Color(0.55f, 0.55f, 0.55f)); // box
+        DrawRect(new Rect2(wbX + wbW * 0.18f, itemY + h * 0.01f, wbW * 0.05f, itemH * 0.7f), new Color(0.4f, 0.4f, 0.4f)); // can
+        DrawRect(new Rect2(wbX + wbW * 0.30f, itemY + h * 0.008f, wbW * 0.16f, itemH * 0.85f), new Color(0.6f, 0.6f, 0.6f)); // toolbox
+        DrawRect(new Rect2(wbX + wbW * 0.34f, itemY + h * 0.008f, wbW * 0.07f, itemH * 0.3f), new Color(1f, 0.42f, 0.21f)); // handle
 
         // ── Pegboard + tools (on back wall, center-left) ──
         float pbX = w * 0.33f;

@@ -53,7 +53,7 @@ public class GarageManager
         _garageRoot.AddChild(_charDisplay);
 
         _boardDisplay = new Node3D();
-        _boardDisplay.Position = new Vector3(1f, 0.7f, 1.2f);
+        _boardDisplay.Position = new Vector3(0.5f, 0.7f, 1.5f);
         _garageRoot.AddChild(_boardDisplay);
 
         _posterSelectedMat = new StandardMaterial3D();
@@ -86,28 +86,6 @@ public class GarageManager
         // Right wall (thickened)
         AddBox(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f),
             new Vector3(6f, 2.5f, 0.75f));
-
-        // Garage door (front wall at z=5)
-        var doorMat = new Color(0.18f, 0.18f, 0.18f);
-        AddBox(new Vector3(8f, 4.5f, 0.3f), doorMat,
-            new Vector3(0, 2.25f, 5f));
-        // Door frame — left
-        AddBox(new Vector3(0.15f, 4.8f, 0.4f), new Color(0.15f, 0.15f, 0.15f),
-            new Vector3(-4.1f, 2.4f, 5f));
-        // Door frame — right
-        AddBox(new Vector3(0.15f, 4.8f, 0.4f), new Color(0.15f, 0.15f, 0.15f),
-            new Vector3(4.1f, 2.4f, 5f));
-        // Door frame — top
-        AddBox(new Vector3(8.3f, 0.15f, 0.4f), new Color(0.15f, 0.15f, 0.15f),
-            new Vector3(0, 4.65f, 5f));
-        // Horizontal panel lines on garage door
-        var panelLine = new Color(0.14f, 0.14f, 0.14f);
-        for (int i = 1; i <= 5; i++)
-        {
-            float y = i * 0.8f;
-            AddBox(new Vector3(7.8f, 0.03f, 0.01f), panelLine,
-                new Vector3(0, y, 4.84f));
-        }
 
         // Cinder block texture — horizontal grooves on back wall
         var grooveMat = new StandardMaterial3D();
@@ -268,22 +246,22 @@ public class GarageManager
 
         // Shelf planks
         AddBox(new Vector3(2f, 0.06f, 0.4f), woodMat,
-            new Vector3(3f, 3.5f, -2.5f));
+            new Vector3(2f, 3.5f, -2.5f));
         // Vertical supports
         AddBox(new Vector3(0.06f, 0.8f, 0.06f), woodMat,
-            new Vector3(2.1f, 3.1f, -2.5f));
+            new Vector3(1.1f, 3.1f, -2.5f));
         AddBox(new Vector3(0.06f, 0.8f, 0.06f), woodMat,
-            new Vector3(3.9f, 3.1f, -2.5f));
+            new Vector3(2.9f, 3.1f, -2.5f));
 
         // Items on shelf
         AddBox(new Vector3(0.12f, 0.22f, 0.12f), new Color(0.29f, 0.56f, 0.85f),
-            new Vector3(2.4f, 3.65f, -2.5f)); // blue bottle
+            new Vector3(1.4f, 3.65f, -2.5f)); // blue bottle
         AddBox(new Vector3(0.12f, 0.18f, 0.12f), new Color(1f, 0.27f, 0.27f),
-            new Vector3(2.8f, 3.63f, -2.5f)); // red can
+            new Vector3(1.8f, 3.63f, -2.5f)); // red can
         AddBox(new Vector3(0.14f, 0.2f, 0.14f), new Color(0.27f, 0.8f, 0.27f),
-            new Vector3(3.2f, 3.64f, -2.5f)); // green bottle
+            new Vector3(2.2f, 3.64f, -2.5f)); // green bottle
         AddBox(new Vector3(0.2f, 0.14f, 0.14f), new Color(1f, 0.67f, 0f),
-            new Vector3(3.6f, 3.6f, -2.5f)); // orange box
+            new Vector3(2.6f, 3.6f, -2.5f)); // orange box
     }
 
     private void BuildWindow()
@@ -357,7 +335,7 @@ public class GarageManager
         deckMesh.Size = new Vector3(0.4f, 0.03f, 1.2f);
         deck.Mesh = deckMesh;
         deck.MaterialOverride = deckMat;
-        deck.Position = new Vector3(4.5f, 0.8f, -1f);
+        deck.Position = new Vector3(3.8f, 0.8f, -1f);
         deck.Rotation = new Vector3(-0.15f, 0f, -0.15f);
         _garageRoot.AddChild(deck);
 
@@ -389,14 +367,6 @@ public class GarageManager
         // Fluorescent light fixture on ceiling
         AddBox(new Vector3(1.5f, 0.06f, 0.2f), new Color(0.85f, 0.85f, 0.85f),
             new Vector3(-1f, 5f, -1f));
-
-        // Light cone (semi-transparent box)
-        var coneMat = new StandardMaterial3D();
-        coneMat.AlbedoColor = new Color(1f, 0.98f, 0.94f, 0.08f);
-        coneMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        coneMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        AddBox(new Vector3(2f, 4.9f, 3f), coneMat.AlbedoColor,
-            new Vector3(-1f, 2.5f, -0.5f));
 
         // Actual light
         var light = new OmniLight3D();

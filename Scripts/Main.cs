@@ -220,7 +220,9 @@ public partial class Main : Node3D
 
     public void StartRide()
     {
+        if (_titleBoardRect != null) _titleBoardRect.Visible = false;
         Garage.Hide();
+        UI.ShowHUD();
         State = GameState.Countdown;
         CountdownTimer = 3f;
         UI.HideAllSelectors();
