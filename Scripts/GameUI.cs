@@ -479,20 +479,17 @@ public class GameUI
         _charName.Text = "\u25C0 " + Main.CarlNames[(int)main.Carl] + " \u25B6";
         _charDesc.Text = Main.CarlDescs[(int)main.Carl];
 
-        string stats = "";
-        switch (main.Carl)
-        {
-            case Main.CarlType.Office:
-                stats = "SPD [\u2584\u2584\u2584\u2584\u2581] HAND [\u2584\u2584\u2584\u2584\u2581] TRK [\u2584\u2584\u2584\u2584\u2581]";
-                break;
-            case Main.CarlType.Party:
-                stats = "SPD [\u2588\u2588\u2588\u2588\u2588] HAND [\u2588\u2588\u2588\u2581\u2581] TRK [\u2588\u2588\u2588\u2581\u2581]";
-                break;
-            case Main.CarlType.Dark:
-                stats = "SPD [\u2588\u2588\u2588\u2588\u2581] HAND [\u2588\u2588\u2588\u2588\u2581] TRK [\u2588\u2588\u2588\u2588\u2588]";
-                break;
-        }
-        _charStats.Text = stats;
+        // Drawn from the same table PlayerManager rides with, so the bars can't drift
+        // away from the handling they advertise.
+        var s = Main.CarlStats[(int)main.Carl];
+        _charStats.Text = $"SPD {Bar(s.Speed)} HAND {Bar(s.Handling)} TRK {Bar(s.Tracking)}";
+    }
+
+    private static string Bar(int pips)
+    {
+        var sb = new System.Text.StringBuilder("[");
+        for (int i = 0; i < 5; i++) sb.Append(i < pips ? '\u2588' : '\u2581');
+        return sb.Append(']').ToString();
     }
 
     private void UpdateBoardSelect(Main main)
@@ -520,7 +517,7 @@ public class GameUI
         float kmh = player.Speed * 14f;
         _speedLabel.Text = $"{kmh:F0} km/h";
 
-        float speedRatio = Mathf.Clamp(player.Speed / PlayerManager.MaxSpeed, 0f, 1f);
+        float speedRatio = Mathf.Clamp(player.Speed / player.MaxSpeed, 0f, 1f);
         if (speedRatio > 0.8f)
             _speedLabel.Modulate = new Color(1f, 0.3f, 0.3f);
         else if (speedRatio > 0.5f)

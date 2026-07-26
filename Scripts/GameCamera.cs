@@ -18,7 +18,7 @@ using Godot;
             float groundY = terrain.HillAt(player.Distance);
             float slope = (terrain.HillAt(player.Distance + 3f) - terrain.HillAt(player.Distance)) / 3f;
             float sf = Mathf.Clamp(-slope / 2f, 0f, 1f);
-            float speedFactor = Mathf.Clamp(player.Speed / PlayerManager.MaxSpeed, 0f, 1f);
+            float speedFactor = Mathf.Clamp(player.Speed / player.MaxSpeed, 0f, 1f);
 
             // Dynamic camera distance — close at high speed, far at low speed
             float camH = Mathf.Lerp(5.5f, 3.8f, speedFactor) + sf * 1.5f;

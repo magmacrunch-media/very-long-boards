@@ -35,8 +35,6 @@ public class PlayerManager
     // Constants
     private const float Gravity = 0.05f;
     private const float Friction = 0.9997f;
-    public const float MaxSpeed = 11f;
-    private const float Handling = 0.15f;
     private const float AnimLerp = 8f;
     private const float CarvingDrag = 0.01f;
 
@@ -44,13 +42,26 @@ public class PlayerManager
     private const float YawPerSteer = 0.55f;
     private const float RollPerSteer = 0.35f;
 
-    private const float WobbleSpeedThreshold = 0.50f;
     private const float BrakeSpeedThreshold = 0.7f;
     private const float BrakeCutoff = 0.85f;
-    private const float WobbleBuildRate = 0.35f;
     private const float WobbleDecayRate = 1.0f;
     private const float CarveResetTime = 0.5f;
     private const float WobbleCrashLevel = 1f;
+
+    // ── Per-rider handling ──────────────────────────────────────────────
+    // Baselines for a hypothetical 3-pip rider; ApplyStats() scales them by the
+    // selected Carl's CarlStat. Every derived field is seeded with its baseline so
+    // MaxSpeed is never zero — speedFactor divides by it before a ride even starts.
+    private const float BaseMaxSpeed = 11f;
+    private const float BaseHandling = 0.15f;
+    private const float BaseWobbleBuild = 0.35f;
+    private const float BaseWobbleThreshold = 0.50f;
+
+    /// <summary>Top speed for the current Carl. Read by the HUD and the chase camera.</summary>
+    public float MaxSpeed { get; private set; } = BaseMaxSpeed;
+    private float _handling = BaseHandling;
+    private float _wobbleBuild = BaseWobbleBuild;
+    private float _wobbleOnsetSpeed = BaseMaxSpeed * BaseWobbleThreshold;
 
     // Particles
     private GpuParticles3D _dustParticles;
@@ -64,9 +75,37 @@ public class PlayerManager
 
     public void Create()
     {
+        ApplyStats();
         CreateBoard();
         CreateBody();
         CreateParticles();
+    }
+
+    /// <summary>
+    /// Turn the selected Carl's 1-5 pips into the numbers the ride actually uses.
+    /// Called at startup and again whenever his look changes on the way into a run.
+    /// </summary>
+    private void ApplyStats()
+    {
+        var s = Main.CarlStats[(int)_main.Carl];
+
+        MaxSpeed = BaseMaxSpeed * Pip(s.Speed, 0.82f, 1.18f);
+        _handling = BaseHandling * Pip(s.Handling, 0.82f, 1.18f);
+
+        // More trucks means wobble builds slower once it starts...
+        _wobbleBuild = BaseWobbleBuild * Pip(s.Tracking, 1.35f, 0.70f);
+
+        // ...and starts later. Note this is an ABSOLUTE speed, deliberately derived from
+        // BaseMaxSpeed rather than this rider's MaxSpeed. Gate wobble on a fraction of the
+        // rider's own top speed and a fast Carl reaches any given speed at a lower fraction,
+        // so raising his SPD would quietly cancel his own TRK penalty.
+        _wobbleOnsetSpeed = BaseMaxSpeed * BaseWobbleThreshold * Pip(s.Tracking, 0.85f, 1.15f);
+    }
+
+    /// <summary>Map a 1-5 stat pip onto a multiplier range. Three pips lands mid-range.</summary>
+    private static float Pip(int pips, float atOne, float atFive)
+    {
+        return Mathf.Lerp(atOne, atFive, (Mathf.Clamp(pips, 1, 5) - 1) / 4f);
     }
 
     // ═══════════════════════════════════════════
@@ -100,6 +139,8 @@ public class PlayerManager
     /// <summary>Swap Carl's outfit without disturbing the board or the rig's placement.</summary>
     public void ApplyCarl()
     {
+        ApplyStats();
+
         if (_carl != null)
         {
             _skaterRoot.RemoveChild(_carl);
@@ -218,7 +259,7 @@ public class PlayerManager
         if (Mathf.Abs(_steerSmooth) < 0.005f) _steerSmooth = 0f;
 
         float handlingScale = 1f - WobbleLevel * 0.4f;
-        PosX += _steerSmooth * Handling * handlingScale * dt * 60f * (0.3f + Speed * 0.5f);
+        PosX += _steerSmooth * _handling * handlingScale * dt * 60f * (0.3f + Speed * 0.5f);
 
         // ── Wobble ──
         bool isSteering = Mathf.Abs(_steerSmooth) > 0.1f;
@@ -230,8 +271,11 @@ public class PlayerManager
         else
         {
             _timeSinceCarve += dt;
-            if (speedFactor >= WobbleSpeedThreshold && _timeSinceCarve > CarveResetTime)
-                WobbleLevel += WobbleBuildRate * dt * (0.5f + (speedFactor - WobbleSpeedThreshold) / (1f - WobbleSpeedThreshold) * 0.5f);
+            if (Speed >= _wobbleOnsetSpeed && _timeSinceCarve > CarveResetTime)
+            {
+                float over = (Speed - _wobbleOnsetSpeed) / Mathf.Max(0.01f, MaxSpeed - _wobbleOnsetSpeed);
+                WobbleLevel += _wobbleBuild * dt * (0.5f + Mathf.Clamp(over, 0f, 1f) * 0.5f);
+            }
             else
                 WobbleLevel = Mathf.Max(0f, WobbleLevel - WobbleDecayRate * 2f * dt);
         }

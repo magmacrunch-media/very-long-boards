@@ -20,9 +20,28 @@ public partial class Main : Node3D
     public float CountdownTimer = 0f;
     public float TitleTime = 0f;
 
+    /// <summary>
+    /// A rider's handling, as 1-5 pips. This is the single source of truth: the bars drawn on
+    /// the char-select screen and the numbers PlayerManager rides with both derive from it, so
+    /// what the screen promises is what you get.
+    ///   SPD  — top speed
+    ///   HAND — steering authority
+    ///   TRK  — trucks; how long he holds a line before speed wobble sets in
+    /// </summary>
+    public struct CarlStat
+    {
+        public int Speed, Handling, Tracking;
+        public CarlStat(int s, int h, int t) { Speed = s; Handling = h; Tracking = t; }
+    }
+
     // Constants
     public static readonly string[] CarlNames = { "Office Carl", "Party Carl", "Dark Carl" };
     public static readonly string[] CarlDescs = { "The everyman", "The maniac", "The enigma" };
+    public static readonly CarlStat[] CarlStats = {
+        new CarlStat(4, 4, 4),   // Office — the everyman, balanced
+        new CarlStat(5, 3, 3),   // Party  — the maniac, fast but wobbly
+        new CarlStat(4, 4, 5)    // Dark   — the enigma, smooth and controlled
+    };
     public static readonly string[] BoardNames = { "Classic", "Neon", "Dark", "Natural" };
     public static readonly string[] BoardDescs = { "Brown wood deck", "Bright neon colors", "Black with purple accent", "Light natural wood" };
 

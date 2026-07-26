@@ -4,11 +4,18 @@ A peaceful downhill skateboarding game set on forested New Hampshire roads. Ride
 
 ## Carl Spatski
 
-One rider, three looks:
+One rider, three looks — and the look you pick changes how he rides:
 
-- **Office Carl** — The everyman. Red dress shirt, grey slacks. Balanced stats.
-- **Party Carl** — The maniac. Purple shirt, orange pants. Fast but wobbly.
-- **Dark Carl** — The enigma. All black. Smooth and controlled.
+| | SPD | HAND | TRK | |
+|---|---|---|---|---|
+| **Office Carl** | 4 | 4 | 4 | The everyman. Red dress shirt, grey slacks. Balanced. |
+| **Party Carl** | 5 | 3 | 3 | The maniac. Purple shirt, orange pants. Fast but wobbly. |
+| **Dark Carl** | 4 | 4 | 5 | The enigma. All black. Smooth and controlled. |
+
+**SPD** sets top speed, **HAND** steering authority, **TRK** how long he holds a line before
+speed wobble sets in. The pips live in `Main.CarlStats` and are the single source of truth —
+the bars on the select screen and the numbers `PlayerManager` rides with both derive from that
+one table, so they can't drift apart. Tune a rider by changing a pip.
 
 ## The garage
 
