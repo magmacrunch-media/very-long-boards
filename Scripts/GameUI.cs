@@ -70,6 +70,16 @@ public class GameUI
         return label;
     }
 
+    private ColorRect Backing(Control parent, float x, float y, float w, float h)
+    {
+        var rect = new ColorRect();
+        rect.Color = new Color(0.05f, 0.04f, 0.08f, 0.92f);
+        rect.Position = new Vector2(x, y);
+        rect.Size = new Vector2(w, h);
+        parent.AddChild(rect);
+        return rect;
+    }
+
     // ── HUD ──────────────────────────────────────
 
     private void CreateHUD(CanvasLayer canvas)
@@ -77,6 +87,9 @@ public class GameUI
         var hud = new Control();
         hud.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         canvas.AddChild(hud);
+
+        // Dark backing behind top-left HUD cluster
+        Backing(hud, 0, 0, 80, 30);
 
         // Speed (top-left, big)
         _speedLabel = Retro(7, "0 km/h", new Color(1, 1, 1));
@@ -100,7 +113,7 @@ public class GameUI
         hud.AddChild(_timerLabel);
 
         // Best time
-        _bestLabel = Retro(4, "", new Color(0.7f, 0.85f, 1f));
+        _bestLabel = Retro(5, "", new Color(0.7f, 0.85f, 1f));
         _bestLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _bestLabel.OffsetLeft = 3;
         _bestLabel.OffsetTop = 22;
@@ -131,7 +144,7 @@ public class GameUI
         hud.AddChild(_wobbleLabel);
 
         // Prompt (bottom-center)
-        _promptLabel = Retro(4, "", new Color(1f, 0.88f, 0.23f));
+        _promptLabel = Retro(5, "", new Color(1f, 0.88f, 0.23f));
         _promptLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _promptLabel.OffsetTop = 45;
         hud.AddChild(_promptLabel);
@@ -174,27 +187,36 @@ public class GameUI
         bg.Color = new Color(0.04f, 0.02f, 0.08f, 0.88f);
         _titleScreen.AddChild(bg);
 
+        // Backing behind title group
+        Backing(_titleScreen, 40, 70, 240, 70);
+
         var title = Retro(10, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -25;
         _titleScreen.AddChild(title);
 
-        var sub = Retro(4, "A Carl Spatski Game", new Color(0.6f, 0.6f, 0.7f));
+        var sub = Retro(5, "A Carl Spatski Game", new Color(0.6f, 0.6f, 0.7f));
         sub.SetAnchorsPreset(Control.LayoutPreset.Center);
         sub.OffsetTop = -12;
         _titleScreen.AddChild(sub);
 
-        var course = Retro(3, Main.LevelNames[0], new Color(0.4f, 0.55f, 0.4f));
+        var course = Retro(5, Main.LevelNames[0], new Color(0.4f, 0.55f, 0.4f));
         course.SetAnchorsPreset(Control.LayoutPreset.Center);
         course.OffsetTop = -5;
         _titleScreen.AddChild(course);
+
+        // Backing behind prompt
+        Backing(_titleScreen, 60, 140, 200, 20);
 
         var prompt = Retro(5, "PRESS \u2191 TO START", new Color(1f, 0.88f, 0.23f));
         prompt.SetAnchorsPreset(Control.LayoutPreset.Center);
         prompt.OffsetTop = 28;
         _titleScreen.AddChild(prompt);
 
-        var controls = Retro(3, "\u2190\u2192 STEER  SPACE BRAKE  \u2191/ENTER KICK", new Color(0.4f, 0.4f, 0.5f));
+        // Backing behind controls
+        Backing(_titleScreen, 20, 168, 280, 14);
+
+        var controls = Retro(5, "\u2190\u2192 STEER  SPACE BRAKE  \u2191/ENTER KICK", new Color(0.4f, 0.4f, 0.5f));
         controls.SetAnchorsPreset(Control.LayoutPreset.Center);
         controls.OffsetTop = 40;
         _titleScreen.AddChild(controls);
@@ -228,27 +250,26 @@ public class GameUI
         _charScreen.Visible = false;
         canvas.AddChild(_charScreen);
 
-        var bg = new ColorRect();
-        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.02f, 0.03f, 0.08f, 0.5f);
-        _charScreen.AddChild(bg);
-
+        // Backing behind title
+        Backing(_charScreen, 60, 12, 200, 14);
         var title = Retro(6, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -28;
         _charScreen.AddChild(title);
 
+        // Backing behind name/desc/stats
+        Backing(_charScreen, 60, 80, 200, 30);
         _charName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
         _charName.SetAnchorsPreset(Control.LayoutPreset.Center);
         _charName.OffsetTop = -10;
         _charScreen.AddChild(_charName);
 
-        _charDesc = Retro(4, "", new Color(0.7f, 0.7f, 0.8f));
+        _charDesc = Retro(5, "", new Color(0.7f, 0.7f, 0.8f));
         _charDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
         _charDesc.OffsetTop = 0;
         _charScreen.AddChild(_charDesc);
 
-        _charStats = Retro(3, "", new Color(0.5f, 0.8f, 0.5f));
+        _charStats = Retro(5, "", new Color(0.5f, 0.8f, 0.5f));
         _charStats.SetAnchorsPreset(Control.LayoutPreset.Center);
         _charStats.OffsetTop = 10;
         _charScreen.AddChild(_charStats);
@@ -265,7 +286,9 @@ public class GameUI
         arrowR.OffsetTop = -10;
         _charScreen.AddChild(arrowR);
 
-        var hint = Retro(3, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
+        // Backing behind hint
+        Backing(_charScreen, 60, 152, 200, 12);
+        var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 28;
         _charScreen.AddChild(hint);
@@ -280,22 +303,21 @@ public class GameUI
         _boardScreen.Visible = false;
         canvas.AddChild(_boardScreen);
 
-        var bg = new ColorRect();
-        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.02f, 0.06f, 0.03f, 0.5f);
-        _boardScreen.AddChild(bg);
-
+        // Backing behind title
+        Backing(_boardScreen, 50, 16, 220, 14);
         var title = Retro(6, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -24;
         _boardScreen.AddChild(title);
 
+        // Backing behind name/desc
+        Backing(_boardScreen, 60, 84, 200, 22);
         _boardName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
         _boardName.SetAnchorsPreset(Control.LayoutPreset.Center);
         _boardName.OffsetTop = -5;
         _boardScreen.AddChild(_boardName);
 
-        _boardDesc = Retro(4, "", new Color(0.7f, 0.7f, 0.8f));
+        _boardDesc = Retro(5, "", new Color(0.7f, 0.7f, 0.8f));
         _boardDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
         _boardDesc.OffsetTop = 5;
         _boardScreen.AddChild(_boardDesc);
@@ -312,7 +334,9 @@ public class GameUI
         arrowR.OffsetTop = -5;
         _boardScreen.AddChild(arrowR);
 
-        var hint = Retro(3, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
+        // Backing behind hint
+        Backing(_boardScreen, 60, 156, 200, 12);
+        var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 22;
         _boardScreen.AddChild(hint);
@@ -327,22 +351,21 @@ public class GameUI
         _levelScreen.Visible = false;
         canvas.AddChild(_levelScreen);
 
-        var bg = new ColorRect();
-        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.06f, 0.04f, 0.02f, 0.5f);
-        _levelScreen.AddChild(bg);
-
+        // Backing behind title
+        Backing(_levelScreen, 40, 16, 240, 14);
         var title = Retro(6, "CHOOSE YOUR COURSE", new Color(1f, 0.18f, 0.61f));
         title.SetAnchorsPreset(Control.LayoutPreset.Center);
         title.OffsetTop = -24;
         _levelScreen.AddChild(title);
 
+        // Backing behind name/desc
+        Backing(_levelScreen, 60, 84, 200, 22);
         _levelName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
         _levelName.SetAnchorsPreset(Control.LayoutPreset.Center);
         _levelName.OffsetTop = -5;
         _levelScreen.AddChild(_levelName);
 
-        _levelDesc = Retro(4, "", new Color(0.7f, 0.7f, 0.8f));
+        _levelDesc = Retro(5, "", new Color(0.7f, 0.7f, 0.8f));
         _levelDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
         _levelDesc.OffsetTop = 5;
         _levelScreen.AddChild(_levelDesc);
@@ -359,7 +382,9 @@ public class GameUI
         arrowR.OffsetTop = -5;
         _levelScreen.AddChild(arrowR);
 
-        var hint = Retro(3, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
+        // Backing behind hint
+        Backing(_levelScreen, 60, 156, 200, 12);
+        var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
         hint.SetAnchorsPreset(Control.LayoutPreset.Center);
         hint.OffsetTop = 22;
         _levelScreen.AddChild(hint);

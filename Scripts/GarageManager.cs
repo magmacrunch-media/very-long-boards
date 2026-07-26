@@ -647,18 +647,18 @@ public class GarageManager
 
         if (isCharSelect)
         {
-            targetPos = new Vector3(3.5f, 2.8f, 4f);
-            targetLook = new Vector3(-2f, 1f, 0f);
+            targetPos = new Vector3(3f, 2.5f, 3.5f);
+            targetLook = new Vector3(-1.5f, 1.2f, -1f);
         }
         else if (isBoardSelect)
         {
-            targetPos = new Vector3(-3.5f, 2.2f, 4f);
-            targetLook = new Vector3(2f, 0.5f, 0f);
+            targetPos = new Vector3(-3f, 2f, 3.5f);
+            targetLook = new Vector3(1.5f, 0.6f, -1f);
         }
         else // level select
         {
-            targetPos = new Vector3(0f, 3.2f, 5f);
-            targetLook = new Vector3(1.8f, 3f, -3f);
+            targetPos = new Vector3(0f, 2.8f, 4f);
+            targetLook = new Vector3(1.5f, 3f, -2.5f);
         }
 
         if (!_camInitialized)
