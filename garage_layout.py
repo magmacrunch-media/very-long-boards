@@ -28,6 +28,8 @@ FURNITURE = [
     {"name": "Shelf",        "cx": 2,    "cz": -2.5,  "w": 2,    "d": 0.4,  "color": "#6B4226"},
     {"name": "Pegboard",     "cx": -1.5, "cz": -2.8,  "w": 1.8,  "d": 0.1,  "color": "#484848"},
     {"name": "Window",       "cx": 4,    "cz": -2.8,  "w": 1.2,  "d": 0.1,  "color": "#7AADCC"},
+    {"name": "Poster: Frogwood",  "cx": -5.75, "cz": -0.5,  "w": 0.1,  "d": 1.4,  "color": "#F2EBD9"},
+    {"name": "Poster: Block Isl", "cx": -5.75, "cz": 1.5,   "w": 0.1,  "d": 1.4,  "color": "#8C8579"},
 ]
 
 # Display models (center_x, center_z, width, depth)
@@ -41,7 +43,7 @@ DISPLAYS = [
 CAMERAS = {
     "CharSelect":  {"pos": (3, 3),    "look": (-1.5, -1),  "fov": 55, "label": "Char Select"},
     "BoardSelect": {"pos": (-3, 3),   "look": (1.5, -1),   "fov": 55, "label": "Board Select"},
-    "LevelSelect": {"pos": (0, 3.5),  "look": (0, -1),     "fov": 55, "label": "Level Select"},
+    "LevelSelect": {"pos": (2, 0.5),  "look": (-5.5, 0.5), "fov": 50, "label": "Level Select"},
 }
 
 # Room extent for plotting

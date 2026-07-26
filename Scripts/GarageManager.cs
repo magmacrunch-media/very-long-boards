@@ -384,58 +384,65 @@ public class GarageManager
 
     private void BuildLevelPosters()
     {
-        // Left poster — Frogwood, NH
-        _posterLeft = AddBox(new Vector3(1.4f, 1.8f, 0.05f),
+        // Left wall inner face is at x=-5.75, posters face +x (into room)
+        // Posters arranged side by side along Z axis
+
+        // Left poster — Frogwood, NH (z=-0.5)
+        _posterLeft = AddBox(new Vector3(0.05f, 1.8f, 1.4f),
             new Color(0.95f, 0.92f, 0.85f),
-            new Vector3(0.8f, 3f, -2.74f));
+            new Vector3(-5.72f, 3f, -0.5f));
 
         // Left poster header strip
-        AddBox(new Vector3(1.3f, 0.2f, 0.01f), new Color(0.18f, 0.52f, 0.18f),
-            new Vector3(0.8f, 3.75f, -2.7f));
+        AddBox(new Vector3(0.01f, 0.2f, 1.3f), new Color(0.18f, 0.52f, 0.18f),
+            new Vector3(-5.68f, 3.75f, -0.5f));
 
         _posterLeftText = new Label3D();
         _posterLeftText.Text = "FROGWOOD";
         _posterLeftText.FontSize = 10;
+        _posterLeftText.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
         var leftTextMat = new StandardMaterial3D();
         leftTextMat.AlbedoColor = new Color(0.15f, 0.15f, 0.15f);
         _posterLeftText.MaterialOverride = leftTextMat;
-        _posterLeftText.Position = new Vector3(0.8f, 3.4f, -2.69f);
+        _posterLeftText.Position = new Vector3(-5.65f, 3.4f, -0.5f);
         _garageRoot.AddChild(_posterLeftText);
 
         _posterLeftSubtext = new Label3D();
         _posterLeftSubtext.Text = "NH";
         _posterLeftSubtext.FontSize = 7;
+        _posterLeftSubtext.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
         _posterLeftSubtext.MaterialOverride = leftTextMat;
-        _posterLeftSubtext.Position = new Vector3(0.8f, 3.15f, -2.69f);
+        _posterLeftSubtext.Position = new Vector3(-5.65f, 3.15f, -0.5f);
         _garageRoot.AddChild(_posterLeftSubtext);
 
-        // Right poster — Block Island
-        _posterRight = AddBox(new Vector3(1.4f, 1.8f, 0.05f),
+        // Right poster — Block Island (z=1.5)
+        _posterRight = AddBox(new Vector3(0.05f, 1.8f, 1.4f),
             new Color(0.55f, 0.52f, 0.48f),
-            new Vector3(2.8f, 3f, -2.74f));
+            new Vector3(-5.72f, 3f, 1.5f));
 
         // Right poster header strip
-        AddBox(new Vector3(1.3f, 0.2f, 0.01f), new Color(0.3f, 0.4f, 0.6f),
-            new Vector3(2.8f, 3.75f, -2.7f));
+        AddBox(new Vector3(0.01f, 0.2f, 1.3f), new Color(0.3f, 0.4f, 0.6f),
+            new Vector3(-5.68f, 3.75f, 1.5f));
 
         _posterRightText = new Label3D();
         _posterRightText.Text = "BLOCK ISLAND";
         _posterRightText.FontSize = 8;
+        _posterRightText.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
         var rightTextMat = new StandardMaterial3D();
         rightTextMat.AlbedoColor = new Color(0.35f, 0.35f, 0.35f);
         _posterRightText.MaterialOverride = rightTextMat;
-        _posterRightText.Position = new Vector3(2.8f, 3.4f, -2.69f);
+        _posterRightText.Position = new Vector3(-5.65f, 3.4f, 1.5f);
         _garageRoot.AddChild(_posterRightText);
 
         _posterRightSubtext = new Label3D();
         _posterRightSubtext.Text = "COMING SOON";
         _posterRightSubtext.FontSize = 4;
+        _posterRightSubtext.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
         var comingSoonMat = new StandardMaterial3D();
         comingSoonMat.AlbedoColor = new Color(0.5f, 0.3f, 0.3f);
         comingSoonMat.EmissionEnabled = true;
         comingSoonMat.Emission = new Color(0.2f, 0.1f, 0.1f);
         _posterRightSubtext.MaterialOverride = comingSoonMat;
-        _posterRightSubtext.Position = new Vector3(2.8f, 3.15f, -2.69f);
+        _posterRightSubtext.Position = new Vector3(-5.65f, 3.15f, 1.5f);
         _garageRoot.AddChild(_posterRightSubtext);
     }
 
@@ -764,9 +771,9 @@ public class GarageManager
         }
         else // level select
         {
-            targetPos = new Vector3(0f, 2.5f, 1.5f);
-            targetLook = new Vector3(1.8f, 3f, -2.5f);
-            targetFov = 45f;
+            targetPos = new Vector3(0.5f, 2.5f, 0.5f);
+            targetLook = new Vector3(-5.5f, 3f, 0.5f);
+            targetFov = 40f;
         }
 
         if (!_camInitialized)
