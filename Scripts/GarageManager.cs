@@ -53,7 +53,7 @@ public class GarageManager
         _garageRoot.AddChild(_charDisplay);
 
         _boardDisplay = new Node3D();
-        _boardDisplay.Position = new Vector3(0.5f, 0.7f, 1.5f);
+        _boardDisplay.Position = new Vector3(1.5f, 0.8f, 0.5f);
         _garageRoot.AddChild(_boardDisplay);
 
         _posterSelectedMat = new StandardMaterial3D();
@@ -387,11 +387,11 @@ public class GarageManager
         // Left poster — Frogwood, NH
         _posterLeft = AddBox(new Vector3(1.4f, 1.8f, 0.05f),
             new Color(0.95f, 0.92f, 0.85f),
-            new Vector3(0.8f, 3f, -2.78f));
+            new Vector3(0.8f, 3f, -2.74f));
 
         // Left poster header strip
         AddBox(new Vector3(1.3f, 0.2f, 0.01f), new Color(0.18f, 0.52f, 0.18f),
-            new Vector3(0.8f, 3.75f, -2.74f));
+            new Vector3(0.8f, 3.75f, -2.7f));
 
         _posterLeftText = new Label3D();
         _posterLeftText.Text = "FROGWOOD";
@@ -399,24 +399,24 @@ public class GarageManager
         var leftTextMat = new StandardMaterial3D();
         leftTextMat.AlbedoColor = new Color(0.15f, 0.15f, 0.15f);
         _posterLeftText.MaterialOverride = leftTextMat;
-        _posterLeftText.Position = new Vector3(0.8f, 3.4f, -2.73f);
+        _posterLeftText.Position = new Vector3(0.8f, 3.4f, -2.69f);
         _garageRoot.AddChild(_posterLeftText);
 
         _posterLeftSubtext = new Label3D();
         _posterLeftSubtext.Text = "NH";
         _posterLeftSubtext.FontSize = 7;
         _posterLeftSubtext.MaterialOverride = leftTextMat;
-        _posterLeftSubtext.Position = new Vector3(0.8f, 3.15f, -2.73f);
+        _posterLeftSubtext.Position = new Vector3(0.8f, 3.15f, -2.69f);
         _garageRoot.AddChild(_posterLeftSubtext);
 
         // Right poster — Block Island
         _posterRight = AddBox(new Vector3(1.4f, 1.8f, 0.05f),
             new Color(0.55f, 0.52f, 0.48f),
-            new Vector3(2.8f, 3f, -2.78f));
+            new Vector3(2.8f, 3f, -2.74f));
 
         // Right poster header strip
         AddBox(new Vector3(1.3f, 0.2f, 0.01f), new Color(0.3f, 0.4f, 0.6f),
-            new Vector3(2.8f, 3.75f, -2.74f));
+            new Vector3(2.8f, 3.75f, -2.7f));
 
         _posterRightText = new Label3D();
         _posterRightText.Text = "BLOCK ISLAND";
@@ -424,7 +424,7 @@ public class GarageManager
         var rightTextMat = new StandardMaterial3D();
         rightTextMat.AlbedoColor = new Color(0.35f, 0.35f, 0.35f);
         _posterRightText.MaterialOverride = rightTextMat;
-        _posterRightText.Position = new Vector3(2.8f, 3.4f, -2.73f);
+        _posterRightText.Position = new Vector3(2.8f, 3.4f, -2.69f);
         _garageRoot.AddChild(_posterRightText);
 
         _posterRightSubtext = new Label3D();
@@ -435,7 +435,7 @@ public class GarageManager
         comingSoonMat.EmissionEnabled = true;
         comingSoonMat.Emission = new Color(0.2f, 0.1f, 0.1f);
         _posterRightSubtext.MaterialOverride = comingSoonMat;
-        _posterRightSubtext.Position = new Vector3(2.8f, 3.15f, -2.73f);
+        _posterRightSubtext.Position = new Vector3(2.8f, 3.15f, -2.69f);
         _garageRoot.AddChild(_posterRightSubtext);
     }
 
@@ -464,6 +464,14 @@ public class GarageManager
     {
         BuildCharDisplay();
         BuildBoardDisplay();
+    }
+
+    public void UpdateBoardRotation(float dt)
+    {
+        if (_boardDisplay != null)
+        {
+            _boardDisplay.RotateY(dt * 0.8f);
+        }
     }
 
     private void BuildCharDisplay()
@@ -601,26 +609,85 @@ public class GarageManager
         deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
         deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
+        // Neon board gets emission glow
+        if (_main.Board == Main.BoardType.Neon)
+        {
+            deckMat.EmissionEnabled = true;
+            deckMat.Emission = Main.BoardDeckColors[(int)_main.Board];
+            deckMat.EmissionEnergyMultiplier = 0.3f;
+        }
+
         var gripMat = new StandardMaterial3D();
         gripMat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
 
         var truckMat = new StandardMaterial3D();
         truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
 
+        // Board-specific accent colors and wheel colors
+        Color accentColor;
+        Color wheelColor;
+        float deckWidth = 0.62f;
+        switch (_main.Board)
+        {
+            case Main.BoardType.Classic:
+                accentColor = new Color(0.35f, 0.18f, 0.06f); // dark brown stripe
+                wheelColor = new Color(0.12f, 0.12f, 0.12f);  // black
+                break;
+            case Main.BoardType.Neon:
+                accentColor = new Color(0.2f, 0.8f, 1f);      // cyan stripe
+                wheelColor = new Color(0.15f, 0.15f, 0.15f);  // dark gray
+                break;
+            case Main.BoardType.Dark:
+                accentColor = new Color(0.5f, 0.1f, 0.7f);    // purple stripe
+                wheelColor = new Color(0.1f, 0.1f, 0.12f);    // near black
+                break;
+            default: // Natural
+                accentColor = new Color(0.65f, 0.5f, 0.3f);   // light wood stripe
+                wheelColor = new Color(0.18f, 0.16f, 0.14f);  // dark brown
+                deckWidth = 0.68f; // Natural board is wider
+                break;
+        }
+
+        var accentMat = new StandardMaterial3D();
+        accentMat.AlbedoColor = accentColor;
+        accentMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
         var wheelMat = new StandardMaterial3D();
-        wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
+        wheelMat.AlbedoColor = wheelColor;
 
         // Deck center
-        AddBoxTo(_boardDisplay, new Vector3(0.62f, 0.045f, 1.4f), deckMat,
+        AddBoxTo(_boardDisplay, new Vector3(deckWidth, 0.045f, 1.4f), deckMat,
             new Vector3(0, 0, 0));
         // Nose
-        AddBoxTo(_boardDisplay, new Vector3(0.48f, 0.04f, 0.4f), deckMat,
+        AddBoxTo(_boardDisplay, new Vector3(deckWidth * 0.77f, 0.04f, 0.4f), deckMat,
             new Vector3(0, 0, 0.9f));
         // Tail
-        AddBoxTo(_boardDisplay, new Vector3(0.48f, 0.04f, 0.35f), deckMat,
+        AddBoxTo(_boardDisplay, new Vector3(deckWidth * 0.77f, 0.04f, 0.35f), deckMat,
             new Vector3(0, 0, -0.88f));
-        // Grip
-        AddBoxTo(_boardDisplay, new Vector3(0.58f, 0.015f, 1.3f), gripMat,
+
+        // Accent stripe along deck edge (left side)
+        AddBoxTo(_boardDisplay, new Vector3(0.03f, 0.05f, 1.35f), accentMat,
+            new Vector3(-deckWidth / 2f + 0.015f, 0, 0));
+        // Accent stripe along deck edge (right side)
+        AddBoxTo(_boardDisplay, new Vector3(0.03f, 0.05f, 1.35f), accentMat,
+            new Vector3(deckWidth / 2f - 0.015f, 0, 0));
+
+        // Wood grain lines on Classic and Natural
+        if (_main.Board == Main.BoardType.Classic || _main.Board == Main.BoardType.Natural)
+        {
+            var grainMat = new StandardMaterial3D();
+            grainMat.AlbedoColor = new Color(accentColor.R * 0.8f, accentColor.G * 0.8f, accentColor.B * 0.8f);
+            grainMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            for (int i = 0; i < 3; i++)
+            {
+                float x = -deckWidth * 0.2f + i * deckWidth * 0.2f;
+                AddBoxTo(_boardDisplay, new Vector3(0.01f, 0.046f, 1.2f), grainMat,
+                    new Vector3(x, 0, 0.05f));
+            }
+        }
+
+        // Grip tape
+        AddBoxTo(_boardDisplay, new Vector3(deckWidth * 0.93f, 0.015f, 1.3f), gripMat,
             new Vector3(0, 0.03f, 0));
 
         // Trucks
@@ -657,6 +724,7 @@ public class GarageManager
     public void Show()
     {
         _garageRoot.Visible = true;
+        _main.Player.Visible = false;
         // Hide terrain meshes
         _main.Terrain.SetMeshesVisible(false);
         // Hide scenery
@@ -668,6 +736,7 @@ public class GarageManager
     public void Hide()
     {
         _garageRoot.Visible = false;
+        _main.Player.Visible = true;
         _main.Terrain.SetMeshesVisible(true);
         _main.Scenery.SetItemsVisible(true);
         _main.GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.4f;
@@ -681,6 +750,7 @@ public class GarageManager
     {
         Vector3 targetPos;
         Vector3 targetLook;
+        float targetFov = 55f;
 
         if (isCharSelect)
         {
@@ -694,8 +764,9 @@ public class GarageManager
         }
         else // level select
         {
-            targetPos = new Vector3(0f, 2.8f, 3.5f);
-            targetLook = new Vector3(0f, 2.5f, -1f);
+            targetPos = new Vector3(0f, 2.5f, 1.5f);
+            targetLook = new Vector3(1.8f, 3f, -2.5f);
+            targetFov = 45f;
         }
 
         if (!_camInitialized)
@@ -712,7 +783,7 @@ public class GarageManager
         var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
         cam.LookAt(_camLookAt, Vector3.Up);
         cam.Rotation = Vector3.Zero;
-        cam.Fov = 55f;
+        cam.Fov = Mathf.Lerp(cam.Fov, targetFov, 3f * dt);
     }
 
     // ═══════════════════════════════════════════

@@ -118,6 +118,7 @@ public partial class Main : Node3D
 
             case GameState.BoardSelect:
                 Garage.UpdateCamera(dt, false, true, false);
+                Garage.UpdateBoardRotation(dt);
                 UI.HandleBoardSelectInput(this);
                 break;
 
