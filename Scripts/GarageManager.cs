@@ -1,30 +1,65 @@
 using Godot;
 
+/// <summary>
+/// Carl's garage — the game's hub. It is the title screen backdrop and all three select
+/// screens; only the camera moves between them.
+///
+/// Floor plan (keep in sync with garage_layout.py, which plots frustums and checks clearances):
+///   Left wall  (x=-5.75)  four level posters
+///   Back wall  (z=-2.75)  workbench + pegboard on the left, board rack on the right
+///   Right wall (x= 5.75)  shelf and window
+///   Floor centre-left     Carl's podium
+/// </summary>
 public class GarageManager
 {
+    /// <summary>Which camera setup the garage is holding. One per game screen.</summary>
+    public enum Shot { Title, Char, Board, Level }
+
     private Main _main;
     private Node3D _garageRoot;
 
-    // Display models
-    private Node3D _charDisplay;
-    private Node3D _boardDisplay;
+    // ── Layout anchors (mirrored in garage_layout.py) ──
+    private const float WallLeftX = -5.75f;
+    private const float WallBackZ = -2.75f;
+    private const float PosterX = -5.72f;
+    private const float PosterY = 2.4f;
+    private static readonly float[] PosterZ = { -1.8f, -0.4f, 1.0f, 2.4f };
+    private const float PosterCamX = -3.2f;
 
-    // Level posters
-    private MeshInstance3D _posterLeft;
-    private MeshInstance3D _posterRight;
-    private Label3D _posterLeftText;
-    private Label3D _posterRightText;
-    private Label3D _posterLeftSubtext;
-    private Label3D _posterRightSubtext;
-    private StandardMaterial3D _posterSelectedMat;
-    private StandardMaterial3D _posterDimmedMat;
+    private static readonly float[] RackX = { 0.8f, 1.6f, 2.4f, 3.2f };
+    private const float RackZ = -2.5f;
+    private const float RackY = 1.5f;
+    private const float RackSelectedZ = -2.24f;
+    private const float RackTilt = 0.15f;
 
-    // Camera lerp state
+    private const float PodiumX = -1.2f;
+    private const float PodiumZ = 1.4f;
+    private const float PodiumTop = 0.12f;
+
+    // ── Character display ──
+    private Node3D _charDisplay;   // podium-anchored root; Carl is rebuilt inside it
+    private Node3D _carl;
+    private Node3D _floorBoard;    // the picked board, lying beside the podium
+    private MeshInstance3D _podiumRing;
+    private StandardMaterial3D _podiumRingMat;
+    private float _styleFlash = 0f;
+
+    // ── Board rack ──
+    private readonly Node3D[] _rackSlots = new Node3D[4];
+    private readonly Node3D[] _rackBoards = new Node3D[4];
+
+    // ── Level posters ──
+    private readonly Node3D[] _posters = new Node3D[4];
+    private readonly Label3D[] _posterTitles = new Label3D[4];
+    private readonly Label3D[] _posterSubs = new Label3D[4];
+
+    // ── Camera lerp state ──
     private Vector3 _camPos;
     private Vector3 _camLookAt;
     private bool _camInitialized = false;
 
     private const float CamLerpSpeed = 3f;
+    private const float DimFactor = 0.45f;
 
     public GarageManager(Main main)
     {
@@ -43,29 +78,13 @@ public class GarageManager
         BuildShelf();
         BuildWindow();
         BuildNeonSign();
-        BuildLeaningBoard();
-        BuildLight();
+        BuildLighting();
+        BuildBoardRack();
+        BuildPodium();
         BuildLevelPosters();
 
-        // Character and board displays
-        _charDisplay = new Node3D();
-        _charDisplay.Position = new Vector3(-1.5f, 0.2f, 1f);
-        _garageRoot.AddChild(_charDisplay);
-
-        _boardDisplay = new Node3D();
-        _boardDisplay.Position = new Vector3(1.5f, 0.8f, 0.5f);
-        _garageRoot.AddChild(_boardDisplay);
-
-        _posterSelectedMat = new StandardMaterial3D();
-        _posterSelectedMat.AlbedoColor = new Color(0.95f, 0.92f, 0.85f);
-        _posterSelectedMat.EmissionEnabled = true;
-        _posterSelectedMat.Emission = new Color(0.15f, 0.12f, 0.08f);
-
-        _posterDimmedMat = new StandardMaterial3D();
-        _posterDimmedMat.AlbedoColor = new Color(0.55f, 0.52f, 0.48f);
-        _posterDimmedMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
         UpdateDisplayModel();
+        UpdateRackHighlight();
         UpdatePosterHighlight();
     }
 
@@ -75,307 +94,320 @@ public class GarageManager
 
     private void BuildRoom()
     {
-        // Back wall (thickened)
-        AddBox(new Vector3(12f, 5f, 0.5f), new Color(0.23f, 0.23f, 0.23f),
-            new Vector3(0, 2.5f, -3f));
+        var grooveColor = new Color(0.2f, 0.2f, 0.2f);
 
-        // Left wall (thickened)
-        AddBox(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f),
-            new Vector3(-6f, 2.5f, 0.75f));
+        // Shell
+        Box(new Vector3(12f, 5f, 0.5f), new Color(0.23f, 0.23f, 0.23f), new Vector3(0, 2.5f, -3f));
+        Box(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f), new Vector3(-6f, 2.5f, 0.75f));
+        Box(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f), new Vector3(6f, 2.5f, 0.75f));
+        Box(new Vector3(12f, 0.1f, 8.5f), new Color(0.33f, 0.33f, 0.33f), new Vector3(0, -0.05f, 0.75f));
+        Box(new Vector3(12f, 0.15f, 8.5f), new Color(0.2f, 0.2f, 0.2f), new Vector3(0, 5.05f, 0.75f));
 
-        // Right wall (thickened)
-        AddBox(new Vector3(0.5f, 5f, 8.5f), new Color(0.21f, 0.21f, 0.21f),
-            new Vector3(6f, 2.5f, 0.75f));
-
-        // Cinder block texture — horizontal grooves on back wall
-        var grooveMat = new StandardMaterial3D();
-        grooveMat.AlbedoColor = new Color(0.2f, 0.2f, 0.2f);
-        grooveMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        // Cinder block courses — back wall
         for (int row = 0; row < 6; row++)
         {
             float y = row * 0.8f + 0.4f;
-            AddBox(new Vector3(12f, 0.02f, 0.01f), grooveMat.AlbedoColor,
-                new Vector3(0, y, -2.73f));
-        }
-        // Vertical grooves on back wall
-        for (int col = 0; col < 8; col++)
-        {
-            float x = -5f + col * 1.5f;
-            for (int row = 0; row < 6; row++)
+            Box(new Vector3(12f, 0.02f, 0.01f), grooveColor, new Vector3(0, y, WallBackZ + 0.02f));
+            for (int col = 0; col < 8; col++)
             {
-                float y = row * 0.8f + 0.4f;
-                float xOffset = (row % 2 == 0) ? 0f : 0.75f;
-                AddBox(new Vector3(0.02f, 0.8f, 0.01f), grooveMat.AlbedoColor,
-                    new Vector3(x + xOffset, y, -2.73f));
+                float x = -5f + col * 1.5f + (row % 2 == 0 ? 0f : 0.75f);
+                Box(new Vector3(0.02f, 0.8f, 0.01f), grooveColor, new Vector3(x, y, WallBackZ + 0.02f));
             }
         }
 
-        // Cinder block grooves on left wall (inner face at x=-5.75)
-        for (int row = 0; row < 6; row++)
+        // Cinder block courses — side walls
+        foreach (float wallX in new[] { WallLeftX + 0.02f, -WallLeftX - 0.02f })
         {
-            float y = row * 0.8f + 0.4f;
-            AddBox(new Vector3(0.01f, 0.02f, 8.5f), grooveMat.AlbedoColor,
-                new Vector3(-5.73f, y, 0.75f));
-        }
-        for (int col = 0; col < 6; col++)
-        {
-            float z = -2.5f + col * 1.5f;
             for (int row = 0; row < 6; row++)
             {
                 float y = row * 0.8f + 0.4f;
-                float zOffset = (row % 2 == 0) ? 0f : 0.75f;
-                AddBox(new Vector3(0.01f, 0.8f, 0.02f), grooveMat.AlbedoColor,
-                    new Vector3(-5.73f, y, z + zOffset));
+                Box(new Vector3(0.01f, 0.02f, 8.5f), grooveColor, new Vector3(wallX, y, 0.75f));
+                for (int col = 0; col < 6; col++)
+                {
+                    float z = -2.5f + col * 1.5f + (row % 2 == 0 ? 0f : 0.75f);
+                    Box(new Vector3(0.01f, 0.8f, 0.02f), grooveColor, new Vector3(wallX, y, z));
+                }
             }
         }
 
-        // Cinder block grooves on right wall (inner face at x=5.75)
-        for (int row = 0; row < 6; row++)
-        {
-            float y = row * 0.8f + 0.4f;
-            AddBox(new Vector3(0.01f, 0.02f, 8.5f), grooveMat.AlbedoColor,
-                new Vector3(5.73f, y, 0.75f));
-        }
-        for (int col = 0; col < 6; col++)
-        {
-            float z = -2.5f + col * 1.5f;
-            for (int row = 0; row < 6; row++)
-            {
-                float y = row * 0.8f + 0.4f;
-                float zOffset = (row % 2 == 0) ? 0f : 0.75f;
-                AddBox(new Vector3(0.01f, 0.8f, 0.02f), grooveMat.AlbedoColor,
-                    new Vector3(5.73f, y, z + zOffset));
-            }
-        }
-
-        // Floor
-        AddBox(new Vector3(12f, 0.1f, 8.5f), new Color(0.33f, 0.33f, 0.33f),
-            new Vector3(0, -0.05f, 0.75f));
-
-        // Floor perspective lines
-        var lineMat = new StandardMaterial3D();
-        lineMat.AlbedoColor = new Color(0.3f, 0.3f, 0.3f);
-        lineMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        // Floor seams
         for (int i = 0; i < 6; i++)
-        {
-            float z = -2f + i * 1.5f;
-            AddBox(new Vector3(12f, 0.005f, 0.02f), lineMat.AlbedoColor,
-                new Vector3(0, 0.01f, z));
-        }
+            Box(new Vector3(12f, 0.005f, 0.02f), new Color(0.3f, 0.3f, 0.3f),
+                new Vector3(0, 0.01f, -2f + i * 1.5f));
 
         // Oil stain
-        var stainMat = new StandardMaterial3D();
-        stainMat.AlbedoColor = new Color(0.18f, 0.18f, 0.18f, 0.4f);
+        var stainMat = MeshKit.Mat(new Color(0.18f, 0.18f, 0.18f, 0.4f));
         stainMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        stainMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        var stain = new MeshInstance3D();
-        var stainMesh = new CylinderMesh();
-        stainMesh.TopRadius = 0.5f;
-        stainMesh.BottomRadius = 0.5f;
-        stainMesh.Height = 0.01f;
-        stainMesh.RadialSegments = 6;
-        stain.Mesh = stainMesh;
-        stain.MaterialOverride = stainMat;
-        stain.Position = new Vector3(1f, 0.01f, 1.5f);
-        _garageRoot.AddChild(stain);
-
-        // Ceiling
-        AddBox(new Vector3(12f, 0.15f, 8.5f), new Color(0.2f, 0.2f, 0.2f),
-            new Vector3(0, 5.05f, 0.75f));
+        MeshKit.Cylinder(_garageRoot, 0.5f, 0.5f, 0.01f, stainMat, new Vector3(1.2f, 0.01f, 0.4f),
+            segments: 6);
     }
 
     private void BuildWorkbench()
     {
-        var woodMat = new Color(0.43f, 0.3f, 0.16f);
-        var darkWoodMat = new Color(0.35f, 0.24f, 0.12f);
+        var wood = new Color(0.43f, 0.3f, 0.16f);
+        var darkWood = new Color(0.35f, 0.24f, 0.12f);
 
-        // Table top
-        AddBox(new Vector3(2.5f, 0.1f, 0.8f), woodMat,
-            new Vector3(-3.5f, 0.85f, -1.5f));
+        Box(new Vector3(2.4f, 0.1f, 0.7f), wood, new Vector3(-4f, 0.85f, -2.35f));
+        Box(new Vector3(0.08f, 0.85f, 0.08f), darkWood, new Vector3(-5.1f, 0.42f, -2.35f));
+        Box(new Vector3(0.08f, 0.85f, 0.08f), darkWood, new Vector3(-2.9f, 0.42f, -2.35f));
+        Box(new Vector3(2.1f, 0.06f, 0.55f), darkWood, new Vector3(-4f, 0.35f, -2.35f));
 
-        // Legs
-        AddBox(new Vector3(0.08f, 0.85f, 0.08f), darkWoodMat,
-            new Vector3(-4.6f, 0.42f, -1.5f));
-        AddBox(new Vector3(0.08f, 0.85f, 0.08f), darkWoodMat,
-            new Vector3(-2.4f, 0.42f, -1.5f));
-
-        // Shelf
-        AddBox(new Vector3(2.2f, 0.06f, 0.6f), darkWoodMat,
-            new Vector3(-3.5f, 0.35f, -1.5f));
-
-        // Items on workbench
-        AddBox(new Vector3(0.15f, 0.12f, 0.12f), new Color(0.55f, 0.55f, 0.55f),
-            new Vector3(-4.2f, 0.97f, -1.5f)); // box
-        AddBox(new Vector3(0.1f, 0.08f, 0.1f), new Color(0.4f, 0.4f, 0.4f),
-            new Vector3(-3.8f, 0.94f, -1.5f)); // can
-        AddBox(new Vector3(0.3f, 0.1f, 0.15f), new Color(0.6f, 0.6f, 0.6f),
-            new Vector3(-3.2f, 0.95f, -1.5f)); // toolbox
-        AddBox(new Vector3(0.15f, 0.04f, 0.06f), new Color(1f, 0.42f, 0.21f),
-            new Vector3(-3.2f, 1.01f, -1.5f)); // toolbox handle
+        // Clutter
+        Box(new Vector3(0.15f, 0.12f, 0.12f), new Color(0.55f, 0.55f, 0.55f), new Vector3(-4.8f, 0.97f, -2.35f));
+        Box(new Vector3(0.1f, 0.08f, 0.1f), new Color(0.4f, 0.4f, 0.4f), new Vector3(-4.4f, 0.94f, -2.35f));
+        Box(new Vector3(0.3f, 0.1f, 0.15f), new Color(0.6f, 0.6f, 0.6f), new Vector3(-3.6f, 0.95f, -2.35f));
+        Box(new Vector3(0.15f, 0.04f, 0.06f), new Color(1f, 0.42f, 0.21f), new Vector3(-3.6f, 1.01f, -2.35f));
     }
 
     private void BuildPegboard()
     {
-        // Pegboard panel
-        var boardMat = new Color(0.28f, 0.28f, 0.28f);
-        AddBox(new Vector3(1.8f, 1.2f, 0.05f), boardMat,
-            new Vector3(-1.5f, 3f, -2.8f));
+        Box(new Vector3(1.8f, 1.2f, 0.05f), new Color(0.28f, 0.28f, 0.28f), new Vector3(-4f, 2.4f, -2.72f));
 
         // Hammer
-        AddBox(new Vector3(0.04f, 0.5f, 0.04f), new Color(0.43f, 0.3f, 0.16f),
-            new Vector3(-2f, 3.2f, -2.7f)); // handle
-        AddBox(new Vector3(0.2f, 0.08f, 0.08f), new Color(0.55f, 0.55f, 0.55f),
-            new Vector3(-2f, 3.5f, -2.7f)); // head
-
+        Box(new Vector3(0.04f, 0.5f, 0.04f), new Color(0.43f, 0.3f, 0.16f), new Vector3(-4.6f, 2.3f, -2.66f));
+        Box(new Vector3(0.2f, 0.08f, 0.08f), new Color(0.55f, 0.55f, 0.55f), new Vector3(-4.6f, 2.6f, -2.66f));
         // Wrench
-        AddBox(new Vector3(0.04f, 0.5f, 0.04f), new Color(0.6f, 0.6f, 0.6f),
-            new Vector3(-1.5f, 3.1f, -2.7f)); // handle
-        AddBox(new Vector3(0.14f, 0.08f, 0.08f), new Color(0.6f, 0.6f, 0.6f),
-            new Vector3(-1.5f, 3.4f, -2.7f)); // head
-
+        Box(new Vector3(0.04f, 0.5f, 0.04f), new Color(0.6f, 0.6f, 0.6f), new Vector3(-4f, 2.2f, -2.66f));
+        Box(new Vector3(0.14f, 0.08f, 0.08f), new Color(0.6f, 0.6f, 0.6f), new Vector3(-4f, 2.5f, -2.66f));
         // Screwdriver
-        AddBox(new Vector3(0.03f, 0.35f, 0.03f), new Color(1f, 0.18f, 0.61f),
-            new Vector3(-1f, 3.15f, -2.7f)); // handle
-        AddBox(new Vector3(0.02f, 0.15f, 0.02f), new Color(0.8f, 0.8f, 0.8f),
-            new Vector3(-1f, 3.4f, -2.7f)); // shaft
+        Box(new Vector3(0.03f, 0.35f, 0.03f), new Color(1f, 0.18f, 0.61f), new Vector3(-3.4f, 2.25f, -2.66f));
+        Box(new Vector3(0.02f, 0.15f, 0.02f), new Color(0.8f, 0.8f, 0.8f), new Vector3(-3.4f, 2.5f, -2.66f));
     }
 
     private void BuildShelf()
     {
-        var woodMat = new Color(0.35f, 0.24f, 0.12f);
+        // On the right wall now — the back wall belongs to the rack.
+        var darkWood = new Color(0.35f, 0.24f, 0.12f);
+        Box(new Vector3(0.4f, 0.06f, 2f), darkWood, new Vector3(5.5f, 2.6f, -1f));
+        Box(new Vector3(0.06f, 0.8f, 0.06f), darkWood, new Vector3(5.5f, 2.2f, -1.9f));
+        Box(new Vector3(0.06f, 0.8f, 0.06f), darkWood, new Vector3(5.5f, 2.2f, -0.1f));
 
-        // Shelf planks
-        AddBox(new Vector3(2f, 0.06f, 0.4f), woodMat,
-            new Vector3(2f, 3.5f, -2.5f));
-        // Vertical supports
-        AddBox(new Vector3(0.06f, 0.8f, 0.06f), woodMat,
-            new Vector3(1.1f, 3.1f, -2.5f));
-        AddBox(new Vector3(0.06f, 0.8f, 0.06f), woodMat,
-            new Vector3(2.9f, 3.1f, -2.5f));
-
-        // Items on shelf
-        AddBox(new Vector3(0.12f, 0.22f, 0.12f), new Color(0.29f, 0.56f, 0.85f),
-            new Vector3(1.4f, 3.65f, -2.5f)); // blue bottle
-        AddBox(new Vector3(0.12f, 0.18f, 0.12f), new Color(1f, 0.27f, 0.27f),
-            new Vector3(1.8f, 3.63f, -2.5f)); // red can
-        AddBox(new Vector3(0.14f, 0.2f, 0.14f), new Color(0.27f, 0.8f, 0.27f),
-            new Vector3(2.2f, 3.64f, -2.5f)); // green bottle
-        AddBox(new Vector3(0.2f, 0.14f, 0.14f), new Color(1f, 0.67f, 0f),
-            new Vector3(2.6f, 3.6f, -2.5f)); // orange box
+        Box(new Vector3(0.12f, 0.22f, 0.12f), new Color(0.29f, 0.56f, 0.85f), new Vector3(5.5f, 2.75f, -1.6f));
+        Box(new Vector3(0.12f, 0.18f, 0.12f), new Color(1f, 0.27f, 0.27f), new Vector3(5.5f, 2.73f, -1.2f));
+        Box(new Vector3(0.14f, 0.2f, 0.14f), new Color(0.27f, 0.8f, 0.27f), new Vector3(5.5f, 2.74f, -0.8f));
+        Box(new Vector3(0.14f, 0.14f, 0.2f), new Color(1f, 0.67f, 0f), new Vector3(5.5f, 2.7f, -0.4f));
     }
 
     private void BuildWindow()
     {
-        // Window frame
-        var frameMat = new Color(0.33f, 0.33f, 0.33f);
-        AddBox(new Vector3(1.2f, 1.4f, 0.08f), frameMat,
-            new Vector3(4f, 3.2f, -2.8f));
+        var frame = new Color(0.33f, 0.33f, 0.33f);
+        Box(new Vector3(0.08f, 1.4f, 1.2f), frame, new Vector3(5.72f, 3.2f, 1.2f));
 
-        // Window glass
-        var glassMat = new StandardMaterial3D();
-        glassMat.AlbedoColor = new Color(0.48f, 0.68f, 0.8f, 0.85f);
+        var glassMat = MeshKit.Mat(new Color(0.48f, 0.68f, 0.8f, 0.85f));
         glassMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        AddBox(new Vector3(1f, 1.2f, 0.02f), glassMat.AlbedoColor,
-            new Vector3(4f, 3.2f, -2.76f));
+        MeshKit.Box(_garageRoot, new Vector3(0.02f, 1.2f, 1f), glassMat, new Vector3(5.68f, 3.2f, 1.2f));
 
-        // Cross bars
-        AddBox(new Vector3(0.04f, 1.2f, 0.04f), frameMat,
-            new Vector3(4f, 3.2f, -2.74f)); // vertical
-        AddBox(new Vector3(1f, 0.04f, 0.04f), frameMat,
-            new Vector3(4f, 3.2f, -2.74f)); // horizontal
+        Box(new Vector3(0.04f, 1.2f, 0.04f), frame, new Vector3(5.66f, 3.2f, 1.2f));
+        Box(new Vector3(0.04f, 0.04f, 1f), frame, new Vector3(5.66f, 3.2f, 1.2f));
 
-        // Light glow from window (on floor)
-        var glowMat = new StandardMaterial3D();
-        glowMat.AlbedoColor = new Color(0.48f, 0.68f, 0.8f, 0.06f);
+        // Daylight pooling on the floor below the window
+        var glowMat = MeshKit.Mat(new Color(0.48f, 0.68f, 0.8f, 0.07f));
         glowMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        glowMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        AddBox(new Vector3(1.5f, 0.005f, 2f), glowMat.AlbedoColor,
-            new Vector3(4f, 0.01f, 0.5f));
+        MeshKit.Box(_garageRoot, new Vector3(2f, 0.005f, 1.5f), glowMat, new Vector3(4.6f, 0.015f, 1.2f));
     }
 
     private void BuildNeonSign()
     {
-        // VLB sign using Label3D
         var sign = new Label3D();
         sign.Text = "VLB";
         sign.FontSize = 20;
         sign.OutlineSize = 0;
-        var signMat = new StandardMaterial3D();
-        signMat.AlbedoColor = new Color(1f, 0.18f, 0.61f);
-        signMat.EmissionEnabled = true;
-        signMat.Emission = new Color(1f, 0.18f, 0.61f);
-        signMat.EmissionEnergyMultiplier = 2f;
-        sign.MaterialOverride = signMat;
-        sign.Position = new Vector3(-0.5f, 4.2f, -2.8f);
+        sign.MaterialOverride = MeshKit.EmissiveMat(
+            new Color(1f, 0.18f, 0.61f), new Color(1f, 0.18f, 0.61f), 2f);
+        sign.Position = new Vector3(-1.2f, 4.3f, -2.7f);
         _garageRoot.AddChild(sign);
 
-        // Tagline
         var tagline = new Label3D();
         tagline.Text = "DOWNHILL SKATEBOARDS";
         tagline.FontSize = 6;
-        var tagMat = new StandardMaterial3D();
-        tagMat.AlbedoColor = new Color(1f, 0.18f, 0.61f, 0.5f);
+        var tagMat = MeshKit.EmissiveMat(
+            new Color(1f, 0.18f, 0.61f, 0.5f), new Color(0.3f, 0.05f, 0.18f));
         tagMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        tagMat.EmissionEnabled = true;
-        tagMat.Emission = new Color(0.3f, 0.05f, 0.18f);
         tagline.MaterialOverride = tagMat;
-        tagline.Position = new Vector3(-0.5f, 3.9f, -2.8f);
+        tagline.Position = new Vector3(-1.2f, 4.0f, -2.7f);
         _garageRoot.AddChild(tagline);
     }
 
-    private void BuildLeaningBoard()
+    private void BuildLighting()
     {
-        // A simple board leaning against the right wall
-        var deckMat = new StandardMaterial3D();
-        deckMat.AlbedoColor = new Color(0.55f, 0.27f, 0.1f);
-        deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        var deck = new MeshInstance3D();
-        var deckMesh = new BoxMesh();
-        deckMesh.Size = new Vector3(0.4f, 0.03f, 1.2f);
-        deck.Mesh = deckMesh;
-        deck.MaterialOverride = deckMat;
-        deck.Position = new Vector3(3.8f, 0.8f, -1f);
-        deck.Rotation = new Vector3(-0.15f, 0f, -0.15f);
-        _garageRoot.AddChild(deck);
-
-        // Wheels
-        var wheelMat = new StandardMaterial3D();
-        wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
-        foreach (var pos in new[] {
-            new Vector3(-0.15f, -0.03f, 0.35f),
-            new Vector3(0.15f, -0.03f, 0.35f),
-            new Vector3(-0.15f, -0.03f, -0.35f),
-            new Vector3(0.15f, -0.03f, -0.35f) })
+        // Ceiling fluorescents — general fill so the room isn't mud.
+        foreach (float x in new[] { -2.5f, 1.5f })
         {
-            var wheel = new MeshInstance3D();
-            var wMesh = new CylinderMesh();
-            wMesh.TopRadius = 0.04f;
-            wMesh.BottomRadius = 0.04f;
-            wMesh.Height = 0.05f;
-            wMesh.RadialSegments = 6;
-            wheel.Mesh = wMesh;
-            wheel.MaterialOverride = wheelMat;
-            wheel.Position = deck.Position + pos;
-            wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
-            _garageRoot.AddChild(wheel);
+            Box(new Vector3(1.6f, 0.06f, 0.2f), new Color(0.85f, 0.85f, 0.85f), new Vector3(x, 4.9f, -0.5f));
+
+            var fill = new OmniLight3D();
+            fill.Position = new Vector3(x, 4.6f, -0.5f);
+            fill.LightEnergy = 1.1f;
+            fill.LightColor = new Color(1f, 0.98f, 0.94f);
+            fill.OmniRange = 11f;
+            fill.OmniAttenuation = 0.9f;
+            _garageRoot.AddChild(fill);
+        }
+
+        // Podium key light, straight down onto Carl.
+        var podiumSpot = new SpotLight3D();
+        podiumSpot.Position = new Vector3(PodiumX, 3.6f, PodiumZ);
+        podiumSpot.Rotation = new Vector3(-Mathf.Pi / 2f, 0, 0);
+        podiumSpot.LightEnergy = 2.6f;
+        podiumSpot.LightColor = new Color(1f, 0.97f, 0.9f);
+        podiumSpot.SpotRange = 7f;
+        podiumSpot.SpotAngle = 34f;
+        podiumSpot.SpotAngleAttenuation = 0.6f;
+        _garageRoot.AddChild(podiumSpot);
+
+        // Rack wash — angled so it hits the deck faces, not just their top edges.
+        var rackSpot = new SpotLight3D();
+        rackSpot.Position = new Vector3(2f, 3.7f, -1.5f);
+        rackSpot.Rotation = new Vector3(-1.05f, 0, 0);
+        rackSpot.LightEnergy = 2.8f;
+        rackSpot.LightColor = new Color(1f, 0.96f, 0.92f);
+        rackSpot.SpotRange = 8f;
+        rackSpot.SpotAngle = 42f;
+        rackSpot.SpotAngleAttenuation = 0.7f;
+        _garageRoot.AddChild(rackSpot);
+
+        // Poster wall wash.
+        var posterSpot = new SpotLight3D();
+        posterSpot.Position = new Vector3(-4.4f, 4.2f, 0.3f);
+        posterSpot.Rotation = new Vector3(-1.15f, -Mathf.Pi / 2f, 0);
+        posterSpot.LightEnergy = 2.2f;
+        posterSpot.LightColor = new Color(1f, 0.95f, 0.85f);
+        posterSpot.SpotRange = 9f;
+        posterSpot.SpotAngle = 50f;
+        posterSpot.SpotAngleAttenuation = 0.8f;
+        _garageRoot.AddChild(posterSpot);
+    }
+
+    // ═══════════════════════════════════════════
+    //  BOARD RACK
+    // ═══════════════════════════════════════════
+
+    private void BuildBoardRack()
+    {
+        var darkWood = new Color(0.32f, 0.22f, 0.11f);
+        var steel = new Color(0.5f, 0.5f, 0.54f);
+
+        // Backing panel and rails
+        Box(new Vector3(3.4f, 2.4f, 0.04f), darkWood, new Vector3(2f, 1.5f, -2.7f));
+        Box(new Vector3(3.5f, 0.08f, 0.16f), steel, new Vector3(2f, 2.45f, -2.62f));
+        Box(new Vector3(3.5f, 0.08f, 0.16f), steel, new Vector3(2f, 0.40f, -2.62f));
+        Box(new Vector3(0.08f, 2.2f, 0.16f), steel, new Vector3(0.3f, 1.45f, -2.62f));
+        Box(new Vector3(0.08f, 2.2f, 0.16f), steel, new Vector3(3.7f, 1.45f, -2.62f));
+
+        // "BOARDS" placard above the rack
+        var placard = new Label3D();
+        placard.Text = "BOARDS";
+        placard.FontSize = 10;
+        placard.MaterialOverride = MeshKit.EmissiveMat(
+            new Color(1f, 0.85f, 0.35f), new Color(0.4f, 0.3f, 0.05f));
+        placard.Position = new Vector3(2f, 2.75f, -2.66f);
+        _garageRoot.AddChild(placard);
+
+        for (int i = 0; i < 4; i++)
+        {
+            // Peg the board rests on
+            Box(new Vector3(0.24f, 0.05f, 0.14f), steel, new Vector3(RackX[i], 0.46f, -2.56f));
+
+            var slot = new Node3D();
+            slot.Position = new Vector3(RackX[i], RackY, RackZ);
+            _garageRoot.AddChild(slot);
+            _rackSlots[i] = slot;
+
+            // Stand the board on its tail, nose up. A -90 deg pitch turns the deck's
+            // underside toward the room, which is how a shop racks them — face-out shows
+            // the deck colour instead of a slab of black grip tape.
+            var board = BoardBuilder.Build((Main.BoardType)i);
+            board.Rotation = new Vector3(-Mathf.Pi / 2f, 0, 0);
+            slot.AddChild(board);
+            _rackBoards[i] = board;
         }
     }
 
-    private void BuildLight()
+    /// <summary>Pull the selected board off the wall and dim the rest.</summary>
+    public void UpdateRackHighlight()
     {
-        // Fluorescent light fixture on ceiling
-        AddBox(new Vector3(1.5f, 0.06f, 0.2f), new Color(0.85f, 0.85f, 0.85f),
-            new Vector3(-1f, 5f, -1f));
+        for (int i = 0; i < 4; i++)
+        {
+            if (_rackSlots[i] == null) continue;
+            bool selected = (int)_main.Board == i;
 
-        // Actual light
-        var light = new OmniLight3D();
-        light.Position = new Vector3(-1f, 4.8f, -1f);
-        light.LightEnergy = 1.2f;
-        light.LightColor = new Color(1f, 0.98f, 0.94f);
-        light.OmniRange = 10f;
-        light.OmniAttenuation = 0.8f;
-        _garageRoot.AddChild(light);
+            _rackSlots[i].Position = new Vector3(RackX[i], RackY, selected ? RackSelectedZ : RackZ);
+            _rackBoards[i].Rotation = new Vector3(
+                -Mathf.Pi / 2f + (selected ? RackTilt : 0f), 0, 0);
+            MeshKit.Tint(_rackBoards[i], selected ? 1f : DimFactor);
+        }
+    }
+
+    /// <summary>Subtle bob on the selected board so the rack doesn't read as a still life.</summary>
+    public void UpdateRack(float dt)
+    {
+        int sel = (int)_main.Board;
+        if (_rackSlots[sel] == null) return;
+
+        float t = (float)Time.GetTicksMsec() * 0.001f;
+        float bob = Mathf.Sin(t * 1.6f) * 0.03f;
+        _rackSlots[sel].Position = new Vector3(RackX[sel], RackY + bob, RackSelectedZ);
+        _rackBoards[sel].Rotation = new Vector3(
+            -Mathf.Pi / 2f + RackTilt, Mathf.Sin(t * 0.9f) * 0.10f, 0);
+    }
+
+    // ═══════════════════════════════════════════
+    //  CARL'S PODIUM
+    // ═══════════════════════════════════════════
+
+    private void BuildPodium()
+    {
+        var podiumMat = MeshKit.Mat(new Color(0.26f, 0.26f, 0.3f));
+        MeshKit.Cylinder(_garageRoot, 0.85f, 0.85f, PodiumTop, podiumMat,
+            new Vector3(PodiumX, PodiumTop / 2f, PodiumZ), segments: 12);
+
+        // Glowing rim just under the lip, pulsed when the outfit changes.
+        _podiumRingMat = MeshKit.EmissiveMat(
+            new Color(1f, 0.18f, 0.61f), new Color(1f, 0.18f, 0.61f), 1.2f);
+        _podiumRing = MeshKit.Cylinder(_garageRoot, 0.9f, 0.9f, 0.045f, _podiumRingMat,
+            new Vector3(PodiumX, 0.035f, PodiumZ), segments: 12);
+
+        _charDisplay = new Node3D();
+        _charDisplay.Position = new Vector3(PodiumX, PodiumTop, PodiumZ);
+        _garageRoot.AddChild(_charDisplay);
+    }
+
+    /// <summary>Rebuild Carl in his current outfit and the board lying beside him.</summary>
+    public void UpdateDisplayModel()
+    {
+        if (_charDisplay == null) return;
+
+        if (_carl != null)
+        {
+            _charDisplay.RemoveChild(_carl);
+            _carl.QueueFree();
+        }
+
+        _carl = CarlBuilder.Build(_main.Carl, out var joints);
+        CarlBuilder.PoseStanding(joints);
+        // The rig faces +X in its own space; this turns him three-quarters toward the
+        // char-select camera, which sits front-right of the podium.
+        _carl.Rotation = new Vector3(0, 2.34f, 0);
+        _charDisplay.AddChild(_carl);
+
+        _styleFlash = 1f;
+
+        UpdatePickedBoard();
+    }
+
+    /// <summary>The currently picked board, lying on the floor next to the podium.</summary>
+    public void UpdatePickedBoard()
+    {
+        if (_floorBoard != null)
+        {
+            _garageRoot.RemoveChild(_floorBoard);
+            _floorBoard.QueueFree();
+        }
+
+        _floorBoard = BoardBuilder.Build(_main.Board);
+        _floorBoard.Position = new Vector3(-2.6f, 0.14f, 1.5f);
+        _floorBoard.Rotation = new Vector3(0, 0.45f, 0);
+        _garageRoot.AddChild(_floorBoard);
     }
 
     // ═══════════════════════════════════════════
@@ -384,348 +416,155 @@ public class GarageManager
 
     private void BuildLevelPosters()
     {
-        // Left wall inner face is at x=-5.75, posters face +x (into room)
-        // Posters arranged side by side along Z axis
+        for (int i = 0; i < 4; i++)
+        {
+            var poster = new Node3D();
+            poster.Position = new Vector3(PosterX, PosterY, PosterZ[i]);
+            _garageRoot.AddChild(poster);
+            _posters[i] = poster;
 
-        // Left poster — Frogwood, NH (z=-0.5)
-        _posterLeft = AddBox(new Vector3(0.05f, 1.8f, 1.4f),
-            new Color(0.95f, 0.92f, 0.85f),
-            new Vector3(-5.72f, 3f, -0.5f));
+            bool unlocked = Main.LevelUnlocked[i];
 
-        // Left poster header strip
-        AddBox(new Vector3(0.01f, 0.2f, 1.3f), new Color(0.18f, 0.52f, 0.18f),
-            new Vector3(-5.68f, 3.75f, -0.5f));
+            // Backing frame, then the paper itself
+            MeshKit.Box(poster, new Vector3(0.03f, 1.82f, 1.32f),
+                MeshKit.Mat(new Color(0.14f, 0.13f, 0.12f)), new Vector3(-0.02f, 0, 0));
+            MeshKit.Box(poster, new Vector3(0.05f, 1.7f, 1.2f),
+                MeshKit.Mat(unlocked ? new Color(0.93f, 0.9f, 0.83f) : new Color(0.22f, 0.22f, 0.24f)),
+                Vector3.Zero);
 
-        _posterLeftText = new Label3D();
-        _posterLeftText.Text = "FROGWOOD";
-        _posterLeftText.FontSize = 10;
-        _posterLeftText.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
-        var leftTextMat = new StandardMaterial3D();
-        leftTextMat.AlbedoColor = new Color(0.15f, 0.15f, 0.15f);
-        _posterLeftText.MaterialOverride = leftTextMat;
-        _posterLeftText.Position = new Vector3(-5.65f, 3.4f, -0.5f);
-        _garageRoot.AddChild(_posterLeftText);
+            if (i == 0) PaintFrogwood(poster);
+            else if (i == 1) PaintBlockIsland(poster);
+            else PaintUnknown(poster);
 
-        _posterLeftSubtext = new Label3D();
-        _posterLeftSubtext.Text = "NH";
-        _posterLeftSubtext.FontSize = 7;
-        _posterLeftSubtext.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
-        _posterLeftSubtext.MaterialOverride = leftTextMat;
-        _posterLeftSubtext.Position = new Vector3(-5.65f, 3.15f, -0.5f);
-        _garageRoot.AddChild(_posterLeftSubtext);
+            // Header strip
+            MeshKit.Box(poster, new Vector3(0.01f, 0.2f, 1.14f),
+                MeshKit.Mat(HeaderColor(i)), new Vector3(0.028f, 0.72f, 0));
 
-        // Right poster — Block Island (z=1.5)
-        _posterRight = AddBox(new Vector3(0.05f, 1.8f, 1.4f),
-            new Color(0.55f, 0.52f, 0.48f),
-            new Vector3(-5.72f, 3f, 1.5f));
+            // Text lies flat on the wall (no billboarding) and reads from inside the room.
+            _posterTitles[i] = PosterLabel(poster, Main.LevelNames[i], 9, new Vector3(0.04f, 0.72f, 0));
+            _posterSubs[i] = PosterLabel(poster,
+                unlocked ? Main.LevelSeasons[i].ToUpper() : "LOCKED", 6, new Vector3(0.04f, -0.72f, 0));
+        }
+    }
 
-        // Right poster header strip
-        AddBox(new Vector3(0.01f, 0.2f, 1.3f), new Color(0.3f, 0.4f, 0.6f),
-            new Vector3(-5.68f, 3.75f, 1.5f));
+    private Label3D PosterLabel(Node3D parent, string text, int size, Vector3 pos)
+    {
+        var label = new Label3D();
+        label.Text = text;
+        label.FontSize = size;
+        label.Billboard = BaseMaterial3D.BillboardModeEnum.Disabled;
+        label.RotationDegrees = new Vector3(0, 90, 0);
+        label.Position = pos;
+        label.Modulate = new Color(0.1f, 0.1f, 0.1f);
+        label.OutlineSize = 0;
+        parent.AddChild(label);
+        return label;
+    }
 
-        _posterRightText = new Label3D();
-        _posterRightText.Text = "BLOCK ISLAND";
-        _posterRightText.FontSize = 8;
-        _posterRightText.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
-        var rightTextMat = new StandardMaterial3D();
-        rightTextMat.AlbedoColor = new Color(0.35f, 0.35f, 0.35f);
-        _posterRightText.MaterialOverride = rightTextMat;
-        _posterRightText.Position = new Vector3(-5.65f, 3.4f, 1.5f);
-        _garageRoot.AddChild(_posterRightText);
+    private static Color HeaderColor(int level)
+    {
+        switch (level)
+        {
+            case 0: return new Color(0.18f, 0.52f, 0.18f);   // Frogwood green
+            case 1: return new Color(0.22f, 0.38f, 0.62f);   // Block Island blue
+            default: return new Color(0.3f, 0.3f, 0.32f);
+        }
+    }
 
-        _posterRightSubtext = new Label3D();
-        _posterRightSubtext.Text = "COMING SOON";
-        _posterRightSubtext.FontSize = 4;
-        _posterRightSubtext.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
-        var comingSoonMat = new StandardMaterial3D();
-        comingSoonMat.AlbedoColor = new Color(0.5f, 0.3f, 0.3f);
-        comingSoonMat.EmissionEnabled = true;
-        comingSoonMat.Emission = new Color(0.2f, 0.1f, 0.1f);
-        _posterRightSubtext.MaterialOverride = comingSoonMat;
-        _posterRightSubtext.Position = new Vector3(-5.65f, 3.15f, 1.5f);
-        _garageRoot.AddChild(_posterRightSubtext);
+    // Poster art is painted in the poster's local YZ plane, a hair proud of the paper.
+    private const float ArtX = 0.028f;
+
+    private void PaintFrogwood(Node3D poster)
+    {
+        var skyMat = MeshKit.Mat(new Color(0.55f, 0.76f, 0.92f));
+        var farMat = MeshKit.Mat(new Color(0.28f, 0.5f, 0.28f));
+        var nearMat = MeshKit.Mat(new Color(0.15f, 0.33f, 0.16f));
+        var roadMat = MeshKit.Mat(new Color(0.30f, 0.29f, 0.31f));
+        var pineMat = MeshKit.Mat(new Color(0.06f, 0.19f, 0.09f));
+
+        MeshKit.Box(poster, new Vector3(0.005f, 0.28f, 1.14f), skyMat, new Vector3(ArtX, 0.43f, 0));
+        MeshKit.Box(poster, new Vector3(0.006f, 0.26f, 1.14f), farMat, new Vector3(ArtX, 0.16f, 0));
+        MeshKit.Box(poster, new Vector3(0.007f, 0.5f, 1.14f), nearMat, new Vector3(ArtX, -0.28f, 0));
+
+        // Road: five stacked segments tapering to a vanishing point and easing left, so it
+        // reads as tarmac running away over the hill rather than a grey post.
+        for (int i = 0; i < 5; i++)
+        {
+            float k = i / 4f;
+            MeshKit.Box(poster,
+                new Vector3(0.009f + i * 0.0004f, 0.13f, Mathf.Lerp(0.34f, 0.05f, k)),
+                roadMat,
+                new Vector3(ArtX, Mathf.Lerp(-0.5f, 0.0f, k), Mathf.Lerp(0.13f, -0.06f, k)));
+        }
+
+        // Pines, staggered along the treeline at the base of the far ridge.
+        foreach (var p in new[] {
+            new Vector2(-0.02f, 0.50f), new Vector2(0.03f, 0.38f), new Vector2(-0.04f, -0.34f),
+            new Vector2(0.02f, -0.46f), new Vector2(-0.01f, -0.22f) })
+        {
+            MeshKit.Box(poster, new Vector3(0.012f, 0.22f, 0.07f), pineMat,
+                new Vector3(ArtX, 0.06f + p.X, p.Y));
+        }
+    }
+
+    private void PaintBlockIsland(Node3D poster)
+    {
+        MeshKit.Box(poster, new Vector3(0.005f, 0.36f, 1.14f),
+            MeshKit.Mat(new Color(0.62f, 0.78f, 0.9f)), new Vector3(ArtX, 0.39f, 0));       // sky
+        MeshKit.Box(poster, new Vector3(0.006f, 0.34f, 1.14f),
+            MeshKit.Mat(new Color(0.16f, 0.36f, 0.58f)), new Vector3(ArtX, 0.04f, 0));      // ocean
+        MeshKit.Box(poster, new Vector3(0.007f, 0.38f, 1.14f),
+            MeshKit.Mat(new Color(0.62f, 0.55f, 0.36f)), new Vector3(ArtX, -0.34f, 0));     // bluff
+
+        // Lighthouse, standing on the bluff rather than hovering over the water —
+        // the bluff's top edge is at y=-0.15, so the tower base has to start there.
+        MeshKit.Box(poster, new Vector3(0.009f, 0.34f, 0.09f),
+            MeshKit.Mat(new Color(0.92f, 0.9f, 0.86f)), new Vector3(ArtX, 0.02f, -0.36f));
+        MeshKit.Box(poster, new Vector3(0.01f, 0.07f, 0.11f),
+            MeshKit.Mat(new Color(0.78f, 0.2f, 0.18f)), new Vector3(ArtX, 0.22f, -0.36f));
+
+        // Whitecaps
+        foreach (float z in new[] { 0.34f, 0.05f, -0.12f })
+            MeshKit.Box(poster, new Vector3(0.009f, 0.03f, 0.2f),
+                MeshKit.Mat(new Color(0.85f, 0.9f, 0.95f)), new Vector3(ArtX, -0.02f, z));
+    }
+
+    private void PaintUnknown(Node3D poster)
+    {
+        MeshKit.Box(poster, new Vector3(0.006f, 1.1f, 1.06f),
+            MeshKit.Mat(new Color(0.16f, 0.16f, 0.18f)), new Vector3(ArtX, -0.06f, 0));
+
+        // An actual glyph — a bar and a dot built from boxes just read as "!".
+        var q = new Label3D();
+        q.Text = "?";
+        q.FontSize = 64;
+        q.Billboard = BaseMaterial3D.BillboardModeEnum.Disabled;
+        q.RotationDegrees = new Vector3(0, 90, 0);
+        q.Position = new Vector3(0.04f, -0.06f, 0);
+        q.Modulate = new Color(0.42f, 0.42f, 0.46f);
+        q.OutlineSize = 0;
+        q.PixelSize = 0.006f;
+        poster.AddChild(q);
     }
 
     public void UpdatePosterHighlight()
     {
-        if (_posterLeft == null || _posterRight == null) return;
-
-        bool leftSelected = _main.Level == Main.LevelType.FrogwoodNH;
-        _posterLeft.MaterialOverride = leftSelected ? _posterSelectedMat : _posterDimmedMat;
-        _posterRight.MaterialOverride = leftSelected ? _posterDimmedMat : _posterSelectedMat;
-
-        // Update text colors based on selection
-        if (_posterLeftText?.MaterialOverride is StandardMaterial3D lt)
-            lt.AlbedoColor = leftSelected ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.4f, 0.4f, 0.4f);
-        if (_posterLeftSubtext?.MaterialOverride is StandardMaterial3D ls)
-            ls.AlbedoColor = leftSelected ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.4f, 0.4f, 0.4f);
-        if (_posterRightText?.MaterialOverride is StandardMaterial3D rt)
-            rt.AlbedoColor = leftSelected ? new Color(0.4f, 0.4f, 0.4f) : new Color(0.1f, 0.1f, 0.1f);
-    }
-
-    // ═══════════════════════════════════════════
-    //  DISPLAY MODELS
-    // ═══════════════════════════════════════════
-
-    public void UpdateDisplayModel()
-    {
-        BuildCharDisplay();
-        BuildBoardDisplay();
-    }
-
-    public void UpdateBoardRotation(float dt)
-    {
-        if (_boardDisplay != null)
+        for (int i = 0; i < 4; i++)
         {
-            _boardDisplay.RotateY(dt * 0.8f);
-        }
-    }
+            if (_posters[i] == null) continue;
+            bool selected = (int)_main.Level == i;
 
-    public void ResetCamera()
-    {
-        _camInitialized = false;
-    }
+            _posters[i].Position = new Vector3(PosterX + (selected ? 0.05f : 0f), PosterY, PosterZ[i]);
+            MeshKit.Tint(_posters[i], selected ? 1f : DimFactor);
 
-    private void BuildCharDisplay()
-    {
-        // Clear old
-        foreach (var child in _charDisplay.GetChildren())
-            child.QueueFree();
-
-        var skinMat = new StandardMaterial3D();
-        skinMat.AlbedoColor = new Color(0.9f, 0.78f, 0.6f);
-        skinMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        var shirtMat = new StandardMaterial3D();
-        shirtMat.AlbedoColor = Main.CarlShirtColors[(int)_main.Carl];
-        shirtMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        var pantsMat = new StandardMaterial3D();
-        pantsMat.AlbedoColor = Main.CarlPantsColors[(int)_main.Carl];
-        pantsMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        var shoeMat = new StandardMaterial3D();
-        shoeMat.AlbedoColor = new Color(0.14f, 0.14f, 0.14f);
-
-        var hairMat = new StandardMaterial3D();
-        hairMat.AlbedoColor = new Color(0.3f, 0.18f, 0.08f);
-
-        // Body group (rotated for sideways stance)
-        var bodyGroup = new Node3D();
-        bodyGroup.Rotation = new Vector3(0, -Mathf.Pi / 2f, 0);
-        _charDisplay.AddChild(bodyGroup);
-
-        // Hip
-        var hip = new Node3D();
-        hip.Position = new Vector3(0, 0.2f, 0);
-        bodyGroup.AddChild(hip);
-
-        // Spine (torso)
-        var spine = new Node3D();
-        spine.Position = new Vector3(0, 0.35f, 0);
-        hip.AddChild(spine);
-
-        AddCylinderTo(spine, 0.13f, 0.11f, 0.18f, shirtMat, new Vector3(0, 0.09f, 0));
-        AddCylinderTo(spine, 0.15f, 0.13f, 0.22f, shirtMat, new Vector3(0, 0.29f, -0.02f));
-        AddCylinderTo(spine, 0.16f, 0.15f, 0.06f, shirtMat, new Vector3(0, 0.42f, -0.02f));
-
-        // Neck + head
-        var neck = new Node3D();
-        neck.Position = new Vector3(0, 0.46f, -0.02f);
-        spine.AddChild(neck);
-        AddCylinderTo(neck, 0.05f, 0.06f, 0.08f, skinMat, new Vector3(0, 0.04f, 0));
-
-        var head = new MeshInstance3D();
-        var headMesh = new SphereMesh();
-        headMesh.Radius = 0.12f;
-        headMesh.Height = 0.24f;
-        headMesh.Rings = 6;
-        headMesh.RadialSegments = 8;
-        head.Mesh = headMesh;
-        head.MaterialOverride = skinMat;
-        head.Position = new Vector3(0, 0.14f, -0.02f);
-        neck.AddChild(head);
-
-        var hair = new MeshInstance3D();
-        var hairMesh = new CylinderMesh();
-        hairMesh.TopRadius = 0.11f;
-        hairMesh.BottomRadius = 0.13f;
-        hairMesh.Height = 0.06f;
-        hairMesh.RadialSegments = 8;
-        hair.Mesh = hairMesh;
-        hair.MaterialOverride = hairMat;
-        hair.Position = new Vector3(0, 0.24f, -0.02f);
-        neck.AddChild(hair);
-
-        // Arms
-        var armL = new Node3D();
-        armL.Position = new Vector3(-0.17f, 0.4f, -0.02f);
-        armL.Rotation = new Vector3(0.1f, 0, -0.6f); // arms out
-        spine.AddChild(armL);
-        AddCylinderTo(armL, 0.035f, 0.03f, 0.2f, skinMat, new Vector3(0, -0.1f, 0));
-        var forearmL = new Node3D();
-        forearmL.Position = new Vector3(0, -0.2f, 0);
-        armL.AddChild(forearmL);
-        AddCylinderTo(forearmL, 0.03f, 0.025f, 0.18f, skinMat, new Vector3(0, -0.09f, 0));
-
-        var armR = new Node3D();
-        armR.Position = new Vector3(0.17f, 0.4f, -0.02f);
-        armR.Rotation = new Vector3(0.1f, 0, 0.6f); // arms out
-        spine.AddChild(armR);
-        AddCylinderTo(armR, 0.035f, 0.03f, 0.2f, skinMat, new Vector3(0, -0.1f, 0));
-        var forearmR = new Node3D();
-        forearmR.Position = new Vector3(0, -0.2f, 0);
-        armR.AddChild(forearmR);
-        AddCylinderTo(forearmR, 0.03f, 0.025f, 0.18f, skinMat, new Vector3(0, -0.09f, 0));
-
-        // Legs
-        var legL = new Node3D();
-        legL.Position = new Vector3(-0.08f, 0f, 0);
-        hip.AddChild(legL);
-        AddCylinderTo(legL, 0.06f, 0.055f, 0.22f, pantsMat, new Vector3(0, -0.11f, 0));
-        var kneeL = new Node3D();
-        kneeL.Position = new Vector3(0, -0.22f, 0);
-        legL.AddChild(kneeL);
-        AddCylinderTo(kneeL, 0.05f, 0.045f, 0.2f, pantsMat, new Vector3(0, -0.1f, 0));
-        var shoeL = new MeshInstance3D();
-        var shoeLMesh = new BoxMesh();
-        shoeLMesh.Size = new Vector3(0.1f, 0.06f, 0.22f);
-        shoeL.Mesh = shoeLMesh;
-        shoeL.MaterialOverride = shoeMat;
-        shoeL.Position = new Vector3(0, -0.22f, -0.02f);
-        kneeL.AddChild(shoeL);
-
-        var legR = new Node3D();
-        legR.Position = new Vector3(0.08f, 0f, 0);
-        hip.AddChild(legR);
-        AddCylinderTo(legR, 0.06f, 0.055f, 0.22f, pantsMat, new Vector3(0, -0.11f, 0));
-        var kneeR = new Node3D();
-        kneeR.Position = new Vector3(0, -0.22f, 0);
-        legR.AddChild(kneeR);
-        AddCylinderTo(kneeR, 0.05f, 0.045f, 0.2f, pantsMat, new Vector3(0, -0.1f, 0));
-        var shoeR = new MeshInstance3D();
-        var shoeRMesh = new BoxMesh();
-        shoeRMesh.Size = new Vector3(0.1f, 0.06f, 0.22f);
-        shoeR.Mesh = shoeRMesh;
-        shoeR.MaterialOverride = shoeMat;
-        shoeR.Position = new Vector3(0, -0.22f, -0.02f);
-        kneeR.AddChild(shoeR);
-    }
-
-    private void BuildBoardDisplay()
-    {
-        foreach (var child in _boardDisplay.GetChildren())
-            child.QueueFree();
-
-        var deckMat = new StandardMaterial3D();
-        deckMat.AlbedoColor = Main.BoardDeckColors[(int)_main.Board];
-        deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        // Neon board gets emission glow
-        if (_main.Board == Main.BoardType.Neon)
-        {
-            deckMat.EmissionEnabled = true;
-            deckMat.Emission = Main.BoardDeckColors[(int)_main.Board];
-            deckMat.EmissionEnergyMultiplier = 0.3f;
-        }
-
-        var gripMat = new StandardMaterial3D();
-        gripMat.AlbedoColor = Main.BoardGripColors[(int)_main.Board];
-
-        var truckMat = new StandardMaterial3D();
-        truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
-
-        // Board-specific accent colors and wheel colors
-        Color accentColor;
-        Color wheelColor;
-        float deckWidth = 0.62f;
-        switch (_main.Board)
-        {
-            case Main.BoardType.Classic:
-                accentColor = new Color(0.35f, 0.18f, 0.06f); // dark brown stripe
-                wheelColor = new Color(0.12f, 0.12f, 0.12f);  // black
-                break;
-            case Main.BoardType.Neon:
-                accentColor = new Color(0.2f, 0.8f, 1f);      // cyan stripe
-                wheelColor = new Color(0.15f, 0.15f, 0.15f);  // dark gray
-                break;
-            case Main.BoardType.Dark:
-                accentColor = new Color(0.5f, 0.1f, 0.7f);    // purple stripe
-                wheelColor = new Color(0.1f, 0.1f, 0.12f);    // near black
-                break;
-            default: // Natural
-                accentColor = new Color(0.65f, 0.5f, 0.3f);   // light wood stripe
-                wheelColor = new Color(0.18f, 0.16f, 0.14f);  // dark brown
-                deckWidth = 0.68f; // Natural board is wider
-                break;
-        }
-
-        var accentMat = new StandardMaterial3D();
-        accentMat.AlbedoColor = accentColor;
-        accentMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        var wheelMat = new StandardMaterial3D();
-        wheelMat.AlbedoColor = wheelColor;
-
-        // Deck center
-        AddBoxTo(_boardDisplay, new Vector3(deckWidth, 0.045f, 1.4f), deckMat,
-            new Vector3(0, 0, 0));
-        // Nose
-        AddBoxTo(_boardDisplay, new Vector3(deckWidth * 0.77f, 0.04f, 0.4f), deckMat,
-            new Vector3(0, 0, 0.9f));
-        // Tail
-        AddBoxTo(_boardDisplay, new Vector3(deckWidth * 0.77f, 0.04f, 0.35f), deckMat,
-            new Vector3(0, 0, -0.88f));
-
-        // Accent stripe along deck edge (left side)
-        AddBoxTo(_boardDisplay, new Vector3(0.03f, 0.05f, 1.35f), accentMat,
-            new Vector3(-deckWidth / 2f + 0.015f, 0, 0));
-        // Accent stripe along deck edge (right side)
-        AddBoxTo(_boardDisplay, new Vector3(0.03f, 0.05f, 1.35f), accentMat,
-            new Vector3(deckWidth / 2f - 0.015f, 0, 0));
-
-        // Wood grain lines on Classic and Natural
-        if (_main.Board == Main.BoardType.Classic || _main.Board == Main.BoardType.Natural)
-        {
-            var grainMat = new StandardMaterial3D();
-            grainMat.AlbedoColor = new Color(accentColor.R * 0.8f, accentColor.G * 0.8f, accentColor.B * 0.8f);
-            grainMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-            for (int i = 0; i < 3; i++)
+            var textColor = selected ? new Color(0.08f, 0.08f, 0.08f) : new Color(0.42f, 0.42f, 0.42f);
+            if (_posterTitles[i] != null) _posterTitles[i].Modulate = textColor;
+            if (_posterSubs[i] != null)
             {
-                float x = -deckWidth * 0.2f + i * deckWidth * 0.2f;
-                AddBoxTo(_boardDisplay, new Vector3(0.01f, 0.046f, 1.2f), grainMat,
-                    new Vector3(x, 0, 0.05f));
+                _posterSubs[i].Modulate = Main.LevelUnlocked[i]
+                    ? textColor
+                    : (selected ? new Color(0.8f, 0.25f, 0.25f) : new Color(0.45f, 0.25f, 0.25f));
             }
-        }
-
-        // Grip tape
-        AddBoxTo(_boardDisplay, new Vector3(deckWidth * 0.93f, 0.015f, 1.3f), gripMat,
-            new Vector3(0, 0.03f, 0));
-
-        // Trucks
-        AddBoxTo(_boardDisplay, new Vector3(0.18f, 0.04f, 0.14f), truckMat,
-            new Vector3(0, -0.05f, 0.55f));
-        AddBoxTo(_boardDisplay, new Vector3(0.18f, 0.04f, 0.14f), truckMat,
-            new Vector3(0, -0.05f, -0.55f));
-
-        // Wheels
-        foreach (var pos in new[] {
-            new Vector3(-0.30f, -0.08f, 0.55f),
-            new Vector3(0.30f, -0.08f, 0.55f),
-            new Vector3(-0.30f, -0.08f, -0.55f),
-            new Vector3(0.30f, -0.08f, -0.55f) })
-        {
-            var wheel = new MeshInstance3D();
-            var wMesh = new CylinderMesh();
-            wMesh.TopRadius = 0.055f;
-            wMesh.BottomRadius = 0.055f;
-            wMesh.Height = 0.07f;
-            wMesh.RadialSegments = 6;
-            wheel.Mesh = wMesh;
-            wheel.MaterialOverride = wheelMat;
-            wheel.Position = pos;
-            wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
-            _boardDisplay.AddChild(wheel);
         }
     }
 
@@ -736,143 +575,128 @@ public class GarageManager
     public void Show()
     {
         _garageRoot.Visible = true;
-        _main.Player.Visible = false;
-        // Hide terrain meshes
+        // Hide the rider, never the Player node — CameraMount hangs off it and Godot
+        // switches off a Camera3D that isn't visible in the tree.
+        _main.PlayerMgr.SetVisible(false);
+        _main.Player.Position = Vector3.Zero;
         _main.Terrain.SetMeshesVisible(false);
-        // Hide scenery
         _main.Scenery.SetItemsVisible(false);
-        // Dim sun
         _main.GetNode<DirectionalLight3D>("Sun").LightEnergy = 0.1f;
+
+        // The world environment's bright blue sky ambient is tuned for riding outdoors;
+        // left on, it floods the garage and washes every surface the same cold grey.
+        // Indoors the fixtures should be doing the work.
+        var env = GarageEnv();
+        env.AmbientLightEnergy = 0.16f;
+        env.AmbientLightColor = new Color(0.42f, 0.38f, 0.36f);
+        env.FogEnabled = false;
     }
 
     public void Hide()
     {
         _garageRoot.Visible = false;
-        _main.Player.Visible = true;
+        _main.PlayerMgr.SetVisible(true);
         _main.Terrain.SetMeshesVisible(true);
         _main.Scenery.SetItemsVisible(true);
         _main.GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.4f;
+
+        var env = GarageEnv();
+        env.AmbientLightEnergy = 0.8f;
+        env.AmbientLightColor = new Color(0.6f, 0.72f, 0.85f);
+        env.FogEnabled = true;
+    }
+
+    private Godot.Environment GarageEnv()
+    {
+        return _main.GetNode<WorldEnvironment>("WorldEnvironment").Environment;
     }
 
     // ═══════════════════════════════════════════
     //  CAMERA
     // ═══════════════════════════════════════════
 
-    public void UpdateCamera(float dt, bool isCharSelect, bool isBoardSelect, bool isLevelSelect)
+    public void ResetCamera()
+    {
+        _camInitialized = false;
+    }
+
+    public void UpdateCamera(float dt, Shot shot)
     {
         Vector3 targetPos;
         Vector3 targetLook;
-        float targetFov = 55f;
+        float targetFov;
 
-        if (isCharSelect)
+        switch (shot)
         {
-            targetPos = new Vector3(3f, 2.5f, 3f);
-            targetLook = new Vector3(-1.5f, 1.2f, -1f);
+            case Shot.Char:
+                // Framed so his soles clear the info block at the bottom of the screen
+                // and there's headroom above — full figure, not a crop.
+                targetPos = new Vector3(1.26f, 1.85f, 3.79f);
+                targetLook = new Vector3(PodiumX, 1.25f, PodiumZ);
+                targetFov = 45f;
+                break;
+
+            case Shot.Board:
+                // Pulled back far enough that the selected board, which sits ~0.3m nearer
+                // the lens than its neighbours, still fits inside the frame.
+                targetPos = new Vector3(2f, 1.5f, 1.5f);
+                targetLook = new Vector3(2f, 1.45f, RackZ);
+                targetFov = 50f;
+                break;
+
+            case Shot.Level:
+                // Dolly along the wall so every poster is read head-on.
+                float z = PosterZ[(int)_main.Level];
+                targetPos = new Vector3(PosterCamX, PosterY, z + 0.6f);
+                targetLook = new Vector3(WallLeftX, PosterY, z);
+                targetFov = 45f;
+                break;
+
+            default:
+                // Title — eye-level establishing shot from the front-left corner, drifting
+                // slowly. Shot down the room's diagonal so Carl reads in the near-left and
+                // the board rack sits behind him: both subjects land inside one 48deg frame.
+                float t = _main.TitleTime;
+                targetPos = new Vector3(-4.2f + Mathf.Sin(t * 0.25f) * 0.3f,
+                                        1.9f + Mathf.Sin(t * 0.19f) * 0.12f,
+                                        4.4f);
+                targetLook = new Vector3(0.0f, 1.25f, -1.2f);
+                targetFov = 48f;
+                break;
         }
-        else if (isBoardSelect)
-        {
-            targetPos = new Vector3(-3f, 2f, 3f);
-            targetLook = new Vector3(1.5f, 0.6f, -1f);
-        }
-        else // level select
-        {
-            targetPos = new Vector3(0.5f, 2.5f, 0.5f);
-            targetLook = new Vector3(-5.5f, 3f, 0.5f);
-            targetFov = 40f;
-        }
+
+        var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
 
         if (!_camInitialized)
         {
             _camPos = targetPos;
             _camLookAt = targetLook;
             _camInitialized = true;
-            // Snap FOV immediately
-            var snapCam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
-            snapCam.Fov = targetFov;
+            cam.Fov = targetFov;
         }
 
         _camPos = _camPos.Lerp(targetPos, CamLerpSpeed * dt);
         _camLookAt = _camLookAt.Lerp(targetLook, CamLerpSpeed * dt);
 
         _main.CameraMount.Position = _camPos;
-        var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
         cam.LookAt(_camLookAt, Vector3.Up);
         cam.Fov = Mathf.Lerp(cam.Fov, targetFov, 3f * dt);
+
+        // Podium rim flashes when the outfit changes.
+        if (_styleFlash > 0f)
+        {
+            _styleFlash = Mathf.Max(0f, _styleFlash - dt * 2.2f);
+            if (_podiumRingMat != null)
+                _podiumRingMat.EmissionEnergyMultiplier = 1.2f + _styleFlash * 4f;
+        }
     }
 
     // ═══════════════════════════════════════════
-    //  MESH HELPERS
+    //  MESH HELPER
     // ═══════════════════════════════════════════
 
-    private MeshInstance3D AddBox(Vector3 size, Color color, Vector3 pos)
+    private MeshInstance3D Box(Vector3 size, Color color, Vector3 pos)
     {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        _garageRoot.AddChild(m);
-        return m;
-    }
-
-    private MeshInstance3D AddBox(Node3D parent, Vector3 size, Color color, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-        return m;
-    }
-
-    private void AddBoxTo(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-    }
-
-    private void AddCylinder(float topR, float height, Color color, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new CylinderMesh();
-        mesh.TopRadius = topR;
-        mesh.BottomRadius = topR;
-        mesh.Height = height;
-        mesh.RadialSegments = 6;
-        m.Mesh = mesh;
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        _garageRoot.AddChild(m);
-    }
-
-    private void AddCylinderTo(Node3D parent, float topR, float bottomR, float height, StandardMaterial3D mat, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new CylinderMesh();
-        mesh.TopRadius = topR;
-        mesh.BottomRadius = bottomR;
-        mesh.Height = height;
-        mesh.RadialSegments = 8;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
+        return MeshKit.Box(_garageRoot, size, color, pos);
     }
 }

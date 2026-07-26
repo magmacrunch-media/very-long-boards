@@ -21,6 +21,7 @@ public class GameUI
 
     // Screens
     private Control _titleScreen;
+    private Label _titlePrompt;
     private Control _loadingScreen;
     private Control _charScreen;
     private Control _boardScreen;
@@ -80,6 +81,38 @@ public class GameUI
         rect.Size = new Vector2(w, h);
         parent.AddChild(rect);
         return rect;
+    }
+
+    // Base viewport is 320x240; these screens sit over the live 3D garage, so text
+    // blocks need a dark strip under them to stay readable.
+    private const float ScreenW = 320f;
+    private const float ScreenH = 240f;
+
+    /// <summary>Backing strip centred horizontally, positioned by offset from screen centre.</summary>
+    private ColorRect BackingCentered(Control parent, float offsetY, float w, float h)
+    {
+        var rect = Backing(parent, (ScreenW - w) / 2f, ScreenH / 2f + offsetY, w, h);
+        rect.Color = new Color(0.05f, 0.04f, 0.08f, 0.82f);
+        return rect;
+    }
+
+    /// <summary>
+    /// A screen-wide label row, vertically placed by its offset from centre. The row has to
+    /// span the full width for HorizontalAlignment.Center to mean anything — a Center anchor
+    /// preset leaves the label zero-width, which just runs the text off the right edge.
+    /// </summary>
+    private Label Row(Control parent, int size, string text, Color color, float offsetY)
+    {
+        var label = Retro(size, text, color);
+        label.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        label.AnchorTop = 0.5f;
+        label.AnchorBottom = 0.5f;
+        label.OffsetLeft = 0;
+        label.OffsetRight = 0;
+        label.OffsetTop = offsetY;
+        label.OffsetBottom = offsetY + size + 5;
+        parent.AddChild(label);
+        return label;
     }
 
     // ── HUD ──────────────────────────────────────
@@ -178,21 +211,34 @@ public class GameUI
 
     // ── Title Screen ─────────────────────────────
 
+    // The backdrop is the live 3D garage, so this is text over transparency —
+    // just dark strips behind each block to keep it legible against the room.
     private void CreateTitleScreen(CanvasLayer canvas)
     {
         _titleScreen = new Control();
         _titleScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         canvas.AddChild(_titleScreen);
 
-        // 2D pixel-art backdrop
-        var painter = new TitlePainter();
-        painter.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _titleScreen.AddChild(painter);
+        // Title up top over blank wall, prompt down low — the middle band stays clear so
+        // the garage itself is the picture.
+        BackingCentered(_titleScreen, -98, 320, 40);
+        Row(_titleScreen, 12, "VERY LONG BOARDS", new Color(1f, 0.18f, 0.61f), -94);
+        Row(_titleScreen, 6, "A Carl Spatski Game", new Color(0.62f, 0.62f, 0.72f), -76);
+
+        BackingCentered(_titleScreen, 62, 320, 16);
+        _titlePrompt = Row(_titleScreen, 7, "PRESS \u2191 TO START", new Color(1f, 0.88f, 0.23f), 65);
+
+        BackingCentered(_titleScreen, 100, 320, 14);
+        Row(_titleScreen, 5, "\u2190\u2192 STEER   SPACE BRAKE   \u2191 KICK",
+            new Color(0.45f, 0.45f, 0.55f), 103);
     }
 
-    public void AddTitleOverlay(Control node)
+    /// <summary>Pulse the start prompt. Driven from Main's Title state.</summary>
+    public void UpdateTitleBlink(float titleTime)
     {
-        _titleScreen.AddChild(node);
+        if (_titlePrompt == null) return;
+        float blink = Mathf.Sin(titleTime * 3f) * 0.3f + 0.7f;
+        _titlePrompt.Modulate = new Color(1f, 0.88f, 0.23f, blink);
     }
 
     // ── Loading Screen ───────────────────────────
@@ -216,6 +262,20 @@ public class GameUI
 
     // ── Character Select ─────────────────────────
 
+    // All three select screens use the same frame: a title banner pinned near the top and
+    // an info block near the bottom, leaving the middle clear for what the camera is on.
+    private void SelectBanner(Control screen, string text)
+    {
+        BackingCentered(screen, -104, 320, 16);
+        Row(screen, 6, text, new Color(1f, 0.18f, 0.61f), -101);
+    }
+
+    private void SelectHint(Control screen)
+    {
+        BackingCentered(screen, 92, 320, 14);
+        Row(screen, 5, "\u2190\u2192 PICK   \u2191 OK   SPACE BACK", new Color(0.45f, 0.45f, 0.55f), 95);
+    }
+
     private void CreateCharSelect(CanvasLayer canvas)
     {
         _charScreen = new Control();
@@ -223,42 +283,14 @@ public class GameUI
         _charScreen.Visible = false;
         canvas.AddChild(_charScreen);
 
-        var title = Retro(6, "SELECT YOUR CARL", new Color(1f, 0.18f, 0.61f));
-        title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.OffsetTop = -28;
-        _charScreen.AddChild(title);
+        SelectBanner(_charScreen, "CARL'S STYLE");
 
-        _charName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
-        _charName.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _charName.OffsetTop = -10;
-        _charScreen.AddChild(_charName);
+        BackingCentered(_charScreen, 52, 320, 38);
+        _charName = Row(_charScreen, 8, "", new Color(1f, 0.88f, 0.23f), 55);
+        _charDesc = Row(_charScreen, 5, "", new Color(0.7f, 0.7f, 0.8f), 68);
+        _charStats = Row(_charScreen, 5, "", new Color(0.5f, 0.8f, 0.5f), 78);
 
-        _charDesc = Retro(5, "", new Color(0.7f, 0.7f, 0.8f));
-        _charDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _charDesc.OffsetTop = 0;
-        _charScreen.AddChild(_charDesc);
-
-        _charStats = Retro(5, "", new Color(0.5f, 0.8f, 0.5f));
-        _charStats.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _charStats.OffsetTop = 10;
-        _charScreen.AddChild(_charStats);
-
-        var arrowL = Retro(7, "\u25C0", new Color(0.5f, 0.5f, 0.6f));
-        arrowL.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowL.OffsetLeft = -55;
-        arrowL.OffsetTop = -10;
-        _charScreen.AddChild(arrowL);
-
-        var arrowR = Retro(7, "\u25B6", new Color(0.5f, 0.5f, 0.6f));
-        arrowR.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowR.OffsetLeft = 55;
-        arrowR.OffsetTop = -10;
-        _charScreen.AddChild(arrowR);
-
-        var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
-        hint.SetAnchorsPreset(Control.LayoutPreset.Center);
-        hint.OffsetTop = 28;
-        _charScreen.AddChild(hint);
+        SelectHint(_charScreen);
     }
 
     // ── Board Select ─────────────────────────────
@@ -270,37 +302,13 @@ public class GameUI
         _boardScreen.Visible = false;
         canvas.AddChild(_boardScreen);
 
-        var title = Retro(6, "CHOOSE YOUR BOARD", new Color(1f, 0.18f, 0.61f));
-        title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.OffsetTop = -24;
-        _boardScreen.AddChild(title);
+        SelectBanner(_boardScreen, "CHOOSE YOUR BOARD");
 
-        _boardName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
-        _boardName.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _boardName.OffsetTop = -5;
-        _boardScreen.AddChild(_boardName);
+        BackingCentered(_boardScreen, 58, 320, 28);
+        _boardName = Row(_boardScreen, 8, "", new Color(1f, 0.88f, 0.23f), 61);
+        _boardDesc = Row(_boardScreen, 5, "", new Color(0.7f, 0.7f, 0.8f), 74);
 
-        _boardDesc = Retro(5, "", new Color(0.7f, 0.7f, 0.8f));
-        _boardDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _boardDesc.OffsetTop = 5;
-        _boardScreen.AddChild(_boardDesc);
-
-        var arrowL = Retro(7, "\u25C0", new Color(0.5f, 0.5f, 0.6f));
-        arrowL.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowL.OffsetLeft = -55;
-        arrowL.OffsetTop = -5;
-        _boardScreen.AddChild(arrowL);
-
-        var arrowR = Retro(7, "\u25B6", new Color(0.5f, 0.5f, 0.6f));
-        arrowR.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowR.OffsetLeft = 55;
-        arrowR.OffsetTop = -5;
-        _boardScreen.AddChild(arrowR);
-
-        var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
-        hint.SetAnchorsPreset(Control.LayoutPreset.Center);
-        hint.OffsetTop = 22;
-        _boardScreen.AddChild(hint);
+        SelectHint(_boardScreen);
     }
 
     // ── Level Select ─────────────────────────────
@@ -312,38 +320,15 @@ public class GameUI
         _levelScreen.Visible = false;
         canvas.AddChild(_levelScreen);
 
-        var title = Retro(6, "CHOOSE YOUR COURSE", new Color(1f, 0.18f, 0.61f));
-        title.SetAnchorsPreset(Control.LayoutPreset.Center);
-        title.OffsetTop = -24;
-        _levelScreen.AddChild(title);
+        SelectBanner(_levelScreen, "CHOOSE YOUR COURSE");
 
-        _levelName = Retro(8, "", new Color(1f, 0.88f, 0.23f));
-        _levelName.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _levelName.OffsetTop = -5;
-        _levelScreen.AddChild(_levelName);
+        BackingCentered(_levelScreen, 58, 320, 28);
+        _levelName = Row(_levelScreen, 8, "", new Color(1f, 0.88f, 0.23f), 61);
+        _levelDesc = Row(_levelScreen, 5, "", new Color(0.7f, 0.7f, 0.8f), 74);
 
-        _levelDesc = Retro(5, "", new Color(0.7f, 0.7f, 0.8f));
-        _levelDesc.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _levelDesc.OffsetTop = 5;
-        _levelScreen.AddChild(_levelDesc);
-
-        var arrowL = Retro(7, "\u25C0", new Color(0.5f, 0.5f, 0.6f));
-        arrowL.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowL.OffsetLeft = -55;
-        arrowL.OffsetTop = -5;
-        _levelScreen.AddChild(arrowL);
-
-        var arrowR = Retro(7, "\u25B6", new Color(0.5f, 0.5f, 0.6f));
-        arrowR.SetAnchorsPreset(Control.LayoutPreset.Center);
-        arrowR.OffsetLeft = 55;
-        arrowR.OffsetTop = -5;
-        _levelScreen.AddChild(arrowR);
-
-        var hint = Retro(5, "\u2190\u2192 SELECT  ENTER CONFIRM", new Color(0.4f, 0.4f, 0.5f));
-        hint.SetAnchorsPreset(Control.LayoutPreset.Center);
-        hint.OffsetTop = 22;
-        _levelScreen.AddChild(hint);
+        SelectHint(_levelScreen);
     }
+
 
     // ── Input Handlers ───────────────────────────
 
@@ -353,59 +338,71 @@ public class GameUI
             main.ShowCharSelect();
     }
 
+    /// <summary>Space/↓ or Esc backs out of any select screen.</summary>
+    private static bool BackPressed()
+    {
+        return Input.IsActionJustPressed("brake") || Input.IsActionJustPressed("pause");
+    }
+
     public void HandleCharSelectInput(Main main)
     {
+        int count = Main.CarlNames.Length;
         if (Input.IsActionJustPressed("move_left"))
         {
-            main.Carl = (Main.CarlType)(((int)main.Carl + 2) % 3);
+            main.Carl = (Main.CarlType)(((int)main.Carl + count - 1) % count);
             main.Garage.UpdateDisplayModel();
             UpdateCharSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
-            main.Carl = (Main.CarlType)(((int)main.Carl + 1) % 3);
+            main.Carl = (Main.CarlType)(((int)main.Carl + 1) % count);
             main.Garage.UpdateDisplayModel();
             UpdateCharSelect(main);
         }
-        if (Input.IsActionJustPressed("kick_off"))
-            main.ShowBoardSelect();
+        if (Input.IsActionJustPressed("kick_off")) main.ShowBoardSelect();
+        else if (BackPressed()) main.GoBack();
     }
 
     public void HandleBoardSelectInput(Main main)
     {
+        int count = Main.BoardNames.Length;
         if (Input.IsActionJustPressed("move_left"))
         {
-            main.Board = (Main.BoardType)(((int)main.Board + 3) % 4);
-            main.Garage.UpdateDisplayModel();
+            main.Board = (Main.BoardType)(((int)main.Board + count - 1) % count);
+            main.Garage.UpdateRackHighlight();
+            main.Garage.UpdatePickedBoard();
             UpdateBoardSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
-            main.Board = (Main.BoardType)(((int)main.Board + 1) % 4);
-            main.Garage.UpdateDisplayModel();
+            main.Board = (Main.BoardType)(((int)main.Board + 1) % count);
+            main.Garage.UpdateRackHighlight();
+            main.Garage.UpdatePickedBoard();
             UpdateBoardSelect(main);
         }
-        if (Input.IsActionJustPressed("kick_off"))
-            main.ShowLevelSelect();
+        if (Input.IsActionJustPressed("kick_off")) main.ShowLevelSelect();
+        else if (BackPressed()) main.GoBack();
     }
 
     public void HandleLevelSelectInput(Main main)
     {
-        int levelCount = Main.LevelNames.Length;
+        int count = Main.LevelNames.Length;
         if (Input.IsActionJustPressed("move_left"))
         {
-            main.Level = (Main.LevelType)(((int)main.Level + levelCount - 1) % levelCount);
+            main.Level = (Main.LevelType)(((int)main.Level + count - 1) % count);
             main.Garage.UpdatePosterHighlight();
             UpdateLevelSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
-            main.Level = (Main.LevelType)(((int)main.Level + 1) % levelCount);
+            main.Level = (Main.LevelType)(((int)main.Level + 1) % count);
             main.Garage.UpdatePosterHighlight();
             UpdateLevelSelect(main);
         }
-        if (Input.IsActionJustPressed("kick_off") && main.Level == Main.LevelType.FrogwoodNH)
+        // Only built courses can be started; the placeholder posters just say so.
+        if (Input.IsActionJustPressed("kick_off") && Main.LevelUnlocked[(int)main.Level])
             main.StartRide();
+        else if (BackPressed()) main.GoBack();
     }
 
     // ── Show/Hide ────────────────────────────────
@@ -425,26 +422,33 @@ public class GameUI
         _progressFill.AnchorRight = 0f;
     }
 
+    // Each of these sets every screen explicitly — navigation runs backwards as well as
+    // forwards now, so "hide the one I came from" isn't enough.
     public void ShowCharSelect(Main main)
     {
         HideHUD();
         _titleScreen.Visible = false;
         _charScreen.Visible = true;
         _boardScreen.Visible = false;
+        _levelScreen.Visible = false;
         UpdateCharSelect(main);
     }
 
     public void ShowBoardSelect(Main main)
     {
         HideHUD();
+        _titleScreen.Visible = false;
         _charScreen.Visible = false;
         _boardScreen.Visible = true;
+        _levelScreen.Visible = false;
         UpdateBoardSelect(main);
     }
 
     public void ShowLevelSelect(Main main)
     {
         HideHUD();
+        _titleScreen.Visible = false;
+        _charScreen.Visible = false;
         _boardScreen.Visible = false;
         _levelScreen.Visible = true;
         UpdateLevelSelect(main);
@@ -472,7 +476,7 @@ public class GameUI
 
     private void UpdateCharSelect(Main main)
     {
-        _charName.Text = Main.CarlNames[(int)main.Carl];
+        _charName.Text = "\u25C0 " + Main.CarlNames[(int)main.Carl] + " \u25B6";
         _charDesc.Text = Main.CarlDescs[(int)main.Carl];
 
         string stats = "";
@@ -493,14 +497,19 @@ public class GameUI
 
     private void UpdateBoardSelect(Main main)
     {
-        _boardName.Text = Main.BoardNames[(int)main.Board];
+        _boardName.Text = "\u25C0 " + Main.BoardNames[(int)main.Board] + " \u25B6";
         _boardDesc.Text = Main.BoardDescs[(int)main.Board];
     }
 
     private void UpdateLevelSelect(Main main)
     {
-        _levelName.Text = Main.LevelNames[(int)main.Level];
-        _levelDesc.Text = Main.LevelDescs[(int)main.Level];
+        int i = (int)main.Level;
+        bool unlocked = Main.LevelUnlocked[i];
+
+        _levelName.Text = "\u25C0 " + Main.LevelNames[i] + " \u25B6";
+        _levelName.Modulate = unlocked ? new Color(1f, 0.88f, 0.23f) : new Color(0.55f, 0.55f, 0.6f);
+        _levelDesc.Text = unlocked ? Main.LevelDescs[i] : "LOCKED - COMING SOON";
+        _levelDesc.Modulate = unlocked ? new Color(0.7f, 0.7f, 0.8f) : new Color(0.85f, 0.4f, 0.4f);
     }
 
     // ── HUD ──────────────────────────────────────

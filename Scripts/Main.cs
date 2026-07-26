@@ -4,9 +4,10 @@ using System.Collections.Generic;
 public partial class Main : Node3D
 {
     public enum GameState { Title, CharSelect, BoardSelect, LevelSelect, Riding, Paused, Finished, Countdown }
+    /// <summary>Carl's three looks. There's only one Carl Spatski — this is what he's wearing.</summary>
     public enum CarlType { Office, Party, Dark }
     public enum BoardType { Classic, Neon, Dark, Natural }
-    public enum LevelType { FrogwoodNH, BlockIsland }
+    public enum LevelType { FrogwoodNH, BlockIsland, Unknown3, Unknown4 }
 
     // State
     public GameState State = GameState.Title;
@@ -24,10 +25,19 @@ public partial class Main : Node3D
     public static readonly string[] CarlDescs = { "The everyman", "The maniac", "The enigma" };
     public static readonly string[] BoardNames = { "Classic", "Neon", "Dark", "Natural" };
     public static readonly string[] BoardDescs = { "Brown wood deck", "Bright neon colors", "Black with purple accent", "Light natural wood" };
-    public static readonly string[] LevelNames = { "Frogwood, NH", "Block Island" };
-    public static readonly string[] LevelDescs = { "Rolling hills through quiet Frogwood", "Coastal cliffs over the Atlantic" };
-    public static readonly float[] LevelLengths = { 2000f, 0f };
-    public static readonly string[] LevelSeasons = { "Summer", "Fall" };
+
+    // Four poster slots on the garage's left wall. The last two are placeholders for
+    // courses that don't exist yet — they show on the wall but can't be started.
+    public static readonly string[] LevelNames = { "Frogwood, NH", "Block Island", "???", "???" };
+    public static readonly string[] LevelDescs = {
+        "Rolling hills through quiet Frogwood",
+        "Coastal cliffs over the Atlantic",
+        "Course not built yet",
+        "Course not built yet"
+    };
+    public static readonly float[] LevelLengths = { 2000f, 0f, 0f, 0f };
+    public static readonly string[] LevelSeasons = { "Summer", "Fall", "", "" };
+    public static readonly bool[] LevelUnlocked = { true, false, false, false };
     public static readonly Color[] CarlShirtColors = {
         new Color(0.65f, 0.22f, 0.22f),   // Office: red
         new Color(0.28f, 0.2f, 0.7f),     // Party: purple
@@ -56,11 +66,6 @@ public partial class Main : Node3D
     public Node3D Player;
     public Node3D CameraMount;
 
-    // Title screen 3D board display
-    private SubViewport _titleViewport;
-    private Node3D _titleBoardRoot;
-    private TextureRect _titleBoardRect;
-
     // Subsystems
     public TerrainManager Terrain;
     public PlayerManager PlayerMgr;
@@ -87,8 +92,11 @@ public partial class Main : Node3D
         Cam.Create();
         UI.Create();
         Garage.Create();
-        CreateTitleBoardDisplay();
-        UI.AddTitleOverlay(_titleBoardRect);
+
+        // The title screen is a shot of the garage, so open the game standing inside it.
+        Garage.Show();
+        Garage.ResetCamera();
+        UI.ShowTitle(this);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -103,27 +111,24 @@ public partial class Main : Node3D
         {
             case GameState.Title:
                 TitleTime += dt;
-                if (_titleBoardRoot != null)
-                {
-                    _titleBoardRoot.Rotation = new Vector3(0.3f, TitleTime * 0.8f, 0f);
-                    _titleBoardRect.Visible = true;
-                }
+                Garage.UpdateCamera(dt, GarageManager.Shot.Title);
+                UI.UpdateTitleBlink(TitleTime);
                 UI.HandleTitleInput(this);
                 break;
 
             case GameState.CharSelect:
-                Garage.UpdateCamera(dt, true, false, false);
+                Garage.UpdateCamera(dt, GarageManager.Shot.Char);
                 UI.HandleCharSelectInput(this);
                 break;
 
             case GameState.BoardSelect:
-                Garage.UpdateCamera(dt, false, true, false);
-                Garage.UpdateBoardRotation(dt);
+                Garage.UpdateCamera(dt, GarageManager.Shot.Board);
+                Garage.UpdateRack(dt);
                 UI.HandleBoardSelectInput(this);
                 break;
 
             case GameState.LevelSelect:
-                Garage.UpdateCamera(dt, false, false, true);
+                Garage.UpdateCamera(dt, GarageManager.Shot.Level);
                 UI.HandleLevelSelectInput(this);
                 break;
 
@@ -197,153 +202,64 @@ public partial class Main : Node3D
         }
     }
 
+    public void ShowTitle()
+    {
+        Garage.Show();
+        State = GameState.Title;
+        UI.ShowTitle(this);
+    }
+
     public void ShowCharSelect()
     {
-        if (_titleBoardRect != null) _titleBoardRect.Visible = false;
-        Garage.ResetCamera();
-        State = GameState.CharSelect;
         Garage.Show();
+        State = GameState.CharSelect;
         UI.ShowCharSelect(this);
     }
 
     public void ShowBoardSelect()
     {
-        Garage.ResetCamera();
         State = GameState.BoardSelect;
-        Garage.UpdateDisplayModel();
+        Garage.UpdateRackHighlight();
         UI.ShowBoardSelect(this);
     }
 
     public void ShowLevelSelect()
     {
-        Garage.ResetCamera();
         State = GameState.LevelSelect;
         Garage.UpdatePosterHighlight();
         UI.ShowLevelSelect(this);
     }
 
+    /// <summary>Step back one screen. The camera glides rather than cutting.</summary>
+    public void GoBack()
+    {
+        switch (State)
+        {
+            case GameState.LevelSelect: ShowBoardSelect(); break;
+            case GameState.BoardSelect: ShowCharSelect(); break;
+            case GameState.CharSelect: ShowTitle(); break;
+        }
+    }
+
     public void StartRide()
     {
-        if (_titleBoardRect != null) _titleBoardRect.Visible = false;
         Garage.Hide();
         UI.ShowHUD();
         State = GameState.Countdown;
         CountdownTimer = 3f;
         UI.HideAllSelectors();
         PlayerMgr.ApplyBoard();
+        PlayerMgr.ApplyCarl();
     }
 
     public void ResetGame()
     {
-        Garage.Hide();
-        State = GameState.Title;
+        // Back to the garage, not to an empty road.
         PlayerMgr.Reset();
-        UI.ShowTitle(this);
         Terrain.Update();
         Scenery.UpdatePositions(Terrain.ScrollOffset);
-        Cam.Update();
-        if (_titleBoardRoot != null) _titleBoardRoot.Visible = true;
+        Garage.ResetCamera();
+        ShowTitle();
     }
 
-    // ═══════════════════════════════════════════
-    //  TITLE SCREEN 3D BOARD
-    // ═══════════════════════════════════════════
-
-    private void CreateTitleBoardDisplay()
-    {
-        // SubViewport for the rotating board
-        _titleViewport = new SubViewport();
-        _titleViewport.Size = new Vector2I(80, 80);
-        _titleViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
-        AddChild(_titleViewport);
-
-        // Camera inside the viewport
-        var cam = new Camera3D();
-        cam.Position = new Vector3(0, 0.8f, 2f);
-        cam.Fov = 35f;
-        _titleViewport.AddChild(cam);
-        cam.LookAt(Vector3.Zero);
-
-        // Light
-        var light = new DirectionalLight3D();
-        light.Position = new Vector3(2, 3, 1);
-        light.LightEnergy = 1.5f;
-        light.LightColor = new Color(1f, 0.95f, 0.9f);
-        _titleViewport.AddChild(light);
-
-        // Board root
-        _titleBoardRoot = new Node3D();
-        _titleViewport.AddChild(_titleBoardRoot);
-
-        // Build board mesh (same as PlayerManager)
-        var deckMat = new StandardMaterial3D();
-        deckMat.AlbedoColor = BoardDeckColors[(int)Board];
-        deckMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-
-        var gripMat = new StandardMaterial3D();
-        gripMat.AlbedoColor = BoardGripColors[(int)Board];
-
-        var truckMat = new StandardMaterial3D();
-        truckMat.AlbedoColor = new Color(0.62f, 0.62f, 0.65f);
-
-        var wheelMat = new StandardMaterial3D();
-        wheelMat.AlbedoColor = new Color(0.12f, 0.12f, 0.12f);
-
-        // Deck
-        AddTitleBox(_titleBoardRoot, new Vector3(0.62f, 0.045f, 1.4f), deckMat, new Vector3(0, 0, 0));
-        AddTitleBox(_titleBoardRoot, new Vector3(0.48f, 0.04f, 0.4f), deckMat, new Vector3(0, 0, 0.9f));
-        AddTitleBox(_titleBoardRoot, new Vector3(0.48f, 0.04f, 0.35f), deckMat, new Vector3(0, 0, -0.88f));
-        AddTitleBox(_titleBoardRoot, new Vector3(0.58f, 0.015f, 1.3f), gripMat, new Vector3(0, 0.03f, 0));
-
-        // Trucks
-        AddTitleBox(_titleBoardRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, -0.05f, 0.55f));
-        AddTitleBox(_titleBoardRoot, new Vector3(0.18f, 0.04f, 0.14f), truckMat, new Vector3(0, -0.05f, -0.55f));
-
-        // Wheels
-        foreach (var pos in new[] {
-            new Vector3(-0.30f, -0.08f, 0.55f), new Vector3(0.30f, -0.08f, 0.55f),
-            new Vector3(-0.30f, -0.08f, -0.55f), new Vector3(0.30f, -0.08f, -0.55f) })
-        {
-            var wheel = new MeshInstance3D();
-            var wMesh = new CylinderMesh();
-            wMesh.TopRadius = 0.055f;
-            wMesh.BottomRadius = 0.055f;
-            wMesh.Height = 0.07f;
-            wMesh.RadialSegments = 6;
-            wheel.Mesh = wMesh;
-            wheel.MaterialOverride = wheelMat;
-            wheel.Position = pos;
-            wheel.Rotation = new Vector3(0, 0, Mathf.Pi / 2f);
-            _titleBoardRoot.AddChild(wheel);
-        }
-
-        // TextureRect to display the viewport in the UI
-        _titleBoardRect = new TextureRect();
-        _titleBoardRect.Texture = _titleViewport.GetTexture();
-        _titleBoardRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _titleBoardRect.AnchorLeft = 0.7f;
-        _titleBoardRect.AnchorTop = 0.55f;
-        _titleBoardRect.AnchorRight = 0.95f;
-        _titleBoardRect.AnchorBottom = 0.9f;
-        _titleBoardRect.OffsetLeft = 0;
-        _titleBoardRect.OffsetTop = 0;
-        _titleBoardRect.OffsetRight = 0;
-        _titleBoardRect.OffsetBottom = 0;
-        _titleBoardRect.StretchMode = TextureRect.StretchModeEnum.Scale;
-        _titleBoardRect.Visible = false;
-
-        // Add to canvas (need to find the canvas layer)
-        // We'll add it via ShowTitle instead
-    }
-
-    private void AddTitleBox(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-    }
 }
