@@ -797,7 +797,6 @@ public class GarageManager
         _main.CameraMount.Position = _camPos;
         var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
         cam.LookAt(_camLookAt, Vector3.Up);
-        cam.Rotation = Vector3.Zero;
         cam.Fov = Mathf.Lerp(cam.Fov, targetFov, 3f * dt);
     }
 
