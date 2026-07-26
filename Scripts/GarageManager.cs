@@ -481,6 +481,11 @@ public class GarageManager
         }
     }
 
+    public void ResetCamera()
+    {
+        _camInitialized = false;
+    }
+
     private void BuildCharDisplay()
     {
         // Clear old

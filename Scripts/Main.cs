@@ -200,6 +200,7 @@ public partial class Main : Node3D
     public void ShowCharSelect()
     {
         if (_titleBoardRect != null) _titleBoardRect.Visible = false;
+        Garage.ResetCamera();
         State = GameState.CharSelect;
         Garage.Show();
         UI.ShowCharSelect(this);
@@ -207,6 +208,7 @@ public partial class Main : Node3D
 
     public void ShowBoardSelect()
     {
+        Garage.ResetCamera();
         State = GameState.BoardSelect;
         Garage.UpdateDisplayModel();
         UI.ShowBoardSelect(this);
@@ -214,6 +216,7 @@ public partial class Main : Node3D
 
     public void ShowLevelSelect()
     {
+        Garage.ResetCamera();
         State = GameState.LevelSelect;
         Garage.UpdatePosterHighlight();
         UI.ShowLevelSelect(this);
