@@ -60,6 +60,48 @@ Requires [Godot 4.7+ with .NET](https://godotengine.org/download) and [.NET 8.0 
   longboard and for Carl, shared by the player rig and the garage displays — the board you
   pick off the rack is the board you ride.
 
+## Architecture
+
+### Scene structure
+
+Single scene (`Scenes/Main.tscn`) — everything is built in code, including
+the garage hub and menu screens.
+
+### Scripts
+
+| Script | Role |
+|--------|------|
+| `Main.cs` | Root orchestrator. Game state, enums, `CarlStats` data table, state machine. |
+| `PlayerManager.cs` | Player controller. Physics, carving, wobble/crash, procedural animation, particles. |
+| `TerrainManager.cs` | Infinite procedural road. Rebuilt every frame. Provides `HillAt(z)` / `CurveAt(z)` queries. |
+| `SceneryManager.cs` | World props (trees, rocks, flowers, mailboxes, clouds, animals). Scrolls with terrain offset. |
+| `GarageManager.cs` | Hub world / menu. Builds garage interior in code. Camera lerps between 4 select screens. |
+| `GameCamera.cs` | Chase camera with speed-proportional distance, shake, FOV, curve look-ahead. |
+| `GameUI.cs` | All HUD and menu screens (pixel font, stat pips, speed display, wobble warning). |
+| `MeshKit.cs` | Static utility: `BoxMesh`, `CylinderMesh`, `SphereMesh`, materials. |
+| `BoardBuilder.cs` | Static longboard mesh factory. Same code builds rack display and rideable board. |
+| `CarlBuilder.cs` | Static Carl mesh factory with joint rig for procedural animation. |
+
+### Key patterns
+
+- **Hub-and-spoke** — every subsystem gets a `Main` back-reference; no signals or event bus
+- **No inheritance** — flat classes only; Godot `Node3D` hierarchy is the only composition
+- **Single source of truth** — `Main.CarlStats` feeds both UI stat bars and ride physics
+- **Infinite scrolling** — terrain meshes rebuilt every frame; scenery repositioned via `ScrollOffset`
+- **Garage is code-built** — `Show()`/`Hide()` toggles indoor/outdoor lighting and visibility
+
+### Dependency diagram
+
+```
+Main (root)
+ ├── TerrainManager   → provides height/curve queries
+ ├── PlayerManager    → reads TerrainManager + CarlStats, writes speed/distance
+ ├── SceneryManager   → reads TerrainManager, positions world objects
+ ├── GameCamera       → reads TerrainManager + PlayerManager
+ ├── GameUI           → reads CarlStats + PlayerManager, handles input
+ └── GarageManager    → reads Carl/Board/Level selections, uses BoardBuilder + CarlBuilder
+```
+
 ## Garage layout tool
 
 `garage_layout.py` plots the garage from above with each camera's frustum and checks that
