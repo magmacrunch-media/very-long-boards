@@ -25,8 +25,9 @@ public class TerrainManager
 
     public float CurveAt(float z)
     {
-        if (z < 300f) return 0f;
-        float adjustedZ = z - 300f;
+        // Just enough straight for the countdown and the first push, then it winds.
+        if (z < 60f) return 0f;
+        float adjustedZ = z - 60f;
         return Mathf.Sin(adjustedZ * 0.002f) * 0.18f
              + Mathf.Sin(adjustedZ * 0.0008f) * 0.25f
              + Mathf.Sin(adjustedZ * 0.005f) * 0.08f
@@ -55,10 +56,9 @@ public class TerrainManager
 
     public void Create()
     {
-        // Asphalt road
-        var roadMat = new StandardMaterial3D();
-        roadMat.AlbedoColor = new Color(0.28f, 0.28f, 0.3f);
-        roadMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        // Asphalt road. Textured materials use a white albedo — the texture already carries
+        // the colour, and tinting it again just muddies everything.
+        var roadMat = MeshKit.Mat(Colors.White, texture: TextureKit.Asphalt);
         _roadMesh = new MeshInstance3D();
         _roadMesh.MaterialOverride = roadMat;
 
@@ -80,18 +80,14 @@ public class TerrainManager
         _lineEdgeRMesh.MaterialOverride = edgeMat;
 
         // Dirt shoulder
-        var shoulderMat = new StandardMaterial3D();
-        shoulderMat.AlbedoColor = new Color(0.45f, 0.38f, 0.28f);
-        shoulderMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        var shoulderMat = MeshKit.Mat(Colors.White, texture: TextureKit.Dirt);
         _shoulderLMesh = new MeshInstance3D();
         _shoulderLMesh.MaterialOverride = shoulderMat;
         _shoulderRMesh = new MeshInstance3D();
         _shoulderRMesh.MaterialOverride = shoulderMat;
 
         // Summer grass
-        var grassMat = new StandardMaterial3D();
-        grassMat.AlbedoColor = new Color(0.18f, 0.42f, 0.12f);
-        grassMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        var grassMat = MeshKit.Mat(Colors.White, texture: TextureKit.Grass);
         _groundMesh = new MeshInstance3D();
         _groundMesh.MaterialOverride = grassMat;
 
@@ -109,13 +105,14 @@ public class TerrainManager
     public void Update()
     {
         ScrollOffset = _main.PlayerMgr.Distance;
-        _roadMesh.Mesh = BuildRibbon(RoadW, 0f);
+        // uTile is repeats across the width, vMetres is metres per repeat along the road.
+        _roadMesh.Mesh = BuildRibbon(RoadW, 0f, uTile: 2f, vMetres: 4f);
         _lineCenterMesh.Mesh = BuildRibbon(0.12f, 0.015f);
         _lineEdgeLMesh.Mesh = BuildRibbon(0.1f, 0.015f, -RoadW / 2f + 0.3f);
         _lineEdgeRMesh.Mesh = BuildRibbon(0.1f, 0.015f, RoadW / 2f - 0.3f);
-        _shoulderLMesh.Mesh = BuildRibbon(2f, -0.05f, -RoadW / 2f - 1f);
-        _shoulderRMesh.Mesh = BuildRibbon(2f, -0.05f, RoadW / 2f + 1f);
-        _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f);
+        _shoulderLMesh.Mesh = BuildRibbon(2f, -0.05f, -RoadW / 2f - 1f, uTile: 1f, vMetres: 3f);
+        _shoulderRMesh.Mesh = BuildRibbon(2f, -0.05f, RoadW / 2f + 1f, uTile: 1f, vMetres: 3f);
+        _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f, uTile: 60f, vMetres: 5f);
     }
 
     public void SetMeshesVisible(bool visible)
@@ -129,7 +126,15 @@ public class TerrainManager
         _groundMesh.Visible = visible;
     }
 
-    private Mesh BuildRibbon(float width, float yOffset, float xOffset = 0f)
+    /// <summary>
+    /// One scrolling ribbon of road, shoulder, line or ground.
+    ///
+    /// UVs run u across the width and v along <em>world</em> z, never local z — keyed to local z
+    /// the texture would slide along the tarmac as the world scrolls instead of staying stuck
+    /// to it, which is glaring at speed.
+    /// </summary>
+    private Mesh BuildRibbon(float width, float yOffset, float xOffset = 0f,
+        float uTile = 1f, float vMetres = 4f)
     {
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
@@ -144,13 +149,15 @@ public class TerrainManager
             float cx1 = CurveAt(wz1) * lz1 + xOffset;
             float cy1 = HillAt(wz1) + yOffset;
             float hw = width / 2f;
+            float v0 = wz0 / vMetres;
+            float v1 = wz1 / vMetres;
 
-            st.AddVertex(new Vector3(cx0 - hw, cy0, lz0));
-            st.AddVertex(new Vector3(cx0 + hw, cy0, lz0));
-            st.AddVertex(new Vector3(cx1 - hw, cy1, lz1));
-            st.AddVertex(new Vector3(cx0 + hw, cy0, lz0));
-            st.AddVertex(new Vector3(cx1 + hw, cy1, lz1));
-            st.AddVertex(new Vector3(cx1 - hw, cy1, lz1));
+            st.SetUV(new Vector2(0f, v0));    st.AddVertex(new Vector3(cx0 - hw, cy0, lz0));
+            st.SetUV(new Vector2(uTile, v0)); st.AddVertex(new Vector3(cx0 + hw, cy0, lz0));
+            st.SetUV(new Vector2(0f, v1));    st.AddVertex(new Vector3(cx1 - hw, cy1, lz1));
+            st.SetUV(new Vector2(uTile, v0)); st.AddVertex(new Vector3(cx0 + hw, cy0, lz0));
+            st.SetUV(new Vector2(uTile, v1)); st.AddVertex(new Vector3(cx1 + hw, cy1, lz1));
+            st.SetUV(new Vector2(0f, v1));    st.AddVertex(new Vector3(cx1 - hw, cy1, lz1));
         }
         st.GenerateNormals();
         return st.Commit();

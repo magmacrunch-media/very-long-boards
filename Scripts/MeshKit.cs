@@ -10,12 +10,24 @@ using Godot;
 /// </summary>
 public static class MeshKit
 {
-    /// <summary>Flat-shaded material with specular off — the default look for everything.</summary>
-    public static StandardMaterial3D Mat(Color color, bool specular = false)
+    /// <summary>
+    /// Flat-shaded material with specular off — the default look for everything.
+    /// Pass a <see cref="TextureKit"/> texture to give it a surface; <paramref name="uvScale"/>
+    /// is how many times that texture repeats across the mesh, so bigger means finer.
+    /// TextureFilter is deliberately left at Godot's default (linear + mipmaps) — that blur is
+    /// the N64 artefact we want.
+    /// </summary>
+    public static StandardMaterial3D Mat(Color color, bool specular = false,
+        Texture2D texture = null, float uvScale = 1f)
     {
         var mat = new StandardMaterial3D();
         mat.AlbedoColor = color;
         if (!specular) mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        if (texture != null)
+        {
+            mat.AlbedoTexture = texture;
+            mat.Uv1Scale = new Vector3(uvScale, uvScale, 1f);
+        }
         return mat;
     }
 

@@ -5,7 +5,14 @@ public class SceneryManager
 {
     private Main _main;
 
-    public struct SceneryItem { public Node3D Node; public float WorldZ; public float OffsetX; }
+    /// <summary>
+    /// A scrolling prop. <see cref="Absolute"/> pins it to a fixed point on the course
+    /// (distance markers); everything else recycles through the travelling band.
+    /// </summary>
+    public struct SceneryItem
+    {
+        public Node3D Node; public float WorldZ; public float OffsetX; public bool Absolute;
+    }
     public List<SceneryItem> Items = new List<SceneryItem>();
 
     public struct Cloud { public Node3D Node; public float BaseX; public float BaseZ; public float Height; public float Speed; }
@@ -24,6 +31,25 @@ public class SceneryManager
     public List<Squirrel> Squirrels = new List<Squirrel>();
 
     private Node3D _finishLine;
+
+    // ── The travelling band ──────────────────────
+    // Props live in a fixed-length band that moves with the player and wrap around inside it,
+    // so density stays constant for the whole course instead of running out partway. Sized to
+    // the terrain window so a prop can never appear twice in one view.
+    public static readonly float Band = TerrainManager.Segs * TerrainManager.SegLen;    // 1000 m
+    public static readonly float Behind = TerrainManager.Back * TerrainManager.SegLen;  //  175 m
+
+    // Population per band — these are densities, not totals, because everything recycles.
+    // Density scales the forest; pines are five meshes each, so this is the knob that decides
+    // whether batching becomes necessary.
+    private const float Density = 1.2f;
+    private static int N(int perBand) { return Mathf.RoundToInt(perBand * Density); }
+
+    /// <summary>Where a prop sits right now, wrapped into the band travelling with the player.</summary>
+    private static float WrapRel(float worldZ, float scrollOffset)
+    {
+        return Mathf.PosMod(worldZ - scrollOffset + Behind, Band) - Behind;
+    }
 
     public SceneryManager(Main main)
     {
@@ -48,9 +74,9 @@ public class SceneryManager
         var terrain = _main.Terrain;
 
         // Pine trees (close)
-        for (int i = 0; i < 120; i++)
+        for (int i = 0; i < N(120); i++)
         {
-            float z = rng.RandfRange(-60f, 900f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5.5f + rng.RandfRange(0f, 12f));
             float h = 5f + rng.RandfRange(0f, 7f);
@@ -58,9 +84,9 @@ public class SceneryManager
         }
 
         // Pine trees (far)
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < N(50); i++)
         {
-            float z = rng.RandfRange(-80f, 900f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (18f + rng.RandfRange(0f, 25f));
             float h = 8f + rng.RandfRange(0f, 10f);
@@ -68,9 +94,9 @@ public class SceneryManager
         }
 
         // Deciduous
-        for (int i = 0; i < 40; i++)
+        for (int i = 0; i < N(40); i++)
         {
-            float z = rng.RandfRange(-80f, 900f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (7f + rng.RandfRange(0f, 18f));
             float h = 5f + rng.RandfRange(0f, 5f);
@@ -80,12 +106,14 @@ public class SceneryManager
         // Rocks (roadside) — smoother spheres
         for (int i = 0; i < 20; i++)
         {
-            float z = rng.RandfRange(-50f, 800f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.12f + rng.RandfRange(0f, 0.3f);
             var rockMat = new StandardMaterial3D();
-            rockMat.AlbedoColor = new Color(0.58f + rng.RandfRange(0, 0.04f), 0.56f + rng.RandfRange(0, 0.03f), 0.53f + rng.RandfRange(0, 0.02f));
+            rockMat.AlbedoColor = new Color(0.95f + rng.RandfRange(0, 0.08f), 0.94f + rng.RandfRange(0, 0.06f), 0.92f + rng.RandfRange(0, 0.05f));
+            rockMat.AlbedoTexture = TextureKit.Rock;
+            rockMat.Uv1Scale = new Vector3(1.5f, 1.5f, 1f);
             rockMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
             var rock = MeshKit.Sphere(null, size, rockMat, segments: 6);
             rock.Scale = new Vector3(1f, 0.6f + rng.RandfRange(0, 0.2f), 1f);
@@ -96,7 +124,7 @@ public class SceneryManager
         // Stumps
         for (int i = 0; i < 15; i++)
         {
-            float z = rng.RandfRange(-30f, 700f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 6f));
             AddItem(z, offset, MeshKit.Cylinder(null, 0.15f, 0.15f + rng.RandfRange(0f, 0.2f), MeshKit.Mat(new Color(0.35f, 0.22f, 0.1f)), segments: 6));
@@ -105,7 +133,7 @@ public class SceneryManager
         // Wildflowers — more variety and density
         for (int i = 0; i < 120; i++)
         {
-            float z = rng.RandfRange(-10f, 800f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.2f + rng.RandfRange(0f, 3f));
             var col = new[] {
@@ -119,7 +147,7 @@ public class SceneryManager
         // Ferns — low green fronds
         for (int i = 0; i < 30; i++)
         {
-            float z = rng.RandfRange(-20f, 700f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 3f));
             var fernMat = new StandardMaterial3D();
@@ -146,7 +174,7 @@ public class SceneryManager
         // Bushes — multiple overlapping spheres for organic look
         for (int i = 0; i < 40; i++)
         {
-            float z = rng.RandfRange(-20f, 800f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.15f + rng.RandfRange(0f, 0.25f);
@@ -165,7 +193,7 @@ public class SceneryManager
         // Logs
         for (int i = 0; i < 10; i++)
         {
-            float z = rng.RandfRange(50f, 700f);
+            float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 5f));
             float length = 0.8f + rng.RandfRange(0f, 1.2f);
@@ -221,9 +249,8 @@ public class SceneryManager
         var tree = new Node3D();
 
         // Trunk
-        var trunkMat = new StandardMaterial3D();
-        trunkMat.AlbedoColor = new Color(0.45f, 0.3f, 0.18f);
-        trunkMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        var trunkMat = MeshKit.Mat(new Color(1f, 0.95f + rng.RandfRange(0, 0.1f), 0.95f),
+            texture: TextureKit.Bark, uvScale: 1.5f);
         var trunk = MeshKit.Cylinder(null, 0.04f, h * 0.45f, trunkMat, segments: 6);
         trunk.Position = new Vector3(0, h * 0.22f, 0);
         tree.AddChild(trunk);
@@ -237,9 +264,8 @@ public class SceneryManager
                 float lh = h * 0.22f;
                 float lr = (1f - t * 0.3f) * h * 0.22f;
                 float green = 0.3f + rng.RandfRange(0, 0.05f);
-                var folMat = new StandardMaterial3D();
-                folMat.AlbedoColor = new Color(0.08f + rng.RandfRange(0, 0.03f), green, 0.06f + rng.RandfRange(0, 0.02f));
-                folMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+                var folMat = MeshKit.Mat(new Color(0.9f + rng.RandfRange(0, 0.2f), green * 2.6f,
+                    0.85f + rng.RandfRange(0, 0.2f)), texture: TextureKit.Pine, uvScale: 2f);
                 var foliage = MeshKit.Cylinder(null, lr, lh, folMat, segments: 6);
                 foliage.Position = new Vector3(0, h * 0.3f + j * lh * 0.52f, 0);
                 tree.AddChild(foliage);
@@ -249,9 +275,9 @@ public class SceneryManager
         {
             // Deciduous: bright summer green, multiple spheres
             float canopyR = h * 0.24f;
-            var leafMat = new StandardMaterial3D();
-            leafMat.AlbedoColor = new Color(0.2f + rng.RandfRange(0, 0.07f), 0.52f + rng.RandfRange(0, 0.07f), 0.12f + rng.RandfRange(0, 0.03f));
-            leafMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            var leafMat = MeshKit.Mat(new Color(0.85f + rng.RandfRange(0, 0.25f),
+                0.95f + rng.RandfRange(0, 0.15f), 0.8f + rng.RandfRange(0, 0.2f)),
+                texture: TextureKit.Leaf, uvScale: 1.5f);
 
             var main = MeshKit.Sphere(null, canopyR, leafMat, segments: 6);
             main.Position = new Vector3(0, h * 0.62f, 0);
@@ -461,7 +487,7 @@ public class SceneryManager
         marker.AddChild(MeshKit.Box(null, new Vector3(0.35f, 0.25f, 0.04f), signMat, new Vector3(0, 0.92f, 0)));
 
         _main.AddChild(marker);
-        Items.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = TerrainManager.RoadW / 2f + 0.5f });
+        Items.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = TerrainManager.RoadW / 2f + 0.5f, Absolute = true });
     }
 
     private void CreateClouds()
@@ -498,7 +524,7 @@ public class SceneryManager
             }
 
             float bx = rng.RandfRange(-120f, 120f);
-            float bz = rng.RandfRange(-60f, 500f);
+            float bz = rng.RandfRange(0f, Band);
             float bh = 38f + rng.RandfRange(0f, 30f);
             cloud.Position = new Vector3(bx, bh, bz);
             _main.AddChild(cloud);
@@ -576,7 +602,7 @@ public class SceneryManager
 
             float bx = rng.RandfRange(-30f, 30f);
             float by = 15f + rng.RandfRange(0f, 20f);
-            float bz = rng.RandfRange(-50f, 200f);
+            float bz = rng.RandfRange(0f, Band);
             bird.Position = new Vector3(bx, by, bz);
             _main.AddChild(bird);
             Birds.Add(new Bird { Node = bird, BaseX = bx, BaseY = by, BaseZ = bz, Speed = 3f + rng.RandfRange(0f, 5f), Phase = rng.RandfRange(0, 6f) });
@@ -625,7 +651,7 @@ public class SceneryManager
             tail.Rotation = new Vector3(-0.5f, 0, 0);
             squirrel.AddChild(tail);
 
-            float sz = rng.RandfRange(50f, 600f);
+            float sz = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 3f));
             squirrel.Position = new Vector3(offset, 0.1f, sz);
@@ -687,7 +713,7 @@ public class SceneryManager
 
             float bx = rng.RandfRange(-8f, 8f);
             float by = 1f + rng.RandfRange(0f, 3f);
-            float bz = rng.RandfRange(-20f, 100f);
+            float bz = rng.RandfRange(0f, Band);
             bf.Position = new Vector3(bx, by, bz);
             _main.AddChild(bf);
             Butterflies.Add(new Butterfly { Node = bf, BaseX = bx, BaseY = by, BaseZ = bz, Phase = rng.RandfRange(0, 6f) });
@@ -724,10 +750,17 @@ public class SceneryManager
         var terrain = _main.Terrain;
         foreach (var item in Items)
         {
-            float relZ = item.WorldZ - scrollOffset;
-            float cx = terrain.CurveAt(item.WorldZ) * relZ;
-            float cy = terrain.HillAt(item.WorldZ) - 0.4f;
-            item.Node.Position = new Vector3(item.OffsetX + cx, cy, relZ);
+            float rel = item.Absolute
+                ? item.WorldZ - scrollOffset
+                : WrapRel(item.WorldZ, scrollOffset);
+
+            // Where the prop actually is after wrapping. Height and curve have to come from
+            // this, not from item.WorldZ — a recycled tree has to stand on the hill it lands
+            // on, not the one it was first placed on.
+            float worldZ = scrollOffset + rel;
+            float cx = terrain.CurveAt(worldZ) * rel;
+            float cy = terrain.HillAt(worldZ) - 0.4f;
+            item.Node.Position = new Vector3(item.OffsetX + cx, cy, rel);
         }
     }
 
@@ -739,7 +772,7 @@ public class SceneryManager
             var c = Clouds[i];
             c.BaseX += c.Speed * dt;
             if (c.BaseX > 150f) c.BaseX -= 300f;
-            float relZ = c.BaseZ - terrain.ScrollOffset;
+            float relZ = WrapRel(c.BaseZ, terrain.ScrollOffset);
             c.Node.Position = new Vector3(c.BaseX, c.Height, relZ);
         }
     }
@@ -762,7 +795,7 @@ public class SceneryManager
             var bf = Butterflies[i];
             float x = bf.BaseX + Mathf.Sin(time * 0.8f + bf.Phase) * 2f;
             float y = bf.BaseY + Mathf.Sin(time * 1.2f + bf.Phase * 1.5f) * 0.5f;
-            float relZ = bf.BaseZ - terrain.ScrollOffset;
+            float relZ = WrapRel(bf.BaseZ, terrain.ScrollOffset);
             bf.Node.Position = new Vector3(x, y, relZ);
             bf.Node.Rotation = new Vector3(0, Mathf.Sin(time * 8f + bf.Phase) * 0.3f, 0);
         }
@@ -777,8 +810,7 @@ public class SceneryManager
             var bird = Birds[i];
             float x = bird.BaseX + Mathf.Sin(time * 0.3f + bird.Phase) * 15f;
             float y = bird.BaseY + Mathf.Sin(time * 0.5f + bird.Phase) * 2f;
-            float relZ = bird.BaseZ - terrain.ScrollOffset + time * bird.Speed;
-            if (relZ > 300f) relZ -= 400f;
+            float relZ = WrapRel(bird.BaseZ + time * bird.Speed, terrain.ScrollOffset);
             bird.Node.Position = new Vector3(x, y, relZ);
             bird.Node.Rotation = new Vector3(Mathf.Sin(time * 6f + bird.Phase) * 0.4f, 0, 0);
         }
@@ -791,9 +823,10 @@ public class SceneryManager
         for (int i = 0; i < Squirrels.Count; i++)
         {
             var sq = Squirrels[i];
-            float relZ = sq.WorldZ - terrain.ScrollOffset;
-            float cx = terrain.CurveAt(sq.WorldZ) * relZ;
-            float cy = terrain.HillAt(sq.WorldZ) - 0.3f;
+            float relZ = WrapRel(sq.WorldZ, terrain.ScrollOffset);
+            float worldZ = terrain.ScrollOffset + relZ;
+            float cx = terrain.CurveAt(worldZ) * relZ;
+            float cy = terrain.HillAt(worldZ) - 0.3f;
             // Squirrels twitch and look around
             float twitch = Mathf.Sin(time * 3f + sq.Phase) * 0.1f;
             sq.Node.Position = new Vector3(sq.OffsetX + cx, cy, relZ);
