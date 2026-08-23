@@ -87,7 +87,7 @@ public class SceneryManager
             var rockMat = new StandardMaterial3D();
             rockMat.AlbedoColor = new Color(0.58f + rng.RandfRange(0, 0.04f), 0.56f + rng.RandfRange(0, 0.03f), 0.53f + rng.RandfRange(0, 0.02f));
             rockMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-            var rock = MakeSphereWithMat(size, rockMat);
+            var rock = MeshKit.Sphere(null, size, rockMat, segments: 6);
             rock.Scale = new Vector3(1f, 0.6f + rng.RandfRange(0, 0.2f), 1f);
             rock.Rotation = new Vector3(rng.RandfRange(0, 0.3f), rng.RandfRange(0, 3f), 0);
             AddItem(z, offset, rock);
@@ -99,7 +99,7 @@ public class SceneryManager
             float z = rng.RandfRange(-30f, 700f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 6f));
-            AddItem(z, offset, MakeCylinder(0.15f, 0.15f + rng.RandfRange(0f, 0.2f), new Color(0.35f, 0.22f, 0.1f)));
+            AddItem(z, offset, MeshKit.Cylinder(null, 0.15f, 0.15f + rng.RandfRange(0f, 0.2f), MeshKit.Mat(new Color(0.35f, 0.22f, 0.1f)), segments: 6));
         }
 
         // Wildflowers — more variety and density
@@ -113,7 +113,7 @@ public class SceneryManager
                 new Color(0.88f, 0.88f, 0.92f), new Color(0.68f, 0.48f, 0.88f),
                 new Color(1f, 0.68f, 0.28f)
             }[rng.RandiRange(0, 4)];
-            AddItem(z, offset, MakeSphere(0.04f + rng.RandfRange(0, 0.02f), col));
+            AddItem(z, offset, MeshKit.Sphere(null, 0.04f + rng.RandfRange(0, 0.02f), MeshKit.Mat(col), segments: 6));
         }
 
         // Ferns — low green fronds
@@ -155,8 +155,8 @@ public class SceneryManager
             bushMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
             var bush = new Node3D();
-            bush.AddChild(MakeSphereWithMat(size, bushMat));
-            var puff = MakeSphereWithMat(size * 0.7f, bushMat);
+            bush.AddChild(MeshKit.Sphere(null, size, bushMat, segments: 6));
+            var puff = MeshKit.Sphere(null, size * 0.7f, bushMat, segments: 6);
             puff.Position = new Vector3(size * 0.3f, size * 0.2f, 0);
             bush.AddChild(puff);
             AddItem(z, offset, bush);
@@ -169,7 +169,7 @@ public class SceneryManager
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 5f));
             float length = 0.8f + rng.RandfRange(0f, 1.2f);
-            var log = MakeCylinder(0.06f, length, new Color(0.3f, 0.2f, 0.1f));
+            var log = MeshKit.Cylinder(null, 0.06f, length, MeshKit.Mat(new Color(0.3f, 0.2f, 0.1f)), segments: 6);
             log.Rotation = new Vector3(0, rng.RandfRange(0, Mathf.Pi), Mathf.Pi / 2f);
             AddItem(z, offset, log);
         }
@@ -224,7 +224,7 @@ public class SceneryManager
         var trunkMat = new StandardMaterial3D();
         trunkMat.AlbedoColor = new Color(0.45f, 0.3f, 0.18f);
         trunkMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        var trunk = MakeCylinderWithMat(0.04f, h * 0.45f, trunkMat);
+        var trunk = MeshKit.Cylinder(null, 0.04f, h * 0.45f, trunkMat, segments: 6);
         trunk.Position = new Vector3(0, h * 0.22f, 0);
         tree.AddChild(trunk);
 
@@ -240,7 +240,7 @@ public class SceneryManager
                 var folMat = new StandardMaterial3D();
                 folMat.AlbedoColor = new Color(0.08f + rng.RandfRange(0, 0.03f), green, 0.06f + rng.RandfRange(0, 0.02f));
                 folMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-                var foliage = MakeCylinderWithMat(lr, lh, folMat);
+                var foliage = MeshKit.Cylinder(null, lr, lh, folMat, segments: 6);
                 foliage.Position = new Vector3(0, h * 0.3f + j * lh * 0.52f, 0);
                 tree.AddChild(foliage);
             }
@@ -253,15 +253,15 @@ public class SceneryManager
             leafMat.AlbedoColor = new Color(0.2f + rng.RandfRange(0, 0.07f), 0.52f + rng.RandfRange(0, 0.07f), 0.12f + rng.RandfRange(0, 0.03f));
             leafMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-            var main = MakeSphereWithMat(canopyR, leafMat);
+            var main = MeshKit.Sphere(null, canopyR, leafMat, segments: 6);
             main.Position = new Vector3(0, h * 0.62f, 0);
             tree.AddChild(main);
 
-            var left = MakeSphereWithMat(canopyR * 0.7f, leafMat);
+            var left = MeshKit.Sphere(null, canopyR * 0.7f, leafMat, segments: 6);
             left.Position = new Vector3(-canopyR * 0.4f, h * 0.55f, canopyR * 0.2f);
             tree.AddChild(left);
 
-            var right = MakeSphereWithMat(canopyR * 0.65f, leafMat);
+            var right = MeshKit.Sphere(null, canopyR * 0.65f, leafMat, segments: 6);
             right.Position = new Vector3(canopyR * 0.35f, h * 0.58f, -canopyR * 0.15f);
             tree.AddChild(right);
         }
@@ -284,11 +284,11 @@ public class SceneryManager
         flagMat.AlbedoColor = new Color(0.95f, 0.2f, 0.2f);
 
         // Post
-        box.AddChild(MakeCylinderWithMat(0.035f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
+        box.AddChild(MeshKit.Cylinder(null, 0.035f, 0.9f, postMat, new Vector3(0, 0.45f, 0), segments: 6));
         // Mailbox body
-        box.AddChild(MakeBoxWithMat(new Vector3(0.22f, 0.18f, 0.35f), mailMat, new Vector3(0, 0.92f, 0)));
+        box.AddChild(MeshKit.Box(null, new Vector3(0.22f, 0.18f, 0.35f), mailMat, new Vector3(0, 0.92f, 0)));
         // Flag
-        box.AddChild(MakeBoxWithMat(new Vector3(0.025f, 0.14f, 0.025f), flagMat, new Vector3(0.13f, 0.98f, 0)));
+        box.AddChild(MeshKit.Box(null, new Vector3(0.025f, 0.14f, 0.025f), flagMat, new Vector3(0.13f, 0.98f, 0)));
 
         _main.AddChild(box);
         Items.Add(new SceneryItem { Node = box, WorldZ = z, OffsetX = side * 5f });
@@ -308,8 +308,8 @@ public class SceneryManager
         var signMat = new StandardMaterial3D();
         signMat.AlbedoColor = signColors[rng.RandiRange(0, 2)];
 
-        sign.AddChild(MakeCylinderWithMat(0.03f, 1.5f, postMat, new Vector3(0, 0.75f, 0)));
-        sign.AddChild(MakeBoxWithMat(new Vector3(0.55f, 0.45f, 0.04f), signMat, new Vector3(0, 1.65f, 0)));
+        sign.AddChild(MeshKit.Cylinder(null, 0.03f, 1.5f, postMat, new Vector3(0, 0.75f, 0), segments: 6));
+        sign.AddChild(MeshKit.Box(null, new Vector3(0.55f, 0.45f, 0.04f), signMat, new Vector3(0, 1.65f, 0)));
 
         _main.AddChild(sign);
         Items.Add(new SceneryItem { Node = sign, WorldZ = z, OffsetX = offset });
@@ -349,25 +349,25 @@ public class SceneryManager
         winMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
 
         // Main body
-        AddBoxTo(house, new Vector3(2.5f, 1.8f, 2f), wallMat, new Vector3(0, 0.9f, 0));
+        MeshKit.Box(house, new Vector3(2.5f, 1.8f, 2f), wallMat, new Vector3(0, 0.9f, 0));
         // Roof
-        AddBoxTo(house, new Vector3(2.8f, 0.15f, 2.3f), roofMat, new Vector3(0, 1.85f, 0));
-        AddBoxTo(house, new Vector3(2.8f, 0.6f, 0.12f), roofMat, new Vector3(0, 2.15f, 0));
+        MeshKit.Box(house, new Vector3(2.8f, 0.15f, 2.3f), roofMat, new Vector3(0, 1.85f, 0));
+        MeshKit.Box(house, new Vector3(2.8f, 0.6f, 0.12f), roofMat, new Vector3(0, 2.15f, 0));
         // Door
-        AddBoxTo(house, new Vector3(0.42f, 0.85f, 0.06f), doorMat, new Vector3(0, 0.42f, 1.02f));
+        MeshKit.Box(house, new Vector3(0.42f, 0.85f, 0.06f), doorMat, new Vector3(0, 0.42f, 1.02f));
         // Door handle
         var handleMat = new StandardMaterial3D();
         handleMat.AlbedoColor = new Color(0.7f, 0.65f, 0.3f);
-        AddBoxTo(house, new Vector3(0.04f, 0.04f, 0.04f), handleMat, new Vector3(0.12f, 0.45f, 1.06f));
+        MeshKit.Box(house, new Vector3(0.04f, 0.04f, 0.04f), handleMat, new Vector3(0.12f, 0.45f, 1.06f));
         // Windows
         foreach (var wp in new[] { new Vector3(-0.7f, 1.15f, 1.02f), new Vector3(0.7f, 1.15f, 1.02f) })
         {
-            AddBoxTo(house, new Vector3(0.42f, 0.42f, 0.03f), winMat, wp);
+            MeshKit.Box(house, new Vector3(0.42f, 0.42f, 0.03f), winMat, wp);
             // Window frame
             var frameMat = new StandardMaterial3D();
             frameMat.AlbedoColor = new Color(0.9f, 0.88f, 0.8f);
-            AddBoxTo(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, 0.22f, 0.01f));
-            AddBoxTo(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, -0.22f, 0.01f));
+            MeshKit.Box(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, 0.22f, 0.01f));
+            MeshKit.Box(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, -0.22f, 0.01f));
         }
 
         _main.AddChild(house);
@@ -385,12 +385,12 @@ public class SceneryManager
         railMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
 
         // Bridge deck (wooden planks)
-        AddBoxTo(bridge, new Vector3(TerrainManager.RoadW + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
+        MeshKit.Box(bridge, new Vector3(TerrainManager.RoadW + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
         // Plank lines
         for (int i = 0; i < 6; i++)
         {
             float zOff = i * 1f;
-            AddBoxTo(bridge, new Vector3(TerrainManager.RoadW + 0.8f, 0.01f, 0.04f), woodMat, new Vector3(0, -0.04f, zOff));
+            MeshKit.Box(bridge, new Vector3(TerrainManager.RoadW + 0.8f, 0.01f, 0.04f), woodMat, new Vector3(0, -0.04f, zOff));
         }
 
         // Rails on both sides
@@ -398,11 +398,11 @@ public class SceneryManager
         {
             for (int i = 0; i < 4; i++)
             {
-                var post = MakeCylinderWithMat(0.03f, 1f, railMat);
+                var post = MeshKit.Cylinder(null, 0.03f, 1f, railMat, segments: 6);
                 post.Position = new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.5f, i * 1.5f);
                 bridge.AddChild(post);
             }
-            var bar = MakeBoxWithMat(new Vector3(0.04f, 0.04f, 5.5f), railMat, new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.8f, 2.5f));
+            var bar = MeshKit.Box(null, new Vector3(0.04f, 0.04f, 5.5f), railMat, new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.8f, 2.5f));
             bridge.AddChild(bar);
         }
 
@@ -436,7 +436,7 @@ public class SceneryManager
         {
             float angle = i * Mathf.Pi / 3f;
             float r = 1.8f + rng.RandfRange(0f, 0.5f);
-            var rock = MakeSphereWithMat(0.15f + rng.RandfRange(0f, 0.1f), rockMat);
+            var rock = MeshKit.Sphere(null, 0.15f + rng.RandfRange(0f, 0.1f), rockMat, segments: 6);
             rock.Position = new Vector3(Mathf.Cos(angle) * r, -0.05f, Mathf.Sin(angle) * r);
             stream.AddChild(rock);
         }
@@ -456,9 +456,9 @@ public class SceneryManager
         signMat.AlbedoColor = new Color(1f, 1f, 0.92f);
 
         // Post
-        marker.AddChild(MakeCylinderWithMat(0.03f, 0.9f, postMat, new Vector3(0, 0.45f, 0)));
+        marker.AddChild(MeshKit.Cylinder(null, 0.03f, 0.9f, postMat, new Vector3(0, 0.45f, 0), segments: 6));
         // Sign
-        marker.AddChild(MakeBoxWithMat(new Vector3(0.35f, 0.25f, 0.04f), signMat, new Vector3(0, 0.92f, 0)));
+        marker.AddChild(MeshKit.Box(null, new Vector3(0.35f, 0.25f, 0.04f), signMat, new Vector3(0, 0.92f, 0)));
 
         _main.AddChild(marker);
         Items.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = TerrainManager.RoadW / 2f + 0.5f });
@@ -483,7 +483,7 @@ public class SceneryManager
             cloudMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
             // Main body
-            var main = MakeBoxWithMat(new Vector3(w, h, d), cloudMat);
+            var main = MeshKit.Box(null, new Vector3(w, h, d), cloudMat);
             cloud.AddChild(main);
 
             // Flat puff on top
@@ -493,7 +493,7 @@ public class SceneryManager
                 float pz = rng.RandfRange(-d * 0.3f, d * 0.3f);
                 float puffW = rng.RandfRange(3f, 7f);
                 float puffH = rng.RandfRange(0.5f, 1.5f);
-                var puff = MakeBoxWithMat(new Vector3(puffW, puffH, puffW * 0.6f), cloudMat, new Vector3(px, h * 0.5f + puffH * 0.3f, pz));
+                var puff = MeshKit.Box(null, new Vector3(puffW, puffH, puffW * 0.6f), cloudMat, new Vector3(px, h * 0.5f + puffH * 0.3f, pz));
                 cloud.AddChild(puff);
             }
 
@@ -517,11 +517,11 @@ public class SceneryManager
         bannerMat.AlbedoColor = new Color(1f, 1f, 0.98f);
 
         // Posts
-        _finishLine.AddChild(MakeCylinderWithMat(0.08f, 3.5f, postMat, new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.75f, 0)));
-        _finishLine.AddChild(MakeCylinderWithMat(0.08f, 3.5f, postMat, new Vector3(TerrainManager.RoadW / 2f + 0.5f, 1.75f, 0)));
+        _finishLine.AddChild(MeshKit.Cylinder(null, 0.08f, 3.5f, postMat, new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.75f, 0), segments: 6));
+        _finishLine.AddChild(MeshKit.Cylinder(null, 0.08f, 3.5f, postMat, new Vector3(TerrainManager.RoadW / 2f + 0.5f, 1.75f, 0), segments: 6));
 
         // Banner
-        _finishLine.AddChild(MakeBoxWithMat(new Vector3(TerrainManager.RoadW + 1.5f, 0.7f, 0.06f), bannerMat, new Vector3(0, 3.2f, 0)));
+        _finishLine.AddChild(MeshKit.Box(null, new Vector3(TerrainManager.RoadW + 1.5f, 0.7f, 0.06f), bannerMat, new Vector3(0, 3.2f, 0)));
 
         // Checkered pattern
         for (int i = 0; i < 14; i++)
@@ -529,13 +529,13 @@ public class SceneryManager
             float x = -TerrainManager.RoadW / 2f + 0.2f + i * (TerrainManager.RoadW / 14f);
             var checkMat = new StandardMaterial3D();
             checkMat.AlbedoColor = i % 2 == 0 ? new Color(0.12f, 0.12f, 0.12f) : new Color(0.95f, 0.2f, 0.2f);
-            _finishLine.AddChild(MakeBoxWithMat(new Vector3(TerrainManager.RoadW / 14f - 0.04f, 0.18f, 0.07f), checkMat, new Vector3(x, 2.85f, 0)));
+            _finishLine.AddChild(MeshKit.Box(null, new Vector3(TerrainManager.RoadW / 14f - 0.04f, 0.18f, 0.07f), checkMat, new Vector3(x, 2.85f, 0)));
         }
 
         // "FINISH" text area (white box)
         var textMat = new StandardMaterial3D();
         textMat.AlbedoColor = new Color(0.98f, 0.98f, 0.95f);
-        _finishLine.AddChild(MakeBoxWithMat(new Vector3(2f, 0.3f, 0.07f), textMat, new Vector3(0, 3.6f, 0)));
+        _finishLine.AddChild(MeshKit.Box(null, new Vector3(2f, 0.3f, 0.07f), textMat, new Vector3(0, 3.6f, 0)));
 
         _main.AddChild(_finishLine);
     }
@@ -801,108 +801,15 @@ public class SceneryManager
         }
     }
 
-    // Helpers
-    private MeshInstance3D MakeBox(Vector3 size, Color color, Vector3 pos = default)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        return m;
-    }
+    // ── Helpers ──────────────────────────────────
+    // Geometry comes from MeshKit; props are built as loose nodes (null parent) and
+    // handed to AddItem once assembled.
 
-    private MeshInstance3D MakeCylinder(float topR, float height, Color color, Vector3 pos = default)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new CylinderMesh();
-        mesh.TopRadius = topR;
-        mesh.BottomRadius = topR;
-        mesh.Height = height;
-        mesh.RadialSegments = 6;
-        m.Mesh = mesh;
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        return m;
-    }
-
-    private MeshInstance3D MakeSphere(float radius, Color color)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new SphereMesh();
-        mesh.Radius = radius;
-        mesh.Height = radius * 2f;
-        mesh.Rings = 6;
-        mesh.RadialSegments = 6;
-        m.Mesh = mesh;
-        var mat = new StandardMaterial3D();
-        mat.AlbedoColor = color;
-        mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-        m.MaterialOverride = mat;
-        return m;
-    }
-
+    /// <summary>Parent a finished prop under Main and record it so UpdatePositions can scroll it.</summary>
     private void AddItem(float z, float offset, Node3D node, Vector3 rotation = default)
     {
         node.Rotation = rotation;
         _main.AddChild(node);
         Items.Add(new SceneryItem { Node = node, WorldZ = z, OffsetX = offset });
-    }
-
-    private MeshInstance3D AddBoxTo(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        parent.AddChild(m);
-        return m;
-    }
-
-    private MeshInstance3D MakeCylinderWithMat(float topR, float height, StandardMaterial3D mat, Vector3 pos = default)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new CylinderMesh();
-        mesh.TopRadius = topR;
-        mesh.BottomRadius = topR;
-        mesh.Height = height;
-        mesh.RadialSegments = 6;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        return m;
-    }
-
-    private MeshInstance3D MakeBoxWithMat(Vector3 size, StandardMaterial3D mat, Vector3 pos = default)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new BoxMesh();
-        mesh.Size = size;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        m.Position = pos;
-        return m;
-    }
-
-    private MeshInstance3D MakeSphereWithMat(float radius, StandardMaterial3D mat)
-    {
-        var m = new MeshInstance3D();
-        var mesh = new SphereMesh();
-        mesh.Radius = radius;
-        mesh.Height = radius * 2f;
-        mesh.Rings = 6;
-        mesh.RadialSegments = 6;
-        m.Mesh = mesh;
-        m.MaterialOverride = mat;
-        return m;
     }
 }

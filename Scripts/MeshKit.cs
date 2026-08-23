@@ -1,9 +1,12 @@
 using Godot;
 
 /// <summary>
-/// Primitive mesh helpers shared by the model builders and the garage set dressing.
-/// Every piece of geometry in this game is a box, a cylinder or a sphere, so these
-/// four calls cover the whole art pipeline.
+/// Primitive mesh helpers shared by the model builders, the garage set dressing and the
+/// roadside scenery. Every piece of geometry in this game is a box, a cylinder or a sphere,
+/// so these calls cover the whole art pipeline.
+///
+/// Pass <c>null</c> as the parent to get an unattached mesh back — the scenery builds props
+/// as loose nodes and parents them itself once they're assembled.
 /// </summary>
 public static class MeshKit
 {
@@ -26,7 +29,7 @@ public static class MeshKit
         return mat;
     }
 
-    public static MeshInstance3D Box(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos)
+    public static MeshInstance3D Box(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos = default)
     {
         var m = new MeshInstance3D();
         var mesh = new BoxMesh();
@@ -34,17 +37,17 @@ public static class MeshKit
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
-        parent.AddChild(m);
+        if (parent != null) parent.AddChild(m);
         return m;
     }
 
-    public static MeshInstance3D Box(Node3D parent, Vector3 size, Color color, Vector3 pos)
+    public static MeshInstance3D Box(Node3D parent, Vector3 size, Color color, Vector3 pos = default)
     {
         return Box(parent, size, Mat(color), pos);
     }
 
     public static MeshInstance3D Cylinder(Node3D parent, float topR, float bottomR, float height,
-        StandardMaterial3D mat, Vector3 pos, Vector3 rot = default, int segments = 8)
+        StandardMaterial3D mat, Vector3 pos = default, Vector3 rot = default, int segments = 8)
     {
         var m = new MeshInstance3D();
         var mesh = new CylinderMesh();
@@ -56,22 +59,30 @@ public static class MeshKit
         m.MaterialOverride = mat;
         m.Position = pos;
         m.Rotation = rot;
-        parent.AddChild(m);
+        if (parent != null) parent.AddChild(m);
         return m;
     }
 
-    public static MeshInstance3D Sphere(Node3D parent, float radius, StandardMaterial3D mat, Vector3 pos)
+    /// <summary>Uniform-radius cylinder — trunks, posts, rails and the rest of the scenery.</summary>
+    public static MeshInstance3D Cylinder(Node3D parent, float radius, float height,
+        StandardMaterial3D mat, Vector3 pos = default, int segments = 8)
+    {
+        return Cylinder(parent, radius, radius, height, mat, pos, Vector3.Zero, segments);
+    }
+
+    public static MeshInstance3D Sphere(Node3D parent, float radius, StandardMaterial3D mat,
+        Vector3 pos = default, int segments = 8)
     {
         var m = new MeshInstance3D();
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
         mesh.Rings = 6;
-        mesh.RadialSegments = 8;
+        mesh.RadialSegments = segments;
         m.Mesh = mesh;
         m.MaterialOverride = mat;
         m.Position = pos;
-        parent.AddChild(m);
+        if (parent != null) parent.AddChild(m);
         return m;
     }
 
