@@ -19,7 +19,6 @@ public class PlayerManager
     public float Speed = 0f;
     public float PosX = 0f;
     public float Distance = 0f;
-    public bool Kicked = false;
     public bool Crashed = false;
     public float PushOffTimer = 0f;
     public float SteerSmooth => _steerSmooth;
@@ -219,7 +218,6 @@ public class PlayerManager
         if (Input.IsActionJustPressed("kick_off") && Speed < 0.3f)
         {
             Speed += 0.5f;
-            Kicked = true;
             PushOffTimer = 0.4f;
             _steerSmooth = 0f;
             _boardYaw = 0f;
@@ -514,7 +512,6 @@ public class PlayerManager
         Speed = 0f;
         PosX = 0f;
         Distance = 0f;
-        Kicked = false;
         Crashed = false;
         PushOffTimer = 0f;
         WobbleLevel = 0f;

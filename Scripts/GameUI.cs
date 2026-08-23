@@ -14,7 +14,6 @@ public class GameUI
     private Label _promptLabel;
     private Label _pauseLabel;
     private Label _countdownLabel;
-    private Label _nearMissLabel;
     private Label _wobbleLabel;
     private ColorRect _progressFill;
     private ColorRect _speedVignette;
@@ -22,7 +21,6 @@ public class GameUI
     // Screens
     private Control _titleScreen;
     private Label _titlePrompt;
-    private Control _loadingScreen;
     private Control _charScreen;
     private Control _boardScreen;
 
@@ -54,7 +52,6 @@ public class GameUI
 
         CreateHUD(canvas);
         CreateTitleScreen(canvas);
-        CreateLoadingScreen(canvas);
         CreateCharSelect(canvas);
         CreateBoardSelect(canvas);
         CreateLevelSelect(canvas);
@@ -166,13 +163,7 @@ public class GameUI
         _countdownLabel.OffsetTop = -8;
         _hud.AddChild(_countdownLabel);
 
-        // Near miss (center-low)
-        _nearMissLabel = Retro(5, "", new Color(1f, 0.85f, 0.3f));
-        _nearMissLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _nearMissLabel.OffsetTop = 18;
-        _hud.AddChild(_nearMissLabel);
-
-        // Wobble warning (center-low, below near miss)
+        // Wobble warning (center-low)
         _wobbleLabel = Retro(5, "", new Color(1f, 0.85f, 0.3f));
         _wobbleLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _wobbleLabel.OffsetTop = 24;
@@ -239,25 +230,6 @@ public class GameUI
         if (_titlePrompt == null) return;
         float blink = Mathf.Sin(titleTime * 3f) * 0.3f + 0.7f;
         _titlePrompt.Modulate = new Color(1f, 0.88f, 0.23f, blink);
-    }
-
-    // ── Loading Screen ───────────────────────────
-
-    private void CreateLoadingScreen(CanvasLayer canvas)
-    {
-        _loadingScreen = new Control();
-        _loadingScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _loadingScreen.Visible = false;
-        canvas.AddChild(_loadingScreen);
-
-        var bg = new ColorRect();
-        bg.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        bg.Color = new Color(0.03f, 0.02f, 0.06f, 1f);
-        _loadingScreen.AddChild(bg);
-
-        var text = Retro(5, "LOADING...", new Color(1f, 0.88f, 0.23f));
-        text.SetAnchorsPreset(Control.LayoutPreset.Center);
-        _loadingScreen.AddChild(text);
     }
 
     // ── Character Select ─────────────────────────
@@ -414,10 +386,8 @@ public class GameUI
         _charScreen.Visible = false;
         _boardScreen.Visible = false;
         _levelScreen.Visible = false;
-        _loadingScreen.Visible = false;
         _promptLabel.Text = "";
         _countdownLabel.Text = "";
-        _nearMissLabel.Text = "";
         _wobbleLabel.Text = "";
         _progressFill.AnchorRight = 0f;
     }
@@ -460,7 +430,6 @@ public class GameUI
         _charScreen.Visible = false;
         _boardScreen.Visible = false;
         _levelScreen.Visible = false;
-        _loadingScreen.Visible = false;
         _promptLabel.Text = "";
     }
 

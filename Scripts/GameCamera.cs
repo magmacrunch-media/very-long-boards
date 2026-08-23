@@ -57,14 +57,4 @@ using Godot;
         // Aggressive FOV scaling — much wider at high speed
         cam.Fov = Mathf.Lerp(55f, 78f, speedFactor);
     }
-
-    public void UpdateTitle(float titleTime)
-    {
-        float sway = Mathf.Sin(titleTime * 0.5f) * 0.3f;
-        _main.CameraMount.Position = new Vector3(sway, 5f, -7f);
-        var cam = _main.CameraMount.GetNode<Camera3D>("Camera3D");
-        cam.LookAt(new Vector3(sway * 2f, 0f, 15f), Vector3.Up);
-        cam.Rotation = Vector3.Zero;
-        cam.Fov = 65f;
-    }
 }

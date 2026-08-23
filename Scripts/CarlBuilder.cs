@@ -33,9 +33,6 @@ public static class CarlBuilder
     /// <summary>Sole-to-hip height. Lets callers reason about where his centre of mass sits.</summary>
     public const float HipHeight = 0.48f;
 
-    /// <summary>Sole to the top of his hair, for framing cameras on him.</summary>
-    public const float StandingHeight = 1.56f;
-
     public static Node3D Build(Main.CarlType carl, out CarlJoints joints)
     {
         joints = new CarlJoints();

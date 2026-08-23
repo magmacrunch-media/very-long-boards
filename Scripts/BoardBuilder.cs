@@ -12,9 +12,6 @@ public static class BoardBuilder
     /// <summary>Deck top surface, relative to the board origin — where a rider's soles go.</summary>
     public const float GripTopY = 0.0375f;
 
-    /// <summary>Half the overall deck length (tail tip to nose tip), for rack spacing.</summary>
-    public const float HalfLength = 1.1f;
-
     public static Node3D Build(Main.BoardType type)
     {
         var root = new Node3D();

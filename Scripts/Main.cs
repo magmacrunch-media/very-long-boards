@@ -157,7 +157,6 @@ public partial class Main : Node3D
                 if (CountdownTimer <= 0f)
                 {
                     State = GameState.Riding;
-                    PlayerMgr.Kicked = true;
                     PlayerMgr.Speed = 0.1f;
                     Timer = 0f;
                     UI.SetCountdown("", new Color(1, 1, 1));
