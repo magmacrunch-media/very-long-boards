@@ -212,18 +212,17 @@ public class GarageManager
         sign.Text = "VLB";
         sign.FontSize = 20;
         sign.OutlineSize = 0;
-        sign.MaterialOverride = MeshKit.EmissiveMat(
-            new Color(1f, 0.18f, 0.61f), new Color(1f, 0.18f, 0.61f), 2f);
+        // Modulate, never MaterialOverride — overriding replaces the glyph shader and the
+        // sign renders as a solid rectangle. Label3D is unshaded already, so this reads as neon.
+        sign.Modulate = new Color(1f, 0.32f, 0.70f);
         sign.Position = new Vector3(-1.2f, 4.3f, -2.7f);
         _garageRoot.AddChild(sign);
 
         var tagline = new Label3D();
         tagline.Text = "DOWNHILL SKATEBOARDS";
         tagline.FontSize = 6;
-        var tagMat = MeshKit.EmissiveMat(
-            new Color(1f, 0.18f, 0.61f, 0.5f), new Color(0.3f, 0.05f, 0.18f));
-        tagMat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        tagline.MaterialOverride = tagMat;
+        tagline.OutlineSize = 0;
+        tagline.Modulate = new Color(1f, 0.55f, 0.78f);
         tagline.Position = new Vector3(-1.2f, 4.0f, -2.7f);
         _garageRoot.AddChild(tagline);
     }
@@ -298,8 +297,8 @@ public class GarageManager
         var placard = new Label3D();
         placard.Text = "BOARDS";
         placard.FontSize = 10;
-        placard.MaterialOverride = MeshKit.EmissiveMat(
-            new Color(1f, 0.85f, 0.35f), new Color(0.4f, 0.3f, 0.05f));
+        placard.OutlineSize = 0;
+        placard.Modulate = new Color(1f, 0.85f, 0.35f);
         placard.Position = new Vector3(2f, 2.75f, -2.66f);
         _garageRoot.AddChild(placard);
 

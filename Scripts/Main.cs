@@ -234,13 +234,17 @@ public partial class Main : Node3D
         Scenery.SetItemsVisible(visible);
     }
 
-    /// <summary>Bright summer daylight with distance fog — the look for riding.</summary>
+    /// <summary>
+    /// Bright summer daylight with distance haze — the look for riding. The sky bounce is kept
+    /// weak and near-neutral on purpose: a strong blue ambient turns the grass teal and the
+    /// asphalt purple, which reads as dusk rather than a summer afternoon.
+    /// </summary>
     public void ApplyRideLighting()
     {
-        GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.4f;
+        GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.75f;
         var env = GetNode<WorldEnvironment>("WorldEnvironment").Environment;
-        env.AmbientLightEnergy = 0.8f;
-        env.AmbientLightColor = new Color(0.6f, 0.72f, 0.85f);
+        env.AmbientLightEnergy = 0.55f;
+        env.AmbientLightColor = new Color(0.74f, 0.76f, 0.78f);
         env.FogEnabled = true;
     }
 

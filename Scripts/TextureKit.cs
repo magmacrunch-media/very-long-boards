@@ -90,12 +90,15 @@ public static class TextureKit
                     ? 1f - dx / Mathf.Max(0.12f, v * 1.05f)
                     : 1f - Mathf.Sqrt(dx * dx + Mathf.Pow((v - 0.45f) * 2.1f, 2f));
 
-                // Rag the edge with the same noise the tiling textures use.
+                // Rag the edge with the same noise the tiling textures use. The noise raises
+                // the cut threshold rather than being subtracted from the mask — subtract it and
+                // then also demand 0.5 and almost nothing survives, which left every tree in the
+                // game a six-pixel spike.
                 float n = Fractal(x, y, 6, 3, seed, 1f);
-                float alpha = mask - (1f - n) * 0.55f;
+                bool solid = mask > 0.05f + (1f - n) * 0.35f;
 
                 var c = lo.Lerp(hi, Fractal(x, y, 3, 2, seed + 7, 1f));
-                c.A = alpha > 0.5f ? 1f : 0f;                // hard cut — alpha scissor, not blend
+                c.A = solid ? 1f : 0f;                       // hard cut — alpha scissor, not blend
                 img.SetPixel(x, y, c);
             }
         }

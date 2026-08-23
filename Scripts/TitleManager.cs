@@ -62,8 +62,8 @@ public class TitleManager
     private void BuildGround()
     {
         // Lawn out to well past the treeline; fog and the sky take it from there.
-        MeshKit.Box(_titleRoot, new Vector3(90f, 0.2f, 90f),
-            MeshKit.Mat(Colors.White, texture: TextureKit.Grass, uvScale: 30f),
+        MeshKit.Box(_titleRoot, new Vector3(400f, 0.2f, 400f),
+            MeshKit.Mat(Colors.White, texture: TextureKit.Grass, uvScale: 130f),
             new Vector3(0, -0.1f, 6f));
 
         // Gravel apron running from the door out under the camera.
@@ -86,22 +86,30 @@ public class TitleManager
         MeshKit.Box(_titleRoot, new Vector3(BodyW, BodyH, BodyD), clapboard,
             new Vector3(0, BodyH / 2f, FrontZ - BodyD / 2f));
 
-        // Gable: two pitched slabs meeting over the ridge.
-        float pitch = 0.52f;                       // ~30 degrees
-        float slope = BodyW / 2f / Mathf.Cos(pitch);
+        // Gable: two pitched slabs meeting over the ridge. A slab spans eave to ridge, so its
+        // midpoint sits half the rise above the wall top — put it anywhere else and the slabs
+        // cut through the body instead of capping it.
+        const float Pitch = 0.35f;                          // ~20 degrees
+        float hw = BodyW / 2f;
+        float rise = hw * Mathf.Tan(Pitch);                 // ridge height above the wall top
+        float slabLen = hw / Mathf.Cos(Pitch);
+
         foreach (float side in new[] { -1f, 1f })
         {
-            var roof = MeshKit.Box(_titleRoot, new Vector3(slope + 0.3f, 0.14f, BodyD + 0.6f),
-                shingle, new Vector3(side * BodyW / 4f, BodyH + 0.5f, FrontZ - BodyD / 2f));
-            roof.Rotation = new Vector3(0, 0, -side * pitch);
+            var roof = MeshKit.Box(_titleRoot, new Vector3(slabLen + 0.35f, 0.13f, BodyD + 0.7f),
+                shingle, new Vector3(side * hw / 2f, BodyH + rise / 2f, FrontZ - BodyD / 2f));
+            roof.Rotation = new Vector3(0, 0, -side * Pitch);
         }
 
-        // Gable end filling the triangle under the ridge, and the fascia across the front.
-        MeshKit.Box(_titleRoot, new Vector3(BodyW * 0.5f, 0.9f, 0.12f), clapboard,
-            new Vector3(0, BodyH + 0.42f, FrontZ + 0.02f));
-        MeshKit.Box(_titleRoot, new Vector3(BodyW + 0.4f, 0.16f, 0.16f),
-            MeshKit.Mat(new Color(0.86f, 0.86f, 0.82f)),
-            new Vector3(0, BodyH + 0.06f, FrontZ + 0.06f));
+        // Gable end: a stepped triangle of narrowing boards filling under the ridge. Cheap, and
+        // stepping is more period-honest than trying to cut a true triangle out of boxes.
+        const int Steps = 5;
+        for (int i = 0; i < Steps; i++)
+        {
+            float t = (i + 0.5f) / Steps;                   // 0 at the eave, 1 at the ridge
+            MeshKit.Box(_titleRoot, new Vector3(BodyW * (1f - t), rise / Steps + 0.02f, 0.1f),
+                clapboard, new Vector3(0, BodyH + t * rise, FrontZ + 0.03f));
+        }
     }
 
     private void BuildDoor()
@@ -148,29 +156,30 @@ public class TitleManager
         var board = BoardBuilder.Build(_main.Board);
         // Tail on the gravel, nose tipped back against the clapboard.
         board.Position = new Vector3(DoorW / 2f + 0.75f, 0.62f, FrontZ + 0.34f);
-        board.Rotation = new Vector3(Mathf.Pi / 2f - 0.22f, 0.16f, 0f);
+        board.Rotation = new Vector3(-Mathf.Pi / 2f + 0.22f, 0.16f, 0f);
         _leaningBoard.AddChild(board);
     }
 
     private void BuildSignAndWindow()
     {
-        // VLB sign over the door, same emissive treatment as the one inside.
+        // Sign on the gable, clear of the door header. Modulate rather than MaterialOverride:
+        // overriding a Label3D's material replaces the glyph shader and fills the whole quad.
         var sign = new Label3D();
         sign.Text = "VLB";
         sign.FontSize = 22;
+        sign.PixelSize = 0.018f;      // read from the driveway, not from arm's length
         sign.OutlineSize = 0;
-        sign.MaterialOverride = MeshKit.EmissiveMat(
-            new Color(1f, 0.18f, 0.61f), new Color(1f, 0.18f, 0.61f), 2.2f);
-        sign.Position = new Vector3(0, BodyH - 0.42f, FrontZ + 0.14f);
+        sign.Modulate = new Color(1f, 0.32f, 0.70f);
+        sign.Position = new Vector3(0, BodyH + 0.62f, FrontZ + 0.14f);
         _titleRoot.AddChild(sign);
 
         var tagline = new Label3D();
         tagline.Text = "DOWNHILL SKATEBOARDS";
         tagline.FontSize = 7;
+        tagline.PixelSize = 0.018f;
         tagline.OutlineSize = 0;
-        tagline.MaterialOverride = MeshKit.EmissiveMat(
-            new Color(1f, 0.55f, 0.78f), new Color(0.4f, 0.08f, 0.22f));
-        tagline.Position = new Vector3(0, BodyH - 0.72f, FrontZ + 0.14f);
+        tagline.Modulate = new Color(1f, 0.62f, 0.82f);
+        tagline.Position = new Vector3(0, BodyH + 0.24f, FrontZ + 0.14f);
         _titleRoot.AddChild(tagline);
 
         // Lit side window — the hint that the garage is where you're headed.
