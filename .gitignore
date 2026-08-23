@@ -1,6 +1,7 @@
 # Godot-specific
 .godot/
-*.import
+# NOTE: *.import files are deliberately NOT ignored. Godot needs them to load
+# assets; without them a fresh clone silently falls back to default resources.
 
 # Build
 bin/
