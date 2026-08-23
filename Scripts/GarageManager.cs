@@ -13,7 +13,7 @@ using Godot;
 public class GarageManager
 {
     /// <summary>Which camera setup the garage is holding. One per game screen.</summary>
-    public enum Shot { Title, Char, Board, Level }
+    public enum Shot { Char, Board, Level }
 
     private Main _main;
     private Node3D _garageRoot;
@@ -575,12 +575,10 @@ public class GarageManager
     public void Show()
     {
         _garageRoot.Visible = true;
-        // Hide the rider, never the Player node — CameraMount hangs off it and Godot
-        // switches off a Camera3D that isn't visible in the tree.
-        _main.PlayerMgr.SetVisible(false);
+        _main.SetRideWorldVisible(false);
+        // Park the Player at the origin — CameraMount hangs off it, so the world-absolute
+        // camera positions below only line up while it sits there.
         _main.Player.Position = Vector3.Zero;
-        _main.Terrain.SetMeshesVisible(false);
-        _main.Scenery.SetItemsVisible(false);
         _main.GetNode<DirectionalLight3D>("Sun").LightEnergy = 0.1f;
 
         // The world environment's bright blue sky ambient is tuned for riding outdoors;
@@ -592,18 +590,13 @@ public class GarageManager
         env.FogEnabled = false;
     }
 
+    /// <summary>
+    /// Put the garage away. Only the garage — restoring the ride world is Main's job, because
+    /// leaving the garage no longer always means going riding.
+    /// </summary>
     public void Hide()
     {
         _garageRoot.Visible = false;
-        _main.PlayerMgr.SetVisible(true);
-        _main.Terrain.SetMeshesVisible(true);
-        _main.Scenery.SetItemsVisible(true);
-        _main.GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.4f;
-
-        var env = GarageEnv();
-        env.AmbientLightEnergy = 0.8f;
-        env.AmbientLightColor = new Color(0.6f, 0.72f, 0.85f);
-        env.FogEnabled = true;
     }
 
     private Godot.Environment GarageEnv()
@@ -628,14 +621,6 @@ public class GarageManager
 
         switch (shot)
         {
-            case Shot.Char:
-                // Framed so his soles clear the info block at the bottom of the screen
-                // and there's headroom above — full figure, not a crop.
-                targetPos = new Vector3(1.26f, 1.85f, 3.79f);
-                targetLook = new Vector3(PodiumX, 1.25f, PodiumZ);
-                targetFov = 45f;
-                break;
-
             case Shot.Board:
                 // Pulled back far enough that the selected board, which sits ~0.3m nearer
                 // the lens than its neighbours, still fits inside the frame.
@@ -653,15 +638,10 @@ public class GarageManager
                 break;
 
             default:
-                // Title — eye-level establishing shot from the front-left corner, drifting
-                // slowly. Shot down the room's diagonal so Carl reads in the near-left and
-                // the board rack sits behind him: both subjects land inside one 48deg frame.
-                float t = _main.TitleTime;
-                targetPos = new Vector3(-4.2f + Mathf.Sin(t * 0.25f) * 0.3f,
-                                        1.9f + Mathf.Sin(t * 0.19f) * 0.12f,
-                                        4.4f);
-                targetLook = new Vector3(0.0f, 1.25f, -1.2f);
-                targetFov = 48f;
+                // Char — framed so his soles clear the info block and there's headroom above.
+                targetPos = new Vector3(1.26f, 1.85f, 3.79f);
+                targetLook = new Vector3(PodiumX, 1.25f, PodiumZ);
+                targetFov = 45f;
                 break;
         }
 

@@ -17,11 +17,17 @@ speed wobble sets in. The pips live in `Main.CarlStats` and are the single sourc
 the bars on the select screen and the numbers `PlayerManager` rides with both derive from that
 one table, so they can't drift apart. Tune a rider by changing a pip.
 
+## The title screen
+
+The garage seen from the driveway on a summer afternoon — door closed under a lit VLB sign,
+the board you last picked leaning by the jamb, treeline round the clearing. Pressing ↑ takes
+you inside.
+
 ## The garage
 
-The garage is the hub and doubles as the title screen — only the camera moves between
-screens. Carl stands on a lit podium, four boards hang face-out on a rack against the back
-wall, and the courses are posters along the left wall.
+The garage is the hub. Carl stands on a lit podium, four boards hang face-out on a rack
+against the back wall, and the courses are posters along the left wall. Only the camera moves
+between the three select screens.
 
 ## Courses
 
@@ -75,7 +81,8 @@ the garage hub and menu screens.
 | `PlayerManager.cs` | Player controller. Physics, carving, wobble/crash, procedural animation, particles. |
 | `TerrainManager.cs` | Infinite procedural road. Rebuilt every frame. Provides `HillAt(z)` / `CurveAt(z)` queries. |
 | `SceneryManager.cs` | World props (trees, rocks, flowers, mailboxes, clouds, animals). Scrolls with terrain offset. |
-| `GarageManager.cs` | Hub world / menu. Builds garage interior in code. Camera lerps between 4 select screens. |
+| `GarageManager.cs` | Hub world / menu. Builds garage interior in code. Camera lerps between the 3 select screens. |
+| `TitleManager.cs` | Title world. The garage exterior, built in code, with its own light and camera drift. |
 | `GameCamera.cs` | Chase camera with speed-proportional distance, shake, FOV, curve look-ahead. |
 | `GameUI.cs` | All HUD and menu screens (pixel font, stat pips, speed display, wobble warning). |
 | `MeshKit.cs` | Static utility: `BoxMesh`, `CylinderMesh`, `SphereMesh`, materials. |
@@ -88,7 +95,8 @@ the garage hub and menu screens.
 - **No inheritance** — flat classes only; Godot `Node3D` hierarchy is the only composition
 - **Single source of truth** — `Main.CarlStats` feeds both UI stat bars and ride physics
 - **Infinite scrolling** — terrain meshes rebuilt every frame; scenery repositioned via `ScrollOffset`
-- **Garage is code-built** — `Show()`/`Hide()` toggles indoor/outdoor lighting and visibility
+- **Three worlds, one scene** — title, garage and road each own only their own root and
+  lighting; `Main` decides which is live via `SetRideWorldVisible()` / `ApplyRideLighting()`
 
 ### Dependency diagram
 
@@ -99,7 +107,8 @@ Main (root)
  ├── SceneryManager   → reads TerrainManager, positions world objects
  ├── GameCamera       → reads TerrainManager + PlayerManager
  ├── GameUI           → reads CarlStats + PlayerManager, handles input
- └── GarageManager    → reads Carl/Board/Level selections, uses BoardBuilder + CarlBuilder
+ ├── GarageManager    → reads Carl/Board/Level selections, uses BoardBuilder + CarlBuilder
+ └── TitleManager     → garage exterior; reads Board for the deck by the door
 ```
 
 ## Garage layout tool

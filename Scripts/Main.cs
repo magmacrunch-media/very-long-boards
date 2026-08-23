@@ -92,6 +92,7 @@ public partial class Main : Node3D
     public GameUI UI;
     public GameCamera Cam;
     public GarageManager Garage;
+    public TitleManager Title;
 
     public override void _Ready()
     {
@@ -104,6 +105,7 @@ public partial class Main : Node3D
         UI = new GameUI(this);
         Cam = new GameCamera(this);
         Garage = new GarageManager(this);
+        Title = new TitleManager(this);
 
         Terrain.Create();
         PlayerMgr.Create();
@@ -111,10 +113,11 @@ public partial class Main : Node3D
         Cam.Create();
         UI.Create();
         Garage.Create();
+        Title.Create();
 
-        // The title screen is a shot of the garage, so open the game standing inside it.
-        Garage.Show();
-        Garage.ResetCamera();
+        // Open outside the garage, not in it.
+        Title.Show();
+        Title.ResetCamera();
         UI.ShowTitle(this);
     }
 
@@ -130,7 +133,7 @@ public partial class Main : Node3D
         {
             case GameState.Title:
                 TitleTime += dt;
-                Garage.UpdateCamera(dt, GarageManager.Shot.Title);
+                Title.UpdateCamera(dt);
                 UI.UpdateTitleBlink(TitleTime);
                 UI.HandleTitleInput(this);
                 break;
@@ -220,16 +223,43 @@ public partial class Main : Node3D
         }
     }
 
+    /// <summary>
+    /// Show or hide everything that belongs to the ride. The world managers own only their own
+    /// geometry now, so switching between title, garage and road is Main's call.
+    /// </summary>
+    public void SetRideWorldVisible(bool visible)
+    {
+        PlayerMgr.SetVisible(visible);
+        Terrain.SetMeshesVisible(visible);
+        Scenery.SetItemsVisible(visible);
+    }
+
+    /// <summary>Bright summer daylight with distance fog — the look for riding.</summary>
+    public void ApplyRideLighting()
+    {
+        GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.4f;
+        var env = GetNode<WorldEnvironment>("WorldEnvironment").Environment;
+        env.AmbientLightEnergy = 0.8f;
+        env.AmbientLightColor = new Color(0.6f, 0.72f, 0.85f);
+        env.FogEnabled = true;
+    }
+
+    // Each transition resets the camera of the world being entered. Without that the camera
+    // lerps between two worlds' coordinates and sweeps through the scenery on the way.
     public void ShowTitle()
     {
-        Garage.Show();
+        Garage.Hide();
+        Title.Show();
+        Title.ResetCamera();
         State = GameState.Title;
         UI.ShowTitle(this);
     }
 
     public void ShowCharSelect()
     {
+        Title.Hide();
         Garage.Show();
+        Garage.ResetCamera();
         State = GameState.CharSelect;
         UI.ShowCharSelect(this);
     }
@@ -262,6 +292,8 @@ public partial class Main : Node3D
     public void StartRide()
     {
         Garage.Hide();
+        SetRideWorldVisible(true);
+        ApplyRideLighting();
         UI.ShowHUD();
         State = GameState.Countdown;
         CountdownTimer = 3f;
@@ -276,7 +308,7 @@ public partial class Main : Node3D
         PlayerMgr.Reset();
         Terrain.Update();
         Scenery.UpdatePositions(Terrain.ScrollOffset);
-        Garage.ResetCamera();
+        SetRideWorldVisible(false);
         ShowTitle();
     }
 
