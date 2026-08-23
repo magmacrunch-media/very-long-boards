@@ -21,6 +21,10 @@ public class PlayerManager
     public float Distance = 0f;
     public bool Crashed = false;
     public float PushOffTimer = 0f;
+    private float _pushAccel = 0f;
+
+    /// <summary>Where we are in the current kick, 0 at the windup through 1 at recovery.</summary>
+    public float PushPhase => PushOffTimer > 0f ? 1f - PushOffTimer / PushStroke : 0f;
     public float SteerSmooth => _steerSmooth;
 
     // Internal state
@@ -31,11 +35,21 @@ public class PlayerManager
     public float WobbleLevel = 0f;
     private float _timeSinceCarve = 0f;
 
-    // Constants
-    private const float Gravity = 0.05f;
-    private const float Friction = 0.9997f;
+    // ── Constants ───────────────────────────────────────────────────────
+    // SI throughout: 1 world unit = 1 metre, Speed is metres/second, Distance is metres.
+    // Every number below is mirrored in physics_sim.py — tune there, then port.
+    private const float Gravity = 9.81f;        // Speed += -slope * Gravity * dt  is  a = g*sin(theta)
+    private const float SpeedFloor = 2.5f;      // bog down on the worst climbs, never dead stop
+    private const float PushStroke = 0.45f;     // seconds for one kick cycle — also the cooldown
+    private const float PushTopSpeed = 8f;      // m/s (29 km/h); past this your leg can't keep up
+    private const float PushBoost = 2.5f;       // m/s a push adds from a standstill
+    private const float PushDriveStart = 0.25f; // fraction of the stroke where the foot plants
+    private const float PushDriveEnd = 0.70f;   // ...and where it leaves the road
+    private const float BrakeDecel = 6f;        // m/s^2 on the foot brake
+    private const float ShoulderDragRate = 1.8f;// speed bled per second off the tarmac
+    private const float CarveDragRate = 0.6f;   // speed bled per second at full lock
+    private const float WobbleDrift = 0.15f;    // lateral metres per second per unit wobble
     private const float AnimLerp = 8f;
-    private const float CarvingDrag = 0.01f;
 
     private const float SteerSmoothRate = 12f;
     private const float YawPerSteer = 0.55f;
@@ -51,16 +65,18 @@ public class PlayerManager
     // Baselines for a hypothetical 3-pip rider; ApplyStats() scales them by the
     // selected Carl's CarlStat. Every derived field is seeded with its baseline so
     // MaxSpeed is never zero — speedFactor divides by it before a ride even starts.
-    private const float BaseMaxSpeed = 11f;
-    private const float BaseHandling = 0.15f;
+    private const float BaseMaxSpeed = 21f;       // m/s — 76 km/h
+    private const float BaseDrag = 0.0032f;       // quadratic air drag; this sets terminal velocity
+    private const float BaseHandling = 1.0f;
     private const float BaseWobbleBuild = 0.35f;
-    private const float BaseWobbleThreshold = 0.50f;
+    private const float BaseWobbleOnset = 15.8f;  // m/s — 57 km/h
 
     /// <summary>Top speed for the current Carl. Read by the HUD and the chase camera.</summary>
     public float MaxSpeed { get; private set; } = BaseMaxSpeed;
+    private float _drag = BaseDrag;
     private float _handling = BaseHandling;
     private float _wobbleBuild = BaseWobbleBuild;
-    private float _wobbleOnsetSpeed = BaseMaxSpeed * BaseWobbleThreshold;
+    private float _wobbleOnsetSpeed = BaseWobbleOnset;
 
     // Particles
     private GpuParticles3D _dustParticles;
@@ -88,7 +104,12 @@ public class PlayerManager
     {
         var s = Main.CarlStats[(int)_main.Carl];
 
-        MaxSpeed = BaseMaxSpeed * Pip(s.Speed, 0.82f, 1.18f);
+        MaxSpeed = BaseMaxSpeed * Pip(s.Speed, 0.88f, 1.12f);
+
+        // SPD buys a lower drag coefficient, so a fast Carl genuinely reaches a higher
+        // terminal velocity instead of carrying a ceiling he never touches.
+        _drag = BaseDrag * Pip(s.Speed, 1.18f, 0.82f);
+
         _handling = BaseHandling * Pip(s.Handling, 0.82f, 1.18f);
 
         // More trucks means wobble builds slower once it starts...
@@ -98,7 +119,7 @@ public class PlayerManager
         // BaseMaxSpeed rather than this rider's MaxSpeed. Gate wobble on a fraction of the
         // rider's own top speed and a fast Carl reaches any given speed at a lower fraction,
         // so raising his SPD would quietly cancel his own TRK penalty.
-        _wobbleOnsetSpeed = BaseMaxSpeed * BaseWobbleThreshold * Pip(s.Tracking, 0.85f, 1.15f);
+        _wobbleOnsetSpeed = BaseWobbleOnset * Pip(s.Tracking, 0.85f, 1.15f);
     }
 
     /// <summary>Map a 1-5 stat pip onto a multiplier range. Three pips lands mid-range.</summary>
@@ -215,49 +236,59 @@ public class PlayerManager
         float slope = (terrain.HillAt(Distance + 3f) - terrain.HillAt(Distance)) / 3f;
 
         // ── Push off ──
-        if (Input.IsActionJustPressed("kick_off") && Speed < 0.3f)
-        {
-            Speed += 0.5f;
-            PushOffTimer = 0.4f;
-            _steerSmooth = 0f;
-            _boardYaw = 0f;
-            _boardRoll = 0f;
-        }
+        // You can get a foot down until you're moving faster than your leg can swing — past
+        // PushTopSpeed a kick gives nothing. Each push adds less than the last, so a few
+        // strokes get you rolling and gravity takes it from there.
         PushOffTimer = Mathf.Max(0f, PushOffTimer - dt);
+        if (Input.IsActionJustPressed("kick_off") && PushOffTimer <= 0f)
+        {
+            float bite = Mathf.Clamp(1f - Speed / PushTopSpeed, 0f, 1f);
+            if (bite > 0.02f)
+            {
+                // Spread the shove across the drive phase so it lands with the animation
+                // instead of teleporting the speed on a single frame.
+                _pushAccel = PushBoost * bite / (PushStroke * (PushDriveEnd - PushDriveStart));
+                PushOffTimer = PushStroke;
+            }
+        }
 
-        // ── Slope & friction ──
-        Speed += -slope * Gravity * dt * 60f;
-        Speed *= Mathf.Pow(Friction, dt * 60f);
+        // ── Slope, air drag, and any push in progress ──
+        // Gravity down the grade against quadratic air drag. Drag, not the clamp, is what
+        // actually settles top speed — the clamp is only a safety rail.
+        float pushAccel = (PushOffTimer > 0f && PushPhase >= PushDriveStart && PushPhase <= PushDriveEnd)
+            ? _pushAccel : 0f;
+        Speed += (-slope * Gravity - _drag * Speed * Speed + pushAccel) * dt;
         float speedFactor = Mathf.Clamp(Speed / MaxSpeed, 0f, 1f);
 
         // ── Braking ──
+        // A foot brake bites below ~70% of top speed and fades to nothing by 85% — past
+        // that you're committed and have to carve the speed off instead.
         if (braking)
         {
-            if (speedFactor < BrakeSpeedThreshold)
-                Speed *= Mathf.Pow(0.95f, dt * 60f);
+            float bite = 0f;
+            if (speedFactor < BrakeSpeedThreshold) bite = 1f;
             else if (speedFactor < BrakeCutoff)
-            {
-                float brakeFade = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
-                Speed *= Mathf.Pow(Mathf.Lerp(1f, 0.95f, brakeFade), dt * 60f);
-            }
+                bite = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
+            Speed -= BrakeDecel * bite * dt;
         }
 
         // ── Shoulder drag ──
         if (Mathf.Abs(PosX) > 3.5f)
-            Speed *= Mathf.Pow(0.97f, dt * 60f);
+            Speed -= Speed * ShoulderDragRate * dt;
 
         // ── Carving drag — steering bleeds speed (quadratic: gentle carving negligible, hard carving significant) ──
         float steerAmount = _steerSmooth * _steerSmooth;
-        float carveDrag = steerAmount * CarvingDrag * speedFactor;
-        Speed *= Mathf.Pow(1f - carveDrag, dt * 60f);
+        Speed -= Speed * steerAmount * CarveDragRate * speedFactor * dt;
 
         // ── Steering ──
-        float targetSteer = (PushOffTimer > 0f) ? 0f : steer;
+        // Damped while a foot is off the board — you're on one leg, not paralysed.
+        float targetSteer = (PushOffTimer > 0f) ? steer * 0.35f : steer;
         _steerSmooth = Mathf.Lerp(_steerSmooth, targetSteer, SteerSmoothRate * dt);
         if (Mathf.Abs(_steerSmooth) < 0.005f) _steerSmooth = 0f;
 
         float handlingScale = 1f - WobbleLevel * 0.4f;
-        PosX += _steerSmooth * _handling * handlingScale * dt * 60f * (0.3f + Speed * 0.5f);
+        // Carving bites harder the faster you're travelling, but never drops to nothing.
+        PosX += _steerSmooth * _handling * handlingScale * (2f + Speed * 0.12f) * dt;
 
         // ── Wobble ──
         bool isSteering = Mathf.Abs(_steerSmooth) > 0.1f;
@@ -288,13 +319,13 @@ public class PlayerManager
         if (WobbleLevel > 0.3f)
         {
             float time = (float)Time.GetTicksMsec() * 0.001f;
-            float drift = Mathf.Sin(time * 11f) * WobbleLevel * 0.08f * Speed * dt * 60f;
+            float drift = Mathf.Sin(time * 11f) * WobbleLevel * WobbleDrift * Speed * dt;
             PosX += drift;
         }
 
         PosX = Mathf.Clamp(PosX, -4.5f, 4.5f);
-        Speed = Mathf.Clamp(Speed, 0.02f, MaxSpeed);
-        Distance += Speed * dt * 60f;
+        Speed = Mathf.Clamp(Speed, SpeedFloor, MaxSpeed);
+        Distance += Speed * dt;
 
         float groundY = terrain.HillAt(Distance);
         float playerY = groundY + 0.045f + Mathf.Sin(Mathf.Abs(_boardPitch)) * 0.55f + Mathf.Sin(Mathf.Abs(_boardRoll)) * 0.3f;
@@ -342,10 +373,7 @@ public class PlayerManager
 
             // Road direction — board yaw aligns with the road's curve
             float roadYaw = terrain.CurveAt(Distance);
-            float finalPitch = (PushOffTimer > 0f) ? 0f : _boardPitch;
-            float finalYaw = (PushOffTimer > 0f) ? 0f : roadYaw + _boardYaw;
-            float finalRoll = (PushOffTimer > 0f) ? 0f : _boardRoll + wobbleRoll;
-            _skaterRoot.Rotation = new Vector3(finalPitch, finalYaw, finalRoll);
+            _skaterRoot.Rotation = new Vector3(_boardPitch, roadYaw + _boardYaw, _boardRoll + wobbleRoll);
         }
 
         // Procedural animation (the sideways stance is baked into the rig by CarlBuilder)
@@ -419,18 +447,36 @@ public class PlayerManager
             armOutBase = 0.5f;
         }
 
-        // Push-off kick animation — back leg extends, torso leans forward, arms swing
+        // Push-off stroke, in three beats: the back foot lifts and reaches forward (windup),
+        // plants and sweeps back down the road (drive), then folds back onto the deck.
+        float pushDip = 0f;
         if (PushOffTimer > 0f)
         {
-            float pt = PushOffTimer / 0.4f;
-            float kick = Mathf.Sin(pt * Mathf.Pi) * 0.45f;
-            legRPitch += kick;
-            kneeRBend += kick * 0.5f;
-            spinePitch -= kick * 0.2f;
-            // Arms swing forward during kick
-            armLPitch += kick * 0.3f;
-            armRPitch += kick * 0.3f;
-            armOutBase -= kick * 0.2f;
+            float p = PushPhase;
+            float windup = Bump(p, 0f, PushDriveStart);
+            float drive = Bump(p, PushDriveStart, PushDriveEnd);
+
+            // Back leg: reaches ahead on the windup, then drives back and straightens.
+            legRPitch += drive * 1.15f - windup * 0.30f;
+            kneeRBend += drive * 0.35f - windup * 0.25f;
+
+            // Standing leg takes the whole rider and compresses under him.
+            kneeLBend -= drive * 0.30f;
+            legLPitch += drive * 0.10f;
+
+            // Torso folds forward over the front foot and counter-rotates into the push.
+            spinePitch -= drive * 0.35f;
+            spineYaw += drive * 0.12f;
+            hipRoll += drive * 0.08f;
+
+            // Arms swing opposite the leg for balance.
+            armLPitch += drive * 0.45f;
+            armRPitch -= drive * 0.30f;
+            armOutBase += drive * 0.25f;
+
+            // ...and the whole body drops as he loads that standing leg. Rotations alone
+            // can't sell a push — the dip is what makes it read as pushing off the road.
+            pushDip = drive * 0.07f;
         }
 
         // Wobble shake
@@ -471,10 +517,18 @@ public class PlayerManager
             spinePitch += 0.1f;
         }
 
-        // Lerp joints
+        // Lerp joints. dt == 0 means "snap to this pose now" — CreateBody() and Reset()
+        // both call in that way to put Carl back in his neutral stance.
         if (_joints == null) return;
-        float lerp = AnimLerp * dt;
+        float lerp = (dt <= 0f) ? 1f : Mathf.Min(1f, AnimLerp * dt);
         var j = _joints;
+
+        if (_carl != null)
+        {
+            float targetY = DeckY + BoardBuilder.GripTopY - pushDip;
+            var cp = _carl.Position;
+            _carl.Position = new Vector3(cp.X, Mathf.Lerp(cp.Y, targetY, lerp), cp.Z);
+        }
         j.Hip.Rotation = LerpVec(j.Hip.Rotation, new Vector3(hipPitch, hipYaw, hipRoll), lerp);
         j.Spine.Rotation = LerpVec(j.Spine.Rotation, new Vector3(spinePitch, spineYaw, spineRoll), lerp);
         j.Neck.Rotation = LerpVec(j.Neck.Rotation, new Vector3(neckPitch, neckYaw, neckRoll), lerp);
@@ -486,6 +540,13 @@ public class PlayerManager
         j.KneeL.Rotation = LerpVec(j.KneeL.Rotation, new Vector3(kneeLBend, 0, 0), lerp);
         j.LegR.Rotation = LerpVec(j.LegR.Rotation, new Vector3(legRPitch, 0, 0), lerp);
         j.KneeR.Rotation = LerpVec(j.KneeR.Rotation, new Vector3(kneeRBend, 0, 0), lerp);
+    }
+
+    /// <summary>Rises 0 -> 1 -> 0 across [a, b] and is flat outside it. One beat of a stroke.</summary>
+    private static float Bump(float p, float a, float b)
+    {
+        if (p <= a || p >= b) return 0f;
+        return Mathf.Sin((p - a) / (b - a) * Mathf.Pi);
     }
 
     private static Vector3 LerpVec(Vector3 from, Vector3 to, float t)
@@ -514,6 +575,7 @@ public class PlayerManager
         Distance = 0f;
         Crashed = false;
         PushOffTimer = 0f;
+        _pushAccel = 0f;
         WobbleLevel = 0f;
         _timeSinceCarve = 0f;
         _steerSmooth = 0f;

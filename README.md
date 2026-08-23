@@ -112,6 +112,27 @@ into `GarageManager.cs` — the anchors are mirrored in both files.
 python3 garage_layout.py
 ```
 
+## Ride physics tool
+
+`physics_sim.py` mirrors `TerrainManager.HillAt()` and the speed integration in
+`PlayerManager.Update()` and simulates a full run for each Carl — run length, average and
+peak km/h, time spent bogged down, and how much of the ride sits in the wobble band. Tune
+the constants there, check the report, then port them into the C# — same workflow as the
+garage tool, and the constants are mirrored in both files.
+
+```bash
+python3 physics_sim.py
+```
+
+The ride is SI: **1 world unit = 1 metre, `Speed` is m/s**. Gravity is real gravity and top
+speed is settled by quadratic air drag rather than by a hard cap, so the grade numbers in
+`HillAt()` mean what they say. Two rules worth keeping in mind when reshaping a course:
+
+- **Steepness is amplitude x frequency, not amplitude.** A 0.9 m roll over a 66 m
+  wavelength is steeper than a 5.5 m roll over 1257 m.
+- **Total relief has to stay under what a rider can climb on momentum** (`v^2/2g`, about
+  22 m at top speed), or he bogs down on every crest and the ride dies.
+
 ## License
 
 Private project — not for distribution.

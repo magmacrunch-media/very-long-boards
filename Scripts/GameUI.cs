@@ -483,7 +483,7 @@ public class GameUI
     public void UpdateHUD(Main main)
     {
         var player = main.PlayerMgr;
-        float kmh = player.Speed * 14f;
+        float kmh = player.Speed * 3.6f;   // Speed is m/s
         _speedLabel.Text = $"{kmh:F0} km/h";
 
         float speedRatio = Mathf.Clamp(player.Speed / player.MaxSpeed, 0f, 1f);

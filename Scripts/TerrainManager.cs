@@ -33,15 +33,23 @@ public class TerrainManager
              + Mathf.Sin(adjustedZ * 0.012f) * 0.04f;
     }
 
+    /// <summary>
+    /// Road height in metres. Flat start area, then rolling hills.
+    ///
+    /// Steepness is amplitude x frequency, so the short-wavelength terms are what make the
+    /// course feel steep — the long ones only make it tall. Total relief has to stay inside
+    /// what a rider can climb on carried momentum (v^2/2g), or he bogs down on every crest
+    /// and the whole ride dies. Tune in physics_sim.py, which mirrors this function.
+    /// </summary>
     public float HillAt(float z)
     {
-        // Flat start area, then rolling hills
         if (z < 20f) return 0f;
         float adjustedZ = z - 20f;
-        float baseHill = Mathf.Sin(adjustedZ * 0.004f) * 18f
-                       + Mathf.Sin(adjustedZ * 0.009f) * 10f
-                       + Mathf.Sin(adjustedZ * 0.02f) * 5f;
-        float downhill = -adjustedZ * 0.05f;
+        float baseHill = Mathf.Sin(adjustedZ * 0.005f) * 5.5f    // landscape roll, 1257 m
+                       + Mathf.Sin(adjustedZ * 0.016f) * 4.0f    // long hills,      393 m
+                       + Mathf.Sin(adjustedZ * 0.042f) * 1.8f    // rollers,         150 m
+                       + Mathf.Sin(adjustedZ * 0.095f) * 0.9f;   // sharp pitches,    66 m
+        float downhill = -adjustedZ * 0.08f;                     // net 8% grade
         return baseHill + downhill;
     }
 
