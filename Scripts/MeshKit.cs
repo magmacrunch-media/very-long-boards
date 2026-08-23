@@ -41,6 +41,35 @@ public static class MeshKit
         return mat;
     }
 
+    /// <summary>
+    /// Material for alpha-cut foliage. Scissor rather than blend: it writes depth, so hundreds
+    /// of overlapping billboards need no sorting — which is exactly why hardware of this era
+    /// used cutouts for trees. Culling off so both faces of a quad draw.
+    /// </summary>
+    public static StandardMaterial3D CutoutMat(Texture2D texture, Color tint)
+    {
+        var mat = Mat(tint, texture: texture);
+        mat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaScissor;
+        mat.AlphaScissorThreshold = 0.5f;
+        mat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+        return mat;
+    }
+
+    /// <summary>A flat textured quad, for billboards.</summary>
+    public static MeshInstance3D Quad(Node3D parent, Vector2 size, StandardMaterial3D mat,
+        Vector3 pos = default, Vector3 rot = default)
+    {
+        var m = new MeshInstance3D();
+        var mesh = new QuadMesh();
+        mesh.Size = size;
+        m.Mesh = mesh;
+        m.MaterialOverride = mat;
+        m.Position = pos;
+        m.Rotation = rot;
+        if (parent != null) parent.AddChild(m);
+        return m;
+    }
+
     public static MeshInstance3D Box(Node3D parent, Vector3 size, StandardMaterial3D mat, Vector3 pos = default)
     {
         var m = new MeshInstance3D();
@@ -83,13 +112,13 @@ public static class MeshKit
     }
 
     public static MeshInstance3D Sphere(Node3D parent, float radius, StandardMaterial3D mat,
-        Vector3 pos = default, int segments = 8)
+        Vector3 pos = default, int segments = 8, int rings = 6)
     {
         var m = new MeshInstance3D();
         var mesh = new SphereMesh();
         mesh.Radius = radius;
         mesh.Height = radius * 2f;
-        mesh.Rings = 6;
+        mesh.Rings = rings;
         mesh.RadialSegments = segments;
         m.Mesh = mesh;
         m.MaterialOverride = mat;

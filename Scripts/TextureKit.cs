@@ -53,6 +53,56 @@ public static class TextureKit
         new Color(0.34f, 0.24f, 0.14f), new Color(0.50f, 0.37f, 0.23f), 6, 113, vertical: false);
 
     // ═══════════════════════════════════════════
+    //  CUTOUTS
+    // ═══════════════════════════════════════════
+    // Foliage silhouettes for crossed billboard quads — what N64 trees actually were.
+    // Unlike everything above these must NOT tile: they are a shape, not a surface, so the
+    // noise rags the edge rather than wrapping.
+
+    private const int CutSize = 64;
+    private static ImageTexture _pineCut, _leafCut;
+
+    /// <summary>Conifer silhouette — tapered, ragged, alpha-cut.</summary>
+    public static ImageTexture PineBillboard => _pineCut ??= Cutout(
+        new Color(0.06f, 0.19f, 0.07f), new Color(0.14f, 0.34f, 0.14f), conifer: true, seed: 131);
+
+    /// <summary>Broadleaf canopy silhouette — a ragged blob.</summary>
+    public static ImageTexture LeafBillboard => _leafCut ??= Cutout(
+        new Color(0.15f, 0.40f, 0.10f), new Color(0.32f, 0.60f, 0.20f), conifer: false, seed: 149);
+
+    /// <summary>
+    /// Build a silhouette: a shape mask raggedised by noise, thresholded into alpha. Colour
+    /// varies across the clump so the mass doesn't read as one flat cut-out.
+    /// </summary>
+    private static ImageTexture Cutout(Color lo, Color hi, bool conifer, int seed)
+    {
+        var img = Image.CreateEmpty(CutSize, CutSize, false, Image.Format.Rgba8);
+        for (int y = 0; y < CutSize; y++)
+        {
+            for (int x = 0; x < CutSize; x++)
+            {
+                float u = x / (float)(CutSize - 1);          // 0..1 across
+                float v = y / (float)(CutSize - 1);          // 0 at the top
+                float dx = Mathf.Abs(u - 0.5f) * 2f;         // 0 centre, 1 edge
+
+                // Conifers taper to a point; canopies are round.
+                float mask = conifer
+                    ? 1f - dx / Mathf.Max(0.12f, v * 1.05f)
+                    : 1f - Mathf.Sqrt(dx * dx + Mathf.Pow((v - 0.45f) * 2.1f, 2f));
+
+                // Rag the edge with the same noise the tiling textures use.
+                float n = Fractal(x, y, 6, 3, seed, 1f);
+                float alpha = mask - (1f - n) * 0.55f;
+
+                var c = lo.Lerp(hi, Fractal(x, y, 3, 2, seed + 7, 1f));
+                c.A = alpha > 0.5f ? 1f : 0f;                // hard cut — alpha scissor, not blend
+                img.SetPixel(x, y, c);
+            }
+        }
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    // ═══════════════════════════════════════════
     //  GENERATORS
     // ═══════════════════════════════════════════
 

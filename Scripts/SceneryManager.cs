@@ -115,7 +115,7 @@ public class SceneryManager
             rockMat.AlbedoTexture = TextureKit.Rock;
             rockMat.Uv1Scale = new Vector3(1.5f, 1.5f, 1f);
             rockMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
-            var rock = MeshKit.Sphere(null, size, rockMat, segments: 6);
+            var rock = MeshKit.Sphere(null, size, rockMat, segments: 8, rings: 6);
             rock.Scale = new Vector3(1f, 0.6f + rng.RandfRange(0, 0.2f), 1f);
             rock.Rotation = new Vector3(rng.RandfRange(0, 0.3f), rng.RandfRange(0, 3f), 0);
             AddItem(z, offset, rock);
@@ -127,7 +127,8 @@ public class SceneryManager
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 6f));
-            AddItem(z, offset, MeshKit.Cylinder(null, 0.15f, 0.15f + rng.RandfRange(0f, 0.2f), MeshKit.Mat(new Color(0.35f, 0.22f, 0.1f)), segments: 6));
+            AddItem(z, offset, MeshKit.Cylinder(null, 0.15f, 0.15f + rng.RandfRange(0f, 0.2f),
+                MeshKit.Mat(Colors.White, texture: TextureKit.Bark, uvScale: 1.5f), segments: 8));
         }
 
         // Wildflowers — more variety and density
@@ -150,9 +151,9 @@ public class SceneryManager
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 3f));
-            var fernMat = new StandardMaterial3D();
-            fernMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.06f), 0.45f + rng.RandfRange(0, 0.1f), 0.1f);
-            fernMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            var fernMat = MeshKit.Mat(new Color(0.85f + rng.RandfRange(0, 0.2f),
+                1f + rng.RandfRange(0, 0.15f), 0.8f + rng.RandfRange(0, 0.15f)),
+                texture: TextureKit.Leaf, uvScale: 1f);
             var fern = new Node3D();
             // Multiple small flat ellipses for fern fronds
             for (int j = 0; j < 3; j++)
@@ -178,13 +179,13 @@ public class SceneryManager
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (4.5f + rng.RandfRange(0f, 4f));
             float size = 0.15f + rng.RandfRange(0f, 0.25f);
-            var bushMat = new StandardMaterial3D();
-            bushMat.AlbedoColor = new Color(0.15f + rng.RandfRange(0, 0.04f), 0.38f + rng.RandfRange(0, 0.05f), 0.1f + rng.RandfRange(0, 0.02f));
-            bushMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            var bushMat = MeshKit.Mat(new Color(0.8f + rng.RandfRange(0, 0.15f),
+                0.9f + rng.RandfRange(0, 0.12f), 0.75f + rng.RandfRange(0, 0.1f)),
+                texture: TextureKit.Leaf, uvScale: 1.5f);
 
             var bush = new Node3D();
-            bush.AddChild(MeshKit.Sphere(null, size, bushMat, segments: 6));
-            var puff = MeshKit.Sphere(null, size * 0.7f, bushMat, segments: 6);
+            bush.AddChild(MeshKit.Sphere(null, size, bushMat, segments: 8, rings: 6));
+            var puff = MeshKit.Sphere(null, size * 0.7f, bushMat, segments: 8, rings: 6);
             puff.Position = new Vector3(size * 0.3f, size * 0.2f, 0);
             bush.AddChild(puff);
             AddItem(z, offset, bush);
@@ -197,7 +198,8 @@ public class SceneryManager
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 5f));
             float length = 0.8f + rng.RandfRange(0f, 1.2f);
-            var log = MeshKit.Cylinder(null, 0.06f, length, MeshKit.Mat(new Color(0.3f, 0.2f, 0.1f)), segments: 6);
+            var log = MeshKit.Cylinder(null, 0.06f, length,
+                MeshKit.Mat(Colors.White, texture: TextureKit.Bark, uvScale: 2f), segments: 8);
             log.Rotation = new Vector3(0, rng.RandfRange(0, Mathf.Pi), Mathf.Pi / 2f);
             AddItem(z, offset, log);
         }
@@ -244,6 +246,13 @@ public class SceneryManager
         UpdatePositions(0f);
     }
 
+    /// <summary>
+    /// A tree: solid trunk, foliage as crossed alpha-cut billboards.
+    ///
+    /// The billboards are what N64 forests actually were. Three quads at 60-degree intervals
+    /// read as a leafy mass from any angle, cost fewer triangles than the faceted cones they
+    /// replace, and — because the material is alpha-scissor — need no depth sorting.
+    /// </summary>
     private void AddTree(float z, float offset, float h, bool isPine, RandomNumberGenerator rng)
     {
         var tree = new Node3D();
@@ -251,45 +260,29 @@ public class SceneryManager
         // Trunk
         var trunkMat = MeshKit.Mat(new Color(1f, 0.95f + rng.RandfRange(0, 0.1f), 0.95f),
             texture: TextureKit.Bark, uvScale: 1.5f);
-        var trunk = MeshKit.Cylinder(null, 0.04f, h * 0.45f, trunkMat, segments: 6);
+        var trunk = MeshKit.Cylinder(null, isPine ? 0.05f : 0.07f, h * 0.45f, trunkMat, segments: 8);
         trunk.Position = new Vector3(0, h * 0.22f, 0);
         tree.AddChild(trunk);
 
-        if (isPine)
+        // Per-tree tint so the treeline doesn't read as one clone repeated.
+        var tint = new Color(0.88f + rng.RandfRange(0, 0.24f),
+                             0.90f + rng.RandfRange(0, 0.20f),
+                             0.85f + rng.RandfRange(0, 0.20f));
+        var folMat = isPine
+            ? MeshKit.CutoutMat(TextureKit.PineBillboard, tint)
+            : MeshKit.CutoutMat(TextureKit.LeafBillboard, tint);
+
+        // Conifers are tall and narrow; broadleaves are wide and sit higher up the trunk.
+        float fw = isPine ? h * 0.52f : h * 0.66f;
+        float fh = isPine ? h * 0.85f : h * 0.55f;
+        float fy = isPine ? h * 0.52f : h * 0.68f;
+        float yaw = rng.RandfRange(0f, Mathf.Pi);
+
+        for (int j = 0; j < 3; j++)
         {
-            // Pine: dark green layers
-            for (int j = 0; j < 4; j++)
-            {
-                float t = j / 4f;
-                float lh = h * 0.22f;
-                float lr = (1f - t * 0.3f) * h * 0.22f;
-                float green = 0.3f + rng.RandfRange(0, 0.05f);
-                var folMat = MeshKit.Mat(new Color(0.9f + rng.RandfRange(0, 0.2f), green * 2.6f,
-                    0.85f + rng.RandfRange(0, 0.2f)), texture: TextureKit.Pine, uvScale: 2f);
-                var foliage = MeshKit.Cylinder(null, lr, lh, folMat, segments: 6);
-                foliage.Position = new Vector3(0, h * 0.3f + j * lh * 0.52f, 0);
-                tree.AddChild(foliage);
-            }
-        }
-        else
-        {
-            // Deciduous: bright summer green, multiple spheres
-            float canopyR = h * 0.24f;
-            var leafMat = MeshKit.Mat(new Color(0.85f + rng.RandfRange(0, 0.25f),
-                0.95f + rng.RandfRange(0, 0.15f), 0.8f + rng.RandfRange(0, 0.2f)),
-                texture: TextureKit.Leaf, uvScale: 1.5f);
-
-            var main = MeshKit.Sphere(null, canopyR, leafMat, segments: 6);
-            main.Position = new Vector3(0, h * 0.62f, 0);
-            tree.AddChild(main);
-
-            var left = MeshKit.Sphere(null, canopyR * 0.7f, leafMat, segments: 6);
-            left.Position = new Vector3(-canopyR * 0.4f, h * 0.55f, canopyR * 0.2f);
-            tree.AddChild(left);
-
-            var right = MeshKit.Sphere(null, canopyR * 0.65f, leafMat, segments: 6);
-            right.Position = new Vector3(canopyR * 0.35f, h * 0.58f, -canopyR * 0.15f);
-            tree.AddChild(right);
+            var quad = MeshKit.Quad(null, new Vector2(fw, fh), folMat,
+                new Vector3(0, fy, 0), new Vector3(0, yaw + j * Mathf.Pi / 3f, 0));
+            tree.AddChild(quad);
         }
 
         _main.AddChild(tree);
@@ -359,9 +352,8 @@ public class SceneryManager
         var r = roofColors[rng.RandiRange(0, 2)];
 
         // Materials
-        var wallMat = new StandardMaterial3D();
-        wallMat.AlbedoColor = w;
-        wallMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        var wallMat = MeshKit.Mat(new Color(w.R * 1.8f, w.G * 1.8f, w.B * 1.8f),
+            texture: TextureKit.Plank, uvScale: 3f);
 
         var roofMat = new StandardMaterial3D();
         roofMat.AlbedoColor = r;
@@ -403,9 +395,7 @@ public class SceneryManager
     private void AddBridge(float z)
     {
         var bridge = new Node3D();
-        var woodMat = new StandardMaterial3D();
-        woodMat.AlbedoColor = new Color(0.52f, 0.42f, 0.3f);
-        woodMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        var woodMat = MeshKit.Mat(Colors.White, texture: TextureKit.Plank, uvScale: 4f);
 
         var railMat = new StandardMaterial3D();
         railMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);

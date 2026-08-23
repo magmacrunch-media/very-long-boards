@@ -50,11 +50,20 @@ public class GameUI
         var canvas = new CanvasLayer();
         _main.AddChild(canvas);
 
-        CreateHUD(canvas);
-        CreateTitleScreen(canvas);
-        CreateCharSelect(canvas);
-        CreateBoardSelect(canvas);
-        CreateLevelSelect(canvas);
+        // Every offset and font size below is authored against a 320x240 screen. The 3D now
+        // renders at 640x480, so rather than rescale dozens of literals, the whole UI hangs
+        // off one 320x240 root drawn at 2x — child anchors still resolve against 320x240.
+        var ui = new Control();
+        ui.Size = new Vector2(ScreenW, ScreenH);
+        ui.Scale = new Vector2(2f, 2f);
+        ui.MouseFilter = Control.MouseFilterEnum.Ignore;
+        canvas.AddChild(ui);
+
+        CreateHUD(ui);
+        CreateTitleScreen(ui);
+        CreateCharSelect(ui);
+        CreateBoardSelect(ui);
+        CreateLevelSelect(ui);
         HideHUD();
     }
 
@@ -114,7 +123,7 @@ public class GameUI
 
     // ── HUD ──────────────────────────────────────
 
-    private void CreateHUD(CanvasLayer canvas)
+    private void CreateHUD(Control canvas)
     {
         _hud = new Control();
         _hud.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -204,7 +213,7 @@ public class GameUI
 
     // The backdrop is the live 3D garage, so this is text over transparency —
     // just dark strips behind each block to keep it legible against the room.
-    private void CreateTitleScreen(CanvasLayer canvas)
+    private void CreateTitleScreen(Control canvas)
     {
         _titleScreen = new Control();
         _titleScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -248,7 +257,7 @@ public class GameUI
         Row(screen, 5, "\u2190\u2192 PICK   \u2191 OK   SPACE BACK", new Color(0.45f, 0.45f, 0.55f), 95);
     }
 
-    private void CreateCharSelect(CanvasLayer canvas)
+    private void CreateCharSelect(Control canvas)
     {
         _charScreen = new Control();
         _charScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -267,7 +276,7 @@ public class GameUI
 
     // ── Board Select ─────────────────────────────
 
-    private void CreateBoardSelect(CanvasLayer canvas)
+    private void CreateBoardSelect(Control canvas)
     {
         _boardScreen = new Control();
         _boardScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -285,7 +294,7 @@ public class GameUI
 
     // ── Level Select ─────────────────────────────
 
-    private void CreateLevelSelect(CanvasLayer canvas)
+    private void CreateLevelSelect(Control canvas)
     {
         _levelScreen = new Control();
         _levelScreen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
