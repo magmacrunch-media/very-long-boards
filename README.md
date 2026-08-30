@@ -69,6 +69,26 @@ Requires [Godot 4.7+ with .NET](https://godotengine.org/download) and [.NET 8.0 
   `Resources/Design/`, not in the code. Two editor-only scenes preview them live — see
   [Design resources](#design-resources).
 
+### Rendering
+
+The N64 antialiased every edge in hardware and then composite video smeared the result.
+Reproducing its 320x240 pixel count without either just looks blocky, so the render is
+640x480 — the hi-res mode 1080 Snowboarding shipped — with 4x MSAA, scaled up to the window
+by `viewport` stretch.
+
+| Setting in `project.godot` | Value |
+|----------------------------|-------|
+| `display/window/size/viewport_width` / `_height` | 640 x 480 |
+| `display/window/stretch/mode` | `viewport` |
+| `rendering/anti_aliasing/quality/msaa_3d` | 2 (4x) |
+
+That reasoning lives here rather than as a comment next to those settings because Godot
+rewrites `project.godot` whenever any project setting changes, and discards every comment it
+did not write itself. A note in that file is guaranteed to disappear eventually.
+
+The matching decision on the texture side is in `MeshKit.Mat()`: `TextureFilter` is left at
+Godot's default linear-with-mipmaps, because that blur is the artefact we want.
+
 ## Architecture
 
 ### Scene structure

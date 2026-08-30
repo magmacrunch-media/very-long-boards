@@ -23,9 +23,6 @@ window/stretch/mode="viewport"
 
 [rendering]
 
-; The N64 antialiased every edge in hardware and then composite video smeared the
-; result. Reproducing its 320x240 pixel count without either just looks blocky, so
-; the render is 640x480 (the hi-res mode 1080 Snowboarding shipped) with 4x MSAA.
 anti_aliasing/quality/msaa_3d=2
 
 [dotnet]
