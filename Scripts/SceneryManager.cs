@@ -1,9 +1,18 @@
 using Godot;
 using System.Collections.Generic;
 
+/// <summary>
+/// Everything beside the road: trees, rocks, houses, the bridge, the finish line and the
+/// wildlife. Populations and the fixed landmarks come from a <see cref="CourseDesign"/>.
+///
+/// Takes a plain parent node rather than <see cref="Main"/> so the editor preview at
+/// <c>Scenes/CoursePreview.tscn</c> can dress a road without booting the game.
+/// </summary>
 public class SceneryManager
 {
-    private Main _main;
+    private readonly Node3D _parent;
+    private readonly TerrainManager _terrain;
+    private readonly CourseDesign _design;
 
     /// <summary>
     /// A scrolling prop. <see cref="Absolute"/> pins it to a fixed point on the course
@@ -36,24 +45,25 @@ public class SceneryManager
     // Props live in a fixed-length band that moves with the player and wrap around inside it,
     // so density stays constant for the whole course instead of running out partway. Sized to
     // the terrain window so a prop can never appear twice in one view.
-    public static readonly float Band = TerrainManager.Segs * TerrainManager.SegLen;    // 1000 m
-    public static readonly float Behind = TerrainManager.Back * TerrainManager.SegLen;  //  175 m
+    public float Band { get { return _design.Band; } }        // 1000 m by default
+    public float Behind { get { return _design.Behind; } }    //  175 m by default
 
     // Population per band — these are densities, not totals, because everything recycles.
-    // Density scales the forest; pines are five meshes each, so this is the knob that decides
-    // whether batching becomes necessary.
-    private const float Density = 1.2f;
-    private static int N(int perBand) { return Mathf.RoundToInt(perBand * Density); }
+    // CourseDesign.Density scales the forest; pines are five meshes each, so that is the knob
+    // which decides whether batching becomes necessary.
+    private int N(int perBand) { return _design.Scaled(perBand); }
 
     /// <summary>Where a prop sits right now, wrapped into the band travelling with the player.</summary>
-    private static float WrapRel(float worldZ, float scrollOffset)
+    private float WrapRel(float worldZ, float scrollOffset)
     {
         return Mathf.PosMod(worldZ - scrollOffset + Behind, Band) - Behind;
     }
 
-    public SceneryManager(Main main)
+    public SceneryManager(Node3D parent, TerrainManager terrain, CourseDesign design)
     {
-        _main = main;
+        _parent = parent;
+        _terrain = terrain;
+        _design = design ?? new CourseDesign();
     }
 
     public void Create()
@@ -70,11 +80,11 @@ public class SceneryManager
     private void CreateScenery()
     {
         var rng = new RandomNumberGenerator();
-        rng.Seed = 42;
-        var terrain = _main.Terrain;
+        rng.Seed = (ulong)_design.ScenerySeed;
+        var terrain = _terrain;
 
         // Pine trees (close)
-        for (int i = 0; i < N(120); i++)
+        for (int i = 0; i < N(_design.ClosePines); i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -84,7 +94,7 @@ public class SceneryManager
         }
 
         // Pine trees (far)
-        for (int i = 0; i < N(50); i++)
+        for (int i = 0; i < N(_design.FarPines); i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -94,7 +104,7 @@ public class SceneryManager
         }
 
         // Deciduous
-        for (int i = 0; i < N(40); i++)
+        for (int i = 0; i < N(_design.Deciduous); i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -104,7 +114,7 @@ public class SceneryManager
         }
 
         // Rocks (roadside) — smoother spheres
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < _design.Rocks; i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -122,7 +132,7 @@ public class SceneryManager
         }
 
         // Stumps
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < _design.Stumps; i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -132,7 +142,7 @@ public class SceneryManager
         }
 
         // Wildflowers — more variety and density
-        for (int i = 0; i < 120; i++)
+        for (int i = 0; i < _design.Wildflowers; i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -146,7 +156,7 @@ public class SceneryManager
         }
 
         // Ferns — low green fronds
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < _design.Ferns; i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -173,7 +183,7 @@ public class SceneryManager
         }
 
         // Bushes — multiple overlapping spheres for organic look
-        for (int i = 0; i < 40; i++)
+        for (int i = 0; i < _design.Bushes; i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -192,7 +202,7 @@ public class SceneryManager
         }
 
         // Logs
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < _design.Logs; i++)
         {
             float z = rng.RandfRange(0f, Band);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -210,7 +220,7 @@ public class SceneryManager
         AddMailbox(700f, 1f);
 
         // Road signs
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < _design.RoadSigns; i++)
         {
             float z = 80f + i * 220f + rng.RandfRange(0f, 40f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -219,7 +229,7 @@ public class SceneryManager
         }
 
         // Houses
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < _design.Houses; i++)
         {
             float z = 150f + i * 200f + rng.RandfRange(0f, 50f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -231,7 +241,7 @@ public class SceneryManager
         AddBridge(800f);
 
         // Streams
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < _design.Streams; i++)
         {
             float z = 250f + i * 400f + rng.RandfRange(0f, 100f);
             float side = rng.Randf() > 0.5f ? 1f : -1f;
@@ -240,7 +250,7 @@ public class SceneryManager
         }
 
         // Distance markers
-        for (float mz = 500f; mz < _main.CourseLength; mz += 500f)
+        for (float mz = _design.MarkerSpacing; mz < _design.Length; mz += _design.MarkerSpacing)
             AddDistanceMarker(mz);
 
         UpdatePositions(0f);
@@ -285,7 +295,7 @@ public class SceneryManager
             tree.AddChild(quad);
         }
 
-        _main.AddChild(tree);
+        _parent.AddChild(tree);
         Items.Add(new SceneryItem { Node = tree, WorldZ = z, OffsetX = offset });
     }
 
@@ -309,7 +319,7 @@ public class SceneryManager
         // Flag
         box.AddChild(MeshKit.Box(null, new Vector3(0.025f, 0.14f, 0.025f), flagMat, new Vector3(0.13f, 0.98f, 0)));
 
-        _main.AddChild(box);
+        _parent.AddChild(box);
         Items.Add(new SceneryItem { Node = box, WorldZ = z, OffsetX = side * 5f });
     }
 
@@ -330,7 +340,7 @@ public class SceneryManager
         sign.AddChild(MeshKit.Cylinder(null, 0.03f, 1.5f, postMat, new Vector3(0, 0.75f, 0), segments: 6));
         sign.AddChild(MeshKit.Box(null, new Vector3(0.55f, 0.45f, 0.04f), signMat, new Vector3(0, 1.65f, 0)));
 
-        _main.AddChild(sign);
+        _parent.AddChild(sign);
         Items.Add(new SceneryItem { Node = sign, WorldZ = z, OffsetX = offset });
     }
 
@@ -388,7 +398,7 @@ public class SceneryManager
             MeshKit.Box(house, new Vector3(0.48f, 0.03f, 0.04f), frameMat, wp + new Vector3(0, -0.22f, 0.01f));
         }
 
-        _main.AddChild(house);
+        _parent.AddChild(house);
         Items.Add(new SceneryItem { Node = house, WorldZ = z, OffsetX = offset });
     }
 
@@ -401,12 +411,12 @@ public class SceneryManager
         railMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
 
         // Bridge deck (wooden planks)
-        MeshKit.Box(bridge, new Vector3(TerrainManager.RoadW + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
+        MeshKit.Box(bridge, new Vector3(_design.RoadWidth + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
         // Plank lines
         for (int i = 0; i < 6; i++)
         {
             float zOff = i * 1f;
-            MeshKit.Box(bridge, new Vector3(TerrainManager.RoadW + 0.8f, 0.01f, 0.04f), woodMat, new Vector3(0, -0.04f, zOff));
+            MeshKit.Box(bridge, new Vector3(_design.RoadWidth + 0.8f, 0.01f, 0.04f), woodMat, new Vector3(0, -0.04f, zOff));
         }
 
         // Rails on both sides
@@ -415,14 +425,14 @@ public class SceneryManager
             for (int i = 0; i < 4; i++)
             {
                 var post = MeshKit.Cylinder(null, 0.03f, 1f, railMat, segments: 6);
-                post.Position = new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.5f, i * 1.5f);
+                post.Position = new Vector3(side * (_design.RoadWidth / 2f + 0.3f), 0.5f, i * 1.5f);
                 bridge.AddChild(post);
             }
-            var bar = MeshKit.Box(null, new Vector3(0.04f, 0.04f, 5.5f), railMat, new Vector3(side * (TerrainManager.RoadW / 2f + 0.3f), 0.8f, 2.5f));
+            var bar = MeshKit.Box(null, new Vector3(0.04f, 0.04f, 5.5f), railMat, new Vector3(side * (_design.RoadWidth / 2f + 0.3f), 0.8f, 2.5f));
             bridge.AddChild(bar);
         }
 
-        _main.AddChild(bridge);
+        _parent.AddChild(bridge);
         Items.Add(new SceneryItem { Node = bridge, WorldZ = z, OffsetX = 0f });
     }
 
@@ -457,7 +467,7 @@ public class SceneryManager
             stream.AddChild(rock);
         }
 
-        _main.AddChild(stream);
+        _parent.AddChild(stream);
         Items.Add(new SceneryItem { Node = stream, WorldZ = z, OffsetX = offset });
     }
 
@@ -476,8 +486,8 @@ public class SceneryManager
         // Sign
         marker.AddChild(MeshKit.Box(null, new Vector3(0.35f, 0.25f, 0.04f), signMat, new Vector3(0, 0.92f, 0)));
 
-        _main.AddChild(marker);
-        Items.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = TerrainManager.RoadW / 2f + 0.5f, Absolute = true });
+        _parent.AddChild(marker);
+        Items.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = _design.RoadWidth / 2f + 0.5f, Absolute = true });
     }
 
     private void CreateClouds()
@@ -517,7 +527,7 @@ public class SceneryManager
             float bz = rng.RandfRange(0f, Band);
             float bh = 38f + rng.RandfRange(0f, 30f);
             cloud.Position = new Vector3(bx, bh, bz);
-            _main.AddChild(cloud);
+            _parent.AddChild(cloud);
             Clouds.Add(new Cloud { Node = cloud, BaseX = bx, BaseZ = bz, Height = bh, Speed = 0.3f + rng.RandfRange(0f, 0.8f) });
         }
     }
@@ -533,19 +543,19 @@ public class SceneryManager
         bannerMat.AlbedoColor = new Color(1f, 1f, 0.98f);
 
         // Posts
-        _finishLine.AddChild(MeshKit.Cylinder(null, 0.08f, 3.5f, postMat, new Vector3(-TerrainManager.RoadW / 2f - 0.5f, 1.75f, 0), segments: 6));
-        _finishLine.AddChild(MeshKit.Cylinder(null, 0.08f, 3.5f, postMat, new Vector3(TerrainManager.RoadW / 2f + 0.5f, 1.75f, 0), segments: 6));
+        _finishLine.AddChild(MeshKit.Cylinder(null, 0.08f, 3.5f, postMat, new Vector3(-_design.RoadWidth / 2f - 0.5f, 1.75f, 0), segments: 6));
+        _finishLine.AddChild(MeshKit.Cylinder(null, 0.08f, 3.5f, postMat, new Vector3(_design.RoadWidth / 2f + 0.5f, 1.75f, 0), segments: 6));
 
         // Banner
-        _finishLine.AddChild(MeshKit.Box(null, new Vector3(TerrainManager.RoadW + 1.5f, 0.7f, 0.06f), bannerMat, new Vector3(0, 3.2f, 0)));
+        _finishLine.AddChild(MeshKit.Box(null, new Vector3(_design.RoadWidth + 1.5f, 0.7f, 0.06f), bannerMat, new Vector3(0, 3.2f, 0)));
 
         // Checkered pattern
         for (int i = 0; i < 14; i++)
         {
-            float x = -TerrainManager.RoadW / 2f + 0.2f + i * (TerrainManager.RoadW / 14f);
+            float x = -_design.RoadWidth / 2f + 0.2f + i * (_design.RoadWidth / 14f);
             var checkMat = new StandardMaterial3D();
             checkMat.AlbedoColor = i % 2 == 0 ? new Color(0.12f, 0.12f, 0.12f) : new Color(0.95f, 0.2f, 0.2f);
-            _finishLine.AddChild(MeshKit.Box(null, new Vector3(TerrainManager.RoadW / 14f - 0.04f, 0.18f, 0.07f), checkMat, new Vector3(x, 2.85f, 0)));
+            _finishLine.AddChild(MeshKit.Box(null, new Vector3(_design.RoadWidth / 14f - 0.04f, 0.18f, 0.07f), checkMat, new Vector3(x, 2.85f, 0)));
         }
 
         // "FINISH" text area (white box)
@@ -553,7 +563,7 @@ public class SceneryManager
         textMat.AlbedoColor = new Color(0.98f, 0.98f, 0.95f);
         _finishLine.AddChild(MeshKit.Box(null, new Vector3(2f, 0.3f, 0.07f), textMat, new Vector3(0, 3.6f, 0)));
 
-        _main.AddChild(_finishLine);
+        _parent.AddChild(_finishLine);
     }
 
     private void CreateBirds()
@@ -594,7 +604,7 @@ public class SceneryManager
             float by = 15f + rng.RandfRange(0f, 20f);
             float bz = rng.RandfRange(0f, Band);
             bird.Position = new Vector3(bx, by, bz);
-            _main.AddChild(bird);
+            _parent.AddChild(bird);
             Birds.Add(new Bird { Node = bird, BaseX = bx, BaseY = by, BaseZ = bz, Speed = 3f + rng.RandfRange(0f, 5f), Phase = rng.RandfRange(0, 6f) });
         }
     }
@@ -645,7 +655,7 @@ public class SceneryManager
             float side = rng.Randf() > 0.5f ? 1f : -1f;
             float offset = side * (5f + rng.RandfRange(0f, 3f));
             squirrel.Position = new Vector3(offset, 0.1f, sz);
-            _main.AddChild(squirrel);
+            _parent.AddChild(squirrel);
             Squirrels.Add(new Squirrel { Node = squirrel, WorldZ = sz, OffsetX = offset, Phase = rng.RandfRange(0, 6f) });
         }
     }
@@ -665,7 +675,7 @@ public class SceneryManager
         sun.Mesh = sunMesh;
         sun.MaterialOverride = sunMat;
         sun.Position = new Vector3(40f, 75f, 180f);
-        _main.AddChild(sun);
+        _parent.AddChild(sun);
     }
 
     private void CreateButterflies()
@@ -705,14 +715,14 @@ public class SceneryManager
             float by = 1f + rng.RandfRange(0f, 3f);
             float bz = rng.RandfRange(0f, Band);
             bf.Position = new Vector3(bx, by, bz);
-            _main.AddChild(bf);
+            _parent.AddChild(bf);
             Butterflies.Add(new Butterfly { Node = bf, BaseX = bx, BaseY = by, BaseZ = bz, Phase = rng.RandfRange(0, 6f) });
         }
     }
 
     public void UpdateAll(float dt)
     {
-        UpdatePositions(_main.Terrain.ScrollOffset);
+        UpdatePositions(_terrain.ScrollOffset);
         UpdateClouds(dt);
         UpdateFinishLine();
         UpdateButterflies(dt);
@@ -737,7 +747,7 @@ public class SceneryManager
 
     public void UpdatePositions(float scrollOffset)
     {
-        var terrain = _main.Terrain;
+        var terrain = _terrain;
         foreach (var item in Items)
         {
             float rel = item.Absolute
@@ -756,7 +766,7 @@ public class SceneryManager
 
     public void UpdateClouds(float dt)
     {
-        var terrain = _main.Terrain;
+        var terrain = _terrain;
         for (int i = 0; i < Clouds.Count; i++)
         {
             var c = Clouds[i];
@@ -769,16 +779,16 @@ public class SceneryManager
 
     private void UpdateFinishLine()
     {
-        var terrain = _main.Terrain;
-        float relZ = _main.CourseLength - terrain.ScrollOffset;
-        float cx = terrain.CurveAt(_main.CourseLength) * relZ;
-        float cy = terrain.HillAt(_main.CourseLength);
+        var terrain = _terrain;
+        float relZ = _design.Length - terrain.ScrollOffset;
+        float cx = terrain.CurveAt(_design.Length) * relZ;
+        float cy = terrain.HillAt(_design.Length);
         _finishLine.Position = new Vector3(cx, cy, relZ);
     }
 
     private void UpdateButterflies(float dt)
     {
-        var terrain = _main.Terrain;
+        var terrain = _terrain;
         float time = (float)Time.GetTicksMsec() * 0.001f;
         for (int i = 0; i < Butterflies.Count; i++)
         {
@@ -793,7 +803,7 @@ public class SceneryManager
 
     private void UpdateBirds(float dt)
     {
-        var terrain = _main.Terrain;
+        var terrain = _terrain;
         float time = (float)Time.GetTicksMsec() * 0.001f;
         for (int i = 0; i < Birds.Count; i++)
         {
@@ -808,7 +818,7 @@ public class SceneryManager
 
     private void UpdateSquirrels(float dt)
     {
-        var terrain = _main.Terrain;
+        var terrain = _terrain;
         float time = (float)Time.GetTicksMsec() * 0.001f;
         for (int i = 0; i < Squirrels.Count; i++)
         {
@@ -832,7 +842,7 @@ public class SceneryManager
     private void AddItem(float z, float offset, Node3D node, Vector3 rotation = default)
     {
         node.Rotation = rotation;
-        _main.AddChild(node);
+        _parent.AddChild(node);
         Items.Add(new SceneryItem { Node = node, WorldZ = z, OffsetX = offset });
     }
 }

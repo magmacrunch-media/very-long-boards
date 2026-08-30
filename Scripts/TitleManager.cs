@@ -153,7 +153,7 @@ public class TitleManager
             child.QueueFree();
         }
 
-        var board = BoardBuilder.Build(_main.Board);
+        var board = BoardBuilder.Build(_main.Board, _main.BoardLook);
         // Tail on the gravel, nose tipped back against the clapboard.
         board.Position = new Vector3(DoorW / 2f + 0.75f, 0.62f, FrontZ + 0.34f);
         board.Rotation = new Vector3(-Mathf.Pi / 2f + 0.22f, 0.16f, 0f);

@@ -315,7 +315,7 @@ public class GarageManager
             // Stand the board on its tail, nose up. A -90 deg pitch turns the deck's
             // underside toward the room, which is how a shop racks them — face-out shows
             // the deck colour instead of a slab of black grip tape.
-            var board = BoardBuilder.Build((Main.BoardType)i);
+            var board = BoardBuilder.Build((Main.BoardType)i, _main.BoardLook);
             board.Rotation = new Vector3(-Mathf.Pi / 2f, 0, 0);
             slot.AddChild(board);
             _rackBoards[i] = board;
@@ -382,8 +382,8 @@ public class GarageManager
             _carl.QueueFree();
         }
 
-        _carl = CarlBuilder.Build(_main.Carl, out var joints);
-        CarlBuilder.PoseStanding(joints);
+        _carl = CarlBuilder.Build(_main.Carl, _main.CarlLook, out var joints);
+        CarlBuilder.PoseStanding(joints, _main.CarlLook);
         // The rig faces +X in its own space; this turns him three-quarters toward the
         // char-select camera, which sits front-right of the podium.
         _carl.Rotation = new Vector3(0, 2.34f, 0);
@@ -403,7 +403,7 @@ public class GarageManager
             _floorBoard.QueueFree();
         }
 
-        _floorBoard = BoardBuilder.Build(_main.Board);
+        _floorBoard = BoardBuilder.Build(_main.Board, _main.BoardLook);
         _floorBoard.Position = new Vector3(-2.6f, 0.14f, 1.5f);
         _floorBoard.Rotation = new Vector3(0, 0.45f, 0);
         _garageRoot.AddChild(_floorBoard);

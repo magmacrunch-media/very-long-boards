@@ -137,7 +137,7 @@ public class PlayerManager
         _skaterRoot = new Node3D();
         _main.Player.AddChild(_skaterRoot);
 
-        _board = BoardBuilder.Build(_main.Board);
+        _board = BoardBuilder.Build(_main.Board, _main.BoardLook);
         _board.Position = new Vector3(0, DeckY, 0);
         _skaterRoot.AddChild(_board);
     }
@@ -148,9 +148,9 @@ public class PlayerManager
 
     private void CreateBody()
     {
-        _carl = CarlBuilder.Build(_main.Carl, out _joints);
+        _carl = CarlBuilder.Build(_main.Carl, _main.CarlLook, out _joints);
         // Origin is at his soles, so this stands him on the grip tape rather than in it.
-        _carl.Position = new Vector3(0, DeckY + BoardBuilder.GripTopY, 0);
+        _carl.Position = new Vector3(0, DeckY + _main.BoardLook.GripTopY, 0);
         _skaterRoot.AddChild(_carl);
 
         Animate(0f, 0f, false);
@@ -331,7 +331,7 @@ public class PlayerManager
         float playerY = groundY + 0.045f + Mathf.Sin(Mathf.Abs(_boardPitch)) * 0.55f + Mathf.Sin(Mathf.Abs(_boardRoll)) * 0.3f;
         _main.Player.Position = new Vector3(PosX, playerY, 0);
 
-        if (Mathf.Abs(PosX) >= TerrainManager.RoadW / 2f)
+        if (Mathf.Abs(PosX) >= _main.Terrain.RoadW / 2f)
         {
             Crashed = true;
             Speed = 0f;
@@ -525,7 +525,7 @@ public class PlayerManager
 
         if (_carl != null)
         {
-            float targetY = DeckY + BoardBuilder.GripTopY - pushDip;
+            float targetY = DeckY + _main.BoardLook.GripTopY - pushDip;
             var cp = _carl.Position;
             _carl.Position = new Vector3(cp.X, Mathf.Lerp(cp.Y, targetY, lerp), cp.Z);
         }
@@ -599,7 +599,7 @@ public class PlayerManager
             _board.QueueFree();
         }
 
-        _board = BoardBuilder.Build(_main.Board);
+        _board = BoardBuilder.Build(_main.Board, _main.BoardLook);
         _board.Position = new Vector3(0, DeckY, 0);
         // Keep the board under Carl rather than in front of him in the child list.
         _skaterRoot.AddChild(_board);

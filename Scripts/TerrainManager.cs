@@ -1,8 +1,18 @@
 using Godot;
 
+/// <summary>
+/// The road itself — seven scrolling ribbons rebuilt every physics frame from the rider's
+/// distance. The shape comes entirely from a <see cref="CourseDesign"/>, so this class knows
+/// how to draw a course but nothing about which one.
+///
+/// It takes a plain parent node rather than <see cref="Main"/> so the editor preview at
+/// <c>Scenes/CoursePreview.tscn</c> can drive it without booting the game.
+/// </summary>
 public class TerrainManager
 {
-    private Main _main;
+    private readonly Node3D _parent;
+    private readonly CourseDesign _design;
+
     private MeshInstance3D _roadMesh;
     private MeshInstance3D _lineCenterMesh;
     private MeshInstance3D _lineEdgeLMesh;
@@ -12,26 +22,24 @@ public class TerrainManager
     private MeshInstance3D _groundMesh;
 
     public float ScrollOffset = 0f;
-    public const float RoadW = 8f;
-    public const float GroundW = 300f;
-    public const int Segs = 400;
-    public const int Back = 70;
-    public const float SegLen = 2.5f;
 
-    public TerrainManager(Main main)
+    public CourseDesign Design { get { return _design; } }
+    public float RoadW { get { return _design.RoadWidth; } }
+    public float GroundW { get { return _design.GroundWidth; } }
+    public int Segs { get { return _design.Segments; } }
+    public int Back { get { return _design.SegmentsBehind; } }
+    public float SegLen { get { return _design.SegmentLength; } }
+
+    public TerrainManager(Node3D parent, CourseDesign design)
     {
-        _main = main;
+        _parent = parent;
+        _design = design ?? new CourseDesign();
     }
 
+    /// <summary>Lateral drift per metre of look-ahead. Delegates to the course resource.</summary>
     public float CurveAt(float z)
     {
-        // Just enough straight for the countdown and the first push, then it winds.
-        if (z < 60f) return 0f;
-        float adjustedZ = z - 60f;
-        return Mathf.Sin(adjustedZ * 0.002f) * 0.18f
-             + Mathf.Sin(adjustedZ * 0.0008f) * 0.25f
-             + Mathf.Sin(adjustedZ * 0.005f) * 0.08f
-             + Mathf.Sin(adjustedZ * 0.012f) * 0.04f;
+        return _design.CurveAt(z);
     }
 
     /// <summary>
@@ -40,18 +48,12 @@ public class TerrainManager
     /// Steepness is amplitude x frequency, so the short-wavelength terms are what make the
     /// course feel steep — the long ones only make it tall. Total relief has to stay inside
     /// what a rider can climb on carried momentum (v^2/2g), or he bogs down on every crest
-    /// and the whole ride dies. Tune in physics_sim.py, which mirrors this function.
+    /// and the whole ride dies. Tune the layers in the CourseDesign; physics_sim.py reads
+    /// the same resource and reports whether the ride survives them.
     /// </summary>
     public float HillAt(float z)
     {
-        if (z < 20f) return 0f;
-        float adjustedZ = z - 20f;
-        float baseHill = Mathf.Sin(adjustedZ * 0.005f) * 5.5f    // landscape roll, 1257 m
-                       + Mathf.Sin(adjustedZ * 0.016f) * 4.0f    // long hills,      393 m
-                       + Mathf.Sin(adjustedZ * 0.042f) * 1.8f    // rollers,         150 m
-                       + Mathf.Sin(adjustedZ * 0.095f) * 0.9f;   // sharp pitches,    66 m
-        float downhill = -adjustedZ * 0.08f;                     // net 8% grade
-        return baseHill + downhill;
+        return _design.HillAt(z);
     }
 
     public void Create()
@@ -91,28 +93,33 @@ public class TerrainManager
         _groundMesh = new MeshInstance3D();
         _groundMesh.MaterialOverride = grassMat;
 
-        _main.AddChild(_roadMesh);
-        _main.AddChild(_lineCenterMesh);
-        _main.AddChild(_lineEdgeLMesh);
-        _main.AddChild(_lineEdgeRMesh);
-        _main.AddChild(_shoulderLMesh);
-        _main.AddChild(_shoulderRMesh);
-        _main.AddChild(_groundMesh);
+        _parent.AddChild(_roadMesh);
+        _parent.AddChild(_lineCenterMesh);
+        _parent.AddChild(_lineEdgeLMesh);
+        _parent.AddChild(_lineEdgeRMesh);
+        _parent.AddChild(_shoulderLMesh);
+        _parent.AddChild(_shoulderRMesh);
+        _parent.AddChild(_groundMesh);
 
-        Update();
+        Update(0f);
     }
 
-    public void Update()
+    /// <summary>Rebuild every ribbon for a rider standing <paramref name="distance"/> metres in.</summary>
+    public void Update(float distance)
     {
-        ScrollOffset = _main.PlayerMgr.Distance;
+        ScrollOffset = distance;
+        float roadW = _design.RoadWidth;
+        float shoulderX = roadW / 2f + _design.ShoulderWidth / 2f;
+        float lineX = roadW / 2f - _design.EdgeLineInset;
+
         // uTile is repeats across the width, vMetres is metres per repeat along the road.
-        _roadMesh.Mesh = BuildRibbon(RoadW, 0f, uTile: 2f, vMetres: 4f);
-        _lineCenterMesh.Mesh = BuildRibbon(0.12f, 0.015f);
-        _lineEdgeLMesh.Mesh = BuildRibbon(0.1f, 0.015f, -RoadW / 2f + 0.3f);
-        _lineEdgeRMesh.Mesh = BuildRibbon(0.1f, 0.015f, RoadW / 2f - 0.3f);
-        _shoulderLMesh.Mesh = BuildRibbon(2f, -0.05f, -RoadW / 2f - 1f, uTile: 1f, vMetres: 3f);
-        _shoulderRMesh.Mesh = BuildRibbon(2f, -0.05f, RoadW / 2f + 1f, uTile: 1f, vMetres: 3f);
-        _groundMesh.Mesh = BuildRibbon(GroundW, -0.4f, uTile: 60f, vMetres: 5f);
+        _roadMesh.Mesh = BuildRibbon(roadW, 0f, uTile: 2f, vMetres: 4f);
+        _lineCenterMesh.Mesh = BuildRibbon(_design.CenterLineWidth, 0.015f);
+        _lineEdgeLMesh.Mesh = BuildRibbon(_design.EdgeLineWidth, 0.015f, -lineX);
+        _lineEdgeRMesh.Mesh = BuildRibbon(_design.EdgeLineWidth, 0.015f, lineX);
+        _shoulderLMesh.Mesh = BuildRibbon(_design.ShoulderWidth, -0.05f, -shoulderX, uTile: 1f, vMetres: 3f);
+        _shoulderRMesh.Mesh = BuildRibbon(_design.ShoulderWidth, -0.05f, shoulderX, uTile: 1f, vMetres: 3f);
+        _groundMesh.Mesh = BuildRibbon(_design.GroundWidth, -0.4f, uTile: 60f, vMetres: 5f);
     }
 
     public void SetMeshesVisible(bool visible)
@@ -136,12 +143,16 @@ public class TerrainManager
     private Mesh BuildRibbon(float width, float yOffset, float xOffset = 0f,
         float uTile = 1f, float vMetres = 4f)
     {
+        int segs = _design.Segments;
+        int back = _design.SegmentsBehind;
+        float segLen = _design.SegmentLength;
+
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
-        for (int i = 0; i < Segs - 1; i++)
+        for (int i = 0; i < segs - 1; i++)
         {
-            float lz0 = (i - Back) * SegLen;
-            float lz1 = (i + 1 - Back) * SegLen;
+            float lz0 = (i - back) * segLen;
+            float lz1 = (i + 1 - back) * segLen;
             float wz0 = lz0 + ScrollOffset;
             float wz1 = lz1 + ScrollOffset;
             float cx0 = CurveAt(wz0) * lz0 + xOffset;

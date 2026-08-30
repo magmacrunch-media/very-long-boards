@@ -54,32 +54,27 @@ public partial class Main : Node3D
         "Course not built yet",
         "Course not built yet"
     };
-    public static readonly float[] LevelLengths = { 2000f, 0f, 0f, 0f };
+    // Frogwood's entry is overwritten in _Ready from the CourseDesign, so the level-select
+    // screen and the finish trigger can never disagree about how long the ride is.
+    public static float[] LevelLengths = { 2000f, 0f, 0f, 0f };
     public static readonly string[] LevelSeasons = { "Summer", "Fall", "", "" };
     public static readonly bool[] LevelUnlocked = { true, false, false, false };
-    public static readonly Color[] CarlShirtColors = {
-        new Color(0.65f, 0.22f, 0.22f),   // Office: red
-        new Color(0.28f, 0.2f, 0.7f),     // Party: purple
-        new Color(0.15f, 0.15f, 0.18f)    // Dark: black
-    };
-    public static readonly Color[] CarlPantsColors = {
-        new Color(0.25f, 0.28f, 0.38f),   // Office: slacks
-        new Color(0.95f, 0.45f, 0.15f),   // Party: orange
-        new Color(0.12f, 0.12f, 0.15f)    // Dark: black
-    };
-    public static readonly Color[] BoardDeckColors = {
-        new Color(0.52f, 0.26f, 0.1f),   // Classic brown
-        new Color(0.95f, 0.25f, 0.95f),  // Neon pink
-        new Color(0.12f, 0.12f, 0.15f),  // Dark black
-        new Color(0.82f, 0.65f, 0.42f)   // Natural wood
-    };
-    public static readonly Color[] BoardGripColors = {
-        new Color(0.16f, 0.16f, 0.16f),  // Classic black
-        new Color(0.15f, 0.15f, 0.45f),  // Neon blue
-        new Color(0.35f, 0.05f, 0.55f),  // Dark purple
-        new Color(0.55f, 0.45f, 0.3f)    // Natural tan
-    };
-    public float CourseLength { get { return LevelLengths[(int)Level]; } }
+    public float CourseLength
+    {
+        get
+        {
+            if (Level == LevelType.FrogwoodNH && Course != null) return Course.Length;
+            return LevelLengths[(int)Level];
+        }
+    }
+
+    // ── Design resources ────────────────────────
+    // What Carl, his board and the course look like. Assigned in Main.tscn and editable in the
+    // Inspector; each falls back to stock defaults so an empty slot degrades instead of
+    // crashing. See Scenes/CarlPreview.tscn and Scenes/CoursePreview.tscn to tune them live.
+    [Export] public CarlDesign CarlLook { get; set; }
+    [Export] public BoardDesign BoardLook { get; set; }
+    [Export] public CourseDesign Course { get; set; }
 
     // Node references
     public Node3D Player;
@@ -99,9 +94,14 @@ public partial class Main : Node3D
         Player = GetNode<Node3D>("Player");
         CameraMount = GetNode<Node3D>("Player/CameraMount");
 
-        Terrain = new TerrainManager(this);
+        CarlLook ??= new CarlDesign();
+        BoardLook ??= new BoardDesign();
+        Course ??= new CourseDesign();
+        LevelLengths[(int)LevelType.FrogwoodNH] = Course.Length;
+
+        Terrain = new TerrainManager(this, Course);
         PlayerMgr = new PlayerManager(this);
-        Scenery = new SceneryManager(this);
+        Scenery = new SceneryManager(this, Terrain, Course);
         UI = new GameUI(this);
         Cam = new GameCamera(this);
         Garage = new GarageManager(this);
@@ -175,7 +175,7 @@ public partial class Main : Node3D
             case GameState.Riding:
                 Timer += dt;
                 PlayerMgr.Update(dt, steer, braking);
-                Terrain.Update();
+                Terrain.Update(PlayerMgr.Distance);
                 Scenery.UpdateAll(dt);
                 Cam.Update();
                 UI.UpdateHUD(this);
@@ -310,7 +310,7 @@ public partial class Main : Node3D
     {
         // Back to the garage, not to an empty road.
         PlayerMgr.Reset();
-        Terrain.Update();
+        Terrain.Update(PlayerMgr.Distance);
         Scenery.UpdatePositions(Terrain.ScrollOffset);
         SetRideWorldVisible(false);
         ShowTitle();

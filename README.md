@@ -65,13 +65,17 @@ Requires [Godot 4.7+ with .NET](https://godotengine.org/download) and [.NET 8.0 
   (`MeshKit`). `BoardBuilder` and `CarlBuilder` are the single source of truth for the
   longboard and for Carl, shared by the player rig and the garage displays — the board you
   pick off the rack is the board you ride.
+- **Tuning:** the numbers those builders use live in editable resources under
+  `Resources/Design/`, not in the code. Two editor-only scenes preview them live — see
+  [Design resources](#design-resources).
 
 ## Architecture
 
 ### Scene structure
 
-Single scene (`Scenes/Main.tscn`) — everything is built in code, including
-the garage hub and menu screens.
+One shipping scene (`Scenes/Main.tscn`) — everything is built in code, including the garage
+hub and menu screens. `Scenes/CarlPreview.tscn` and `Scenes/CoursePreview.tscn` are
+editor-only workbenches; nothing at runtime loads them.
 
 ### Scripts
 
@@ -88,12 +92,22 @@ the garage hub and menu screens.
 | `MeshKit.cs` | Static utility: `BoxMesh`, `CylinderMesh`, `SphereMesh`, materials. |
 | `BoardBuilder.cs` | Static longboard mesh factory. Same code builds rack display and rideable board. |
 | `CarlBuilder.cs` | Static Carl mesh factory with joint rig for procedural animation. |
+| `TextureKit.cs` | Procedural 32x32 textures, generated in code and cached. Nothing loads from disk. |
+| `Design/CarlDesign.cs` | Carl's proportions, palette, outfits, mesh detail and standing pose. |
+| `Design/BoardDesign.cs` | Deck and truck dimensions plus the four colourways. |
+| `Design/CourseDesign.cs` | Hill and curve layers, road widths, draw distance, scenery populations. |
+| `Design/SineLayer.cs` | One sine term, stored as amplitude + wavelength in metres. |
+| `Tools/CarlPreview.cs` | `[Tool]` script behind `Scenes/CarlPreview.tscn`. Editor only. |
+| `Tools/CoursePreview.cs` | `[Tool]` script behind `Scenes/CoursePreview.tscn`. Editor only. |
 
 ### Key patterns
 
 - **Hub-and-spoke** — every subsystem gets a `Main` back-reference; no signals or event bus
 - **No inheritance** — flat classes only; Godot `Node3D` hierarchy is the only composition
-- **Single source of truth** — `Main.CarlStats` feeds both UI stat bars and ride physics
+- **Single source of truth** — `Main.CarlStats` feeds both UI stat bars and ride physics;
+  `CourseDesign` feeds the road, the scenery band, the finish trigger and `physics_sim.py`
+- **Data out of code** — builders and managers take a design resource and hold no literals of
+  their own, so the same class can dress the game or an editor preview
 - **Infinite scrolling** — terrain meshes rebuilt every frame; scenery repositioned via `ScrollOffset`
 - **Three worlds, one scene** — title, garage and road each own only their own root and
   lighting; `Main` decides which is live via `SetRideWorldVisible()` / `ApplyRideLighting()`
@@ -111,6 +125,42 @@ Main (root)
  └── TitleManager     → garage exterior; reads Board for the deck by the door
 ```
 
+## Design resources
+
+Carl, his board and the course are described by resources under `Resources/Design/`, not by
+constants buried in method bodies. Godot only writes properties that differ from the C#
+defaults, so a fresh `.tres` is nearly empty and every value you see in the Inspector comes
+from the corresponding `Scripts/Design/*.cs` — which is also where each field is documented.
+
+| Resource | Drives |
+|----------|--------|
+| `Carl.tres` | `CarlBuilder` — proportions, palette, the three outfits, mesh detail, standing pose |
+| `Board.tres` | `BoardBuilder` — deck and truck dimensions, the four colourways |
+| `Frogwood.tres` | `TerrainManager` + `SceneryManager` — hills, curves, road widths, prop populations |
+
+All three are assigned to the root node of `Scenes/Main.tscn`, so you can swap a whole look
+by dropping a different resource into the slot. An empty slot falls back to the stock build
+rather than crashing.
+
+### Live preview
+
+Two editor-only scenes rebuild as you drag:
+
+- **`Scenes/CarlPreview.tscn`** — Carl on his board under game lighting. Pick an outfit and a
+  deck from the dropdowns, spin the `Turntable` slider to check his silhouette, and every
+  edit to `Carl.tres` reshapes him in the viewport immediately.
+- **`Scenes/CoursePreview.tscn`** — the road with the real terrain and scenery managers
+  driving it. Drag `Distance` to fly down the course; `Show Scenery` is off by default
+  because rebuilding a few thousand meshes on every slider tick is slow.
+
+Both listen to the resource's `Changed` signal, and both carry a **Rebuild** button for when
+you would rather force it. Their children are added without an `Owner`, so nothing they build
+is ever serialised into the scene file.
+
+**These are C# `[Tool]` scripts.** After editing anything under `Scripts/`, press **Build**
+(the hammer, top right) before the preview picks the change up; if a scene still looks stale,
+close and reopen it.
+
 ## Garage layout tool
 
 `garage_layout.py` plots the garage from above with each camera's frustum and checks that
@@ -123,11 +173,14 @@ python3 garage_layout.py
 
 ## Ride physics tool
 
-`physics_sim.py` mirrors `TerrainManager.HillAt()` and the speed integration in
-`PlayerManager.Update()` and simulates a full run for each Carl — run length, average and
-peak km/h, time spent bogged down, and how much of the ride sits in the wobble band. Tune
-the constants there, check the report, then port them into the C# — same workflow as the
-garage tool, and the constants are mirrored in both files.
+`physics_sim.py` simulates a full run for each Carl — run length, average and peak km/h, time
+spent bogged down, and how much of the ride sits in the wobble band.
+
+The terrain half is **not** mirrored: it parses `Resources/Design/Frogwood.tres` directly, so
+reshaping the hills in the Inspector and re-running the sim needs no porting step. The report
+opens with a `source:` line naming what it actually read. The rider half still mirrors
+`PlayerManager.Update()` by hand — tune those constants in the script, then port them across,
+same workflow as the garage tool.
 
 ```bash
 python3 physics_sim.py
