@@ -113,6 +113,8 @@ editor-only workbenches; nothing at runtime loads them.
 | `BoardBuilder.cs` | Static longboard mesh factory. Same code builds rack display and rideable board. |
 | `CarlBuilder.cs` | Static Carl mesh factory with joint rig for procedural animation. |
 | `TextureKit.cs` | Procedural 32x32 textures, generated in code and cached. Nothing loads from disk. |
+| `Art/ForgeArt.cs` | Decodes art authored in SPRITE//FORGE into a texture. Rows of key characters, not a PNG. |
+| `Art/CarlFace.cs` | Carl's face, generated from `Art/carl_face.forge`. A tint map — white field, dark features. |
 | `Design/CarlDesign.cs` | Carl's proportions, palette, outfits, mesh detail and standing pose. |
 | `Design/BoardDesign.cs` | Deck and truck dimensions plus the four colourways. |
 | `Design/CourseDesign.cs` | Hill and curve layers, road widths, draw distance, scenery populations. |

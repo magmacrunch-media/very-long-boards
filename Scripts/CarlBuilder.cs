@@ -57,6 +57,16 @@ public static class CarlBuilder
         joints = new CarlJoints();
 
         var skinMat = MeshKit.Mat(d.SkinColor);
+        // The head gets its own material because the face is a texture and the rest of him is
+        // not — sharing skinMat would paint a face on his hands. It keeps d.SkinColor, because
+        // AlbedoColor MULTIPLIES AlbedoTexture and CarlFace is a tint map: white where the
+        // skin shows, dark grey for the features. So the slider still drives his complexion
+        // and the brows and mouth darken with it, instead of the head being the one part of
+        // him the Palette group cannot reach.
+        var faceMat = MeshKit.Mat(d.SkinColor, texture: CarlFace.Texture);
+        // u = 0 lands on +Z, which is Carl's forward, and the face is drawn mid-image. Half a
+        // turn brings them together. See CarlFace for why it is drawn that way.
+        faceMat.Uv1Offset = new Vector3(0.5f, 0f, 0f);
         var shoeMat = MeshKit.Mat(d.ShoeColor, specular: true);
         var soleMat = MeshKit.Mat(d.SoleColor, specular: true);
         var hairMat = MeshKit.Mat(d.HairColor, specular: true);
@@ -109,7 +119,7 @@ public static class CarlBuilder
 
         MeshKit.Cylinder(neck, d.NeckTopRadius, d.NeckBottomRadius, d.NeckHeight, skinMat,
             new Vector3(0, d.NeckHeight / 2f, 0), Vector3.Zero, cyl);
-        MeshKit.Sphere(neck, d.HeadRadius, skinMat, new Vector3(0, d.HeadOffsetY, -lean),
+        MeshKit.Sphere(neck, d.HeadRadius, faceMat, new Vector3(0, d.HeadOffsetY, -lean),
             d.SphereSegments, d.SphereRings);
         MeshKit.Cylinder(neck, d.HairTopRadius, d.HairBottomRadius, d.HairHeight, hairMat,
             new Vector3(0, d.HairOffsetY, -lean), Vector3.Zero, cyl);
