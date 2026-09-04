@@ -50,6 +50,31 @@ public static class BoardBuilder
         MeshKit.Box(root, railSize, accentMat, new Vector3(-railX, 0, 0));
         MeshKit.Box(root, railSize, accentMat, new Vector3(railX, 0, 0));
 
+        // ── Deck graphic, screen-printed on the underside ──
+        //
+        // A quad rather than a texture on the deck itself. Godot's BoxMesh packs its six
+        // faces into a 3x2 atlas, so the underside would get one sixth of the image, rotated;
+        // and the deck is three boxes, so it would get that sixth three times. A quad takes
+        // the whole image once.
+        //
+        // A cutout, so the colourway shows around the ink and one graphic serves all four
+        // boards. Inside the rails and short of the kicks, because those are narrower boxes
+        // and a decal spanning the full 2.15m would hang over their edges.
+        //
+        // Rotation (PI/2, PI/2, 0) faces it down with u running from the nose to the tail,
+        // which is the way the chevrons point.
+        //
+        // Depth is measured off the GRAIN, not off the deck. The grain slats are
+        // DeckThickness + 0.001 tall so they stand proud on top, which also drops their
+        // undersides half a millimetre below the deck's — sitting the decal on the deck
+        // face left the two coplanar and the grain striped straight through the chevrons.
+        var graphicMat = MeshKit.CutoutMat(DeckChevron.Texture, Colors.White);
+        MeshKit.Quad(root,
+            new Vector2(d.DeckLength * 0.95f, deckWidth * 0.85f),
+            graphicMat,
+            new Vector3(0, -(d.DeckThickness + 0.001f) / 2f - 0.0005f, 0),
+            new Vector3(Mathf.Pi / 2f, Mathf.Pi / 2f, 0));
+
         // ── Wood grain, on the two wooden decks only ──
         if (type == Main.BoardType.Classic || type == Main.BoardType.Natural)
         {

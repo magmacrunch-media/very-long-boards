@@ -115,6 +115,7 @@ editor-only workbenches; nothing at runtime loads them.
 | `TextureKit.cs` | Procedural 32x32 textures, generated in code and cached. Nothing loads from disk. |
 | `Art/ForgeArt.cs` | Decodes art authored in SPRITE//FORGE into a texture. Rows of key characters, not a PNG. |
 | `Art/CarlFace.cs` | Carl's face, generated from `Art/carl_face.forge`. A tint map — white field, dark features. |
+| `Art/DeckChevron.cs` | The deck graphic, generated from `Art/deck_chevron.forge`. A cutout, so the colourway shows around it. |
 | `Design/CarlDesign.cs` | Carl's proportions, palette, outfits, mesh detail and standing pose. |
 | `Design/BoardDesign.cs` | Deck and truck dimensions plus the four colourways. |
 | `Design/CourseDesign.cs` | Hill and curve layers, road widths, draw distance, scenery populations. |
