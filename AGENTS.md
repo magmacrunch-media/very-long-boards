@@ -36,8 +36,30 @@ copy are destroyed silently. Edit here, sync there, commit there. The website co
 as well as from here.
 
 Note the website repo has its own constraints that this repo does not: a pre-commit gate on
-whole-index commits, `?v=` cache-buster stamps rewritten by a hook, and a Playwright smoke
-test over every arcade game. Read its `AGENTS.md` before committing a sync there.
+whole-index commits, and a Playwright smoke test over every arcade game. Read its
+`AGENTS.md` before committing a sync there.
+
+### Cache-buster stamps in `web/index.html`
+
+Every `?v=` in `web/index.html` is the first eight hex of SHA-256 over the file it stamps,
+with newlines normalised to LF. Get one wrong and visitors keep serving the cached old
+bytes, so the change reaches nobody and the page still loads.
+
+`../shared/chat-widget.css` and `../shared/adenosine-chat.js` are the ones to watch: they
+name files that do not exist in this repo at all. They resolve only once `web/` has been
+copied into the website's `arcade/`, and they go stale when *that* repo updates a shared
+bundle — with nothing here touched and nothing here able to notice. Both went stale exactly
+that way when the website took `adenosine-chat` 0.6.0.
+
+The website's hook does rewrite stale stamps, but only in its own generated copy, and that
+repair never travels back here. Since `make sync-very-long-boards` recopies `web/` verbatim,
+a stamp corrected there is reverted by the next sync. **The fix belongs here.** Recompute one
+from a website checkout, and check the whole site after any sync:
+
+```bash
+node scripts/check-cache-busters.mjs --digest arcade/shared/adenosine-chat.js
+npm run check:cachebust
+```
 
 ## Single source of truth, in both versions
 
