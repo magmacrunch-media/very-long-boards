@@ -16,7 +16,7 @@ using Godot;
 ///
 /// Run it headless, from the project folder:
 ///
-///   godot --headless --scene res://Scenes/AudioProbe.tscn
+///   godot --headless --path godot --scene res://Scenes/AudioProbe.tscn
 /// </summary>
 public partial class AudioProbe : Node
 {
