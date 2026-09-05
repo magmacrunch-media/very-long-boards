@@ -39,6 +39,19 @@ Note the website repo has its own constraints that this repo does not: a pre-com
 whole-index commits, `?v=` cache-buster stamps rewritten by a hook, and a Playwright smoke
 test over every arcade game. Read its `AGENTS.md` before committing a sync there.
 
+## Single source of truth, in both versions
+
+Each version states where its numbers live, and neither has a second copy of them:
+
+| | tuning lives in | consumed by |
+|---|---|---|
+| `godot/` | `Main.CarlStats`, and the resources under `Resources/Design/` | the ride physics and the stat pips on the select screens |
+| `web/` | `CONFIG`, `CHARACTERS`, `BOARDS` in `js/config.js` | the ride physics and the generated stat bars |
+
+In both, the bars a select screen draws are derived from the same table the physics reads, so
+a card cannot promise a rider something the game does not deliver. Keep it that way: a stat
+written out by hand in markup or in a mesh is a stat that will drift.
+
 ## AI attribution
 
 **No AI attribution.** Do not append `Co-Authored-By: Claude …`, "Generated with
