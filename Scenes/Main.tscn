@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://Resources/Design/Carl.tres" id="2_carl"]
 [ext_resource type="Resource" path="res://Resources/Design/Board.tres" id="3_board"]
 [ext_resource type="Resource" path="res://Resources/Design/Frogwood.tres" id="4_course"]
+[ext_resource type="Resource" path="res://Resources/Design/Audio.tres" id="5_audio"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat_1"]
 sky_top_color = Color(0.18, 0.38, 0.8, 1)
@@ -33,6 +34,7 @@ script = ExtResource("1")
 CarlLook = ExtResource("2_carl")
 BoardLook = ExtResource("3_board")
 Course = ExtResource("4_course")
+AudioMix = ExtResource("5_audio")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1104829159]
 transform = Transform3D(0.866344, -0.0902279, 0.49123, 0.0001194, 0.983584, 0.180452, -0.499447, -0.156275, 0.852133, 0, 75, 0)

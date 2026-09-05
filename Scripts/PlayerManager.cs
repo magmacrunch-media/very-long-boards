@@ -21,11 +21,24 @@ public class PlayerManager
     public float Distance = 0f;
     public bool Crashed = false;
     public float PushOffTimer = 0f;
+
+    /// <summary>
+    /// How much of the foot brake is actually biting this frame, 0..1. Computed for the physics
+    /// and read by the audio mix, so the scrub you hear is the deceleration you are getting
+    /// rather than a guess made from whether the key is down.
+    /// </summary>
+    public float BrakeBite = 0f;
     private float _pushAccel = 0f;
 
     /// <summary>Where we are in the current kick, 0 at the windup through 1 at recovery.</summary>
     public float PushPhase => PushOffTimer > 0f ? 1f - PushOffTimer / PushStroke : 0f;
     public float SteerSmooth => _steerSmooth;
+
+    /// <summary>
+    /// A wheel is off the tarmac. One test, shared by the drag that slows you and the surface
+    /// the mix plays, so what you hear and what is happening to you cannot disagree.
+    /// </summary>
+    public bool OnShoulder => Mathf.Abs(PosX) > ShoulderX;
 
     // Internal state
     private float _steerSmooth = 0f;
@@ -46,6 +59,7 @@ public class PlayerManager
     private const float PushDriveStart = 0.25f; // fraction of the stroke where the foot plants
     private const float PushDriveEnd = 0.70f;   // ...and where it leaves the road
     private const float BrakeDecel = 6f;        // m/s^2 on the foot brake
+    private const float ShoulderX = 3.5f;       // metres from centre where the tarmac ends
     private const float ShoulderDragRate = 1.8f;// speed bled per second off the tarmac
     private const float CarveDragRate = 0.6f;   // speed bled per second at full lock
     private const float WobbleDrift = 0.15f;    // lateral metres per second per unit wobble
@@ -249,6 +263,9 @@ public class PlayerManager
                 // instead of teleporting the speed on a single frame.
                 _pushAccel = PushBoost * bite / (PushStroke * (PushDriveEnd - PushDriveStart));
                 PushOffTimer = PushStroke;
+                // Later kicks bite less; pitch the scuff up with that so a desperate flurry at
+                // speed sounds thinner than the first shove off a standstill.
+                _main.Audio.Play(AudioManager.Sfx.Kick, 1.15f - bite * 0.25f, 0.5f + bite * 0.5f);
             }
         }
 
@@ -263,17 +280,17 @@ public class PlayerManager
         // ── Braking ──
         // A foot brake bites below ~70% of top speed and fades to nothing by 85% — past
         // that you're committed and have to carve the speed off instead.
+        BrakeBite = 0f;
         if (braking)
         {
-            float bite = 0f;
-            if (speedFactor < BrakeSpeedThreshold) bite = 1f;
+            if (speedFactor < BrakeSpeedThreshold) BrakeBite = 1f;
             else if (speedFactor < BrakeCutoff)
-                bite = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
-            Speed -= BrakeDecel * bite * dt;
+                BrakeBite = 1f - (speedFactor - BrakeSpeedThreshold) / (BrakeCutoff - BrakeSpeedThreshold);
+            Speed -= BrakeDecel * BrakeBite * dt;
         }
 
         // ── Shoulder drag ──
-        if (Mathf.Abs(PosX) > 3.5f)
+        if (OnShoulder)
             Speed -= Speed * ShoulderDragRate * dt;
 
         // ── Carving drag — steering bleeds speed (quadratic: gentle carving negligible, hard carving significant) ──

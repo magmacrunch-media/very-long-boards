@@ -61,6 +61,7 @@ Requires [Godot 4.7+ with .NET](https://godotengine.org/download) and [.NET 8.0 
 - **Terrain:** Procedural ribbon mesh with curves and hills
 - **Scenery:** 190+ trees (pine and deciduous), rocks, stumps, wildflowers, mailboxes
 - **Art style:** Low-poly, N64/GameCube era inspired
+- **Sound:** Synthesized in code at 22 kHz (`AudioKit`). No audio files — see [Sound](#sound)
 - **Models:** Everything is built in code from boxes, cylinders and spheres
   (`MeshKit`). `BoardBuilder` and `CarlBuilder` are the single source of truth for the
   longboard and for Carl, shared by the player rig and the garage displays — the board you
@@ -89,13 +90,46 @@ did not write itself. A note in that file is guaranteed to disappear eventually.
 The matching decision on the texture side is in `MeshKit.Mat()`: `TextureFilter` is left at
 Godot's default linear-with-mipmaps, because that blur is the artefact we want.
 
+### Sound
+
+There are no audio files. `AudioKit` synthesizes every sound in the game the way `TextureKit`
+synthesizes every surface — filtered noise and summed sine partials, built on first use and
+cached — so the whole art pipeline stays in the repo as code you can diff.
+
+Two kinds of stream come out of it. **Beds** loop forever and are ridden by volume and pitch;
+**one-shots** fire and finish.
+
+| Bed | Driven by |
+|-----|-----------|
+| Wheels on tarmac | speed — volume as its square root, pitch linearly |
+| Wheels on gravel | the same, crossfaded in when a wheel leaves the tarmac |
+| Wind | speed *squared*, the same `v^2` the drag term takes it out of |
+| Truck rattle | wobble level, squared, so the warning arrives late and then fast |
+| Scrub | foot brake bite, or a carve hard enough to break the wheels loose |
+| Summer afternoon | which world is live, with birds over it at random intervals |
+
+`AudioManager` reads all of that off the game state once a frame rather than being told about
+it, so no other system has to remember the audio exists. The exceptions are events rather than
+conditions — a kick, a crash, the countdown, a menu blip — and those are pushed in by whoever
+knows they happened.
+
+A looping noise bed has to join back to its own start without a click. The white noise
+underneath has period *n* by construction, and a stable one-pole filter fed a periodic signal
+settles onto a periodic output, so each filter is run twice around the buffer and only the
+second lap is kept. It is the same argument `TextureKit` makes for wrapping its noise lattice
+at the octave period, in one dimension instead of two. Any amplitude modulation is counted in
+whole cycles across the buffer for the same reason.
+
+The mix levels live in `Resources/Design/Audio.tres`, not in the manager — see
+[Design resources](#design-resources).
+
 ## Architecture
 
 ### Scene structure
 
 One shipping scene (`Scenes/Main.tscn`) — everything is built in code, including the garage
-hub and menu screens. `Scenes/CarlPreview.tscn` and `Scenes/CoursePreview.tscn` are
-editor-only workbenches; nothing at runtime loads them.
+hub and menu screens. `Scenes/CarlPreview.tscn`, `Scenes/CoursePreview.tscn` and
+`Scenes/AudioProbe.tscn` are workbenches; nothing at runtime loads them.
 
 ### Scripts
 
@@ -109,19 +143,23 @@ editor-only workbenches; nothing at runtime loads them.
 | `TitleManager.cs` | Title world. The garage exterior, built in code, with its own light and camera drift. |
 | `GameCamera.cs` | Chase camera with speed-proportional distance, shake, FOV, curve look-ahead. |
 | `GameUI.cs` | All HUD and menu screens (pixel font, stat pips, speed display, wobble warning). |
+| `AudioManager.cs` | The mix. Six looping beds ridden by game state, plus a one-shot voice pool. |
 | `MeshKit.cs` | Static utility: `BoxMesh`, `CylinderMesh`, `SphereMesh`, materials. |
 | `BoardBuilder.cs` | Static longboard mesh factory. Same code builds rack display and rideable board. |
 | `CarlBuilder.cs` | Static Carl mesh factory with joint rig for procedural animation. |
 | `TextureKit.cs` | Procedural 32x32 textures, generated in code and cached. Nothing loads from disk. |
+| `AudioKit.cs` | Every sound, synthesized at 22 kHz and cached. Nothing loads from disk. |
 | `Art/ForgeArt.cs` | Decodes art authored in SPRITE//FORGE into a texture. Rows of key characters, not a PNG. |
 | `Art/CarlFace.cs` | Carl's face, generated from `Art/carl_face.forge`. A tint map — white field, dark features. |
 | `Art/DeckChevron.cs` | The deck graphic, generated from `Art/deck_chevron.forge`. A cutout, so the colourway shows around it. |
 | `Design/CarlDesign.cs` | Carl's proportions, palette, outfits, mesh detail and standing pose. |
 | `Design/BoardDesign.cs` | Deck and truck dimensions plus the four colourways. |
 | `Design/CourseDesign.cs` | Hill and curve layers, road widths, draw distance, scenery populations. |
+| `Design/AudioDesign.cs` | Mix levels in dB and the pitch range each bed rides. |
 | `Design/SineLayer.cs` | One sine term, stored as amplitude + wavelength in metres. |
 | `Tools/CarlPreview.cs` | `[Tool]` script behind `Scenes/CarlPreview.tscn`. Editor only. |
 | `Tools/CoursePreview.cs` | `[Tool]` script behind `Scenes/CoursePreview.tscn`. Editor only. |
+| `Tools/AudioProbe.cs` | Measures what AudioKit generated. Headless only — see [Audio probe](#audio-probe). |
 
 ### Key patterns
 
@@ -145,7 +183,8 @@ Main (root)
  ├── GameCamera       → reads TerrainManager + PlayerManager
  ├── GameUI           → reads CarlStats + PlayerManager, handles input
  ├── GarageManager    → reads Carl/Board/Level selections, uses BoardBuilder + CarlBuilder
- └── TitleManager     → garage exterior; reads Board for the deck by the door
+ ├── TitleManager     → garage exterior; reads Board for the deck by the door
+ └── AudioManager     → reads game state + PlayerManager, rides the mix
 ```
 
 ## Design resources
@@ -160,8 +199,9 @@ from the corresponding `Scripts/Design/*.cs` — which is also where each field 
 | `Carl.tres` | `CarlBuilder` — proportions, palette, the three outfits, mesh detail, standing pose |
 | `Board.tres` | `BoardBuilder` — deck and truck dimensions, the four colourways |
 | `Frogwood.tres` | `TerrainManager` + `SceneryManager` — hills, curves, road widths, prop populations |
+| `Audio.tres` | `AudioManager` — level and pitch range for every bed, and the sound-effect trim |
 
-All three are assigned to the root node of `Scenes/Main.tscn`, so you can swap a whole look
+All four are assigned to the root node of `Scenes/Main.tscn`, so you can swap a whole look
 by dropping a different resource into the slot. An empty slot falls back to the stock build
 rather than crashing.
 
@@ -217,6 +257,26 @@ speed is settled by quadratic air drag rather than by a hard cap, so the grade n
   wavelength is steeper than a 5.5 m roll over 1257 m.
 - **Total relief has to stay under what a rider can climb on momentum** (`v^2/2g`, about
   22 m at top speed), or he bogs down on every crest and the ride dies.
+
+## Audio probe
+
+`Scenes/AudioProbe.tscn` measures what `AudioKit` actually generated and prints a table. It is
+the audio equivalent of `physics_sim.py`, and it exists because the two ways a synthesized
+stream goes wrong are both silent to the compiler and invisible on screen.
+
+```bash
+godot --headless --scene res://Scenes/AudioProbe.tscn
+```
+
+For a bed, the column that matters is **`dSeam/dRms`**: the jump from the last sample back to
+the first, divided by an ordinary sample-to-sample step. At 1 the loop join is indistinguishable
+from the signal either side of it. Anything much above about 5 is a click you will hear once per
+loop, forever.
+
+For a one-shot it is **`first`** and **`last`**, which must both be 0 or the sound clicks on and
+off, and **`peak`**, which must stay under 1.0 or the stream is clipped before the mix gets a
+say. `centroidHz` is a zero-crossing estimate of where the energy sits — coarse, but enough to
+catch a filter wired the wrong way round, or a blip landing on the wrong note.
 
 ## License
 

@@ -316,8 +316,15 @@ public class GameUI
     public void HandleTitleInput(Main main)
     {
         if (Input.IsActionJustPressed("kick_off"))
+        {
+            Advance(main);
             main.ShowCharSelect();
+        }
     }
+
+    /// <summary>Stepping forward into a screen, and stepping back out of one.</summary>
+    private static void Advance(Main main) { main.Audio.Play(AudioManager.Sfx.Confirm); }
+    private static void Retreat(Main main) { main.Audio.Play(AudioManager.Sfx.Back); }
 
     /// <summary>Space/↓ or Esc backs out of any select screen.</summary>
     private static bool BackPressed()
@@ -331,17 +338,19 @@ public class GameUI
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Carl = (Main.CarlType)(((int)main.Carl + count - 1) % count);
+            main.Audio.Play(AudioManager.Sfx.Move);
             main.Garage.UpdateDisplayModel();
             UpdateCharSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Carl = (Main.CarlType)(((int)main.Carl + 1) % count);
+            main.Audio.Play(AudioManager.Sfx.Move);
             main.Garage.UpdateDisplayModel();
             UpdateCharSelect(main);
         }
-        if (Input.IsActionJustPressed("kick_off")) main.ShowBoardSelect();
-        else if (BackPressed()) main.GoBack();
+        if (Input.IsActionJustPressed("kick_off")) { Advance(main); main.ShowBoardSelect(); }
+        else if (BackPressed()) { Retreat(main); main.GoBack(); }
     }
 
     public void HandleBoardSelectInput(Main main)
@@ -350,6 +359,7 @@ public class GameUI
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Board = (Main.BoardType)(((int)main.Board + count - 1) % count);
+            main.Audio.Play(AudioManager.Sfx.Move);
             main.Garage.UpdateRackHighlight();
             main.Garage.UpdatePickedBoard();
             UpdateBoardSelect(main);
@@ -357,12 +367,13 @@ public class GameUI
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Board = (Main.BoardType)(((int)main.Board + 1) % count);
+            main.Audio.Play(AudioManager.Sfx.Move);
             main.Garage.UpdateRackHighlight();
             main.Garage.UpdatePickedBoard();
             UpdateBoardSelect(main);
         }
-        if (Input.IsActionJustPressed("kick_off")) main.ShowLevelSelect();
-        else if (BackPressed()) main.GoBack();
+        if (Input.IsActionJustPressed("kick_off")) { Advance(main); main.ShowLevelSelect(); }
+        else if (BackPressed()) { Retreat(main); main.GoBack(); }
     }
 
     public void HandleLevelSelectInput(Main main)
@@ -371,19 +382,30 @@ public class GameUI
         if (Input.IsActionJustPressed("move_left"))
         {
             main.Level = (Main.LevelType)(((int)main.Level + count - 1) % count);
+            main.Audio.Play(AudioManager.Sfx.Move);
             main.Garage.UpdatePosterHighlight();
             UpdateLevelSelect(main);
         }
         if (Input.IsActionJustPressed("move_right"))
         {
             main.Level = (Main.LevelType)(((int)main.Level + 1) % count);
+            main.Audio.Play(AudioManager.Sfx.Move);
             main.Garage.UpdatePosterHighlight();
             UpdateLevelSelect(main);
         }
-        // Only built courses can be started; the placeholder posters just say so.
-        if (Input.IsActionJustPressed("kick_off") && Main.LevelUnlocked[(int)main.Level])
-            main.StartRide();
-        else if (BackPressed()) main.GoBack();
+        // Only built courses can be started; the placeholder posters just say so — and now
+        // say it out loud, so a dead confirm reads as locked rather than as a missed keypress.
+        if (Input.IsActionJustPressed("kick_off"))
+        {
+            if (Main.LevelUnlocked[(int)main.Level])
+            {
+                Advance(main);
+                main.StartRide();
+            }
+            else
+                main.Audio.Play(AudioManager.Sfx.Deny);
+        }
+        else if (BackPressed()) { Retreat(main); main.GoBack(); }
     }
 
     // ── Show/Hide ────────────────────────────────

@@ -20,6 +20,9 @@ public partial class Main : Node3D
     public float CountdownTimer = 0f;
     public float TitleTime = 0f;
 
+    /// <summary>Last whole second shown on the countdown, so the beep fires once per number.</summary>
+    private int _lastCount = 0;
+
     /// <summary>
     /// A rider's handling, as 1-5 pips. This is the single source of truth: the bars drawn on
     /// the char-select screen and the numbers PlayerManager rides with both derive from it, so
@@ -76,6 +79,9 @@ public partial class Main : Node3D
     [Export] public BoardDesign BoardLook { get; set; }
     [Export] public CourseDesign Course { get; set; }
 
+    /// <summary>The mix. Levels and pitch ranges for every sound AudioKit generates.</summary>
+    [Export] public AudioDesign AudioMix { get; set; }
+
     // Node references
     public Node3D Player;
     public Node3D CameraMount;
@@ -88,6 +94,7 @@ public partial class Main : Node3D
     public GameCamera Cam;
     public GarageManager Garage;
     public TitleManager Title;
+    public AudioManager Audio;
 
     public override void _Ready()
     {
@@ -97,6 +104,7 @@ public partial class Main : Node3D
         CarlLook ??= new CarlDesign();
         BoardLook ??= new BoardDesign();
         Course ??= new CourseDesign();
+        AudioMix ??= new AudioDesign();
         LevelLengths[(int)LevelType.FrogwoodNH] = Course.Length;
 
         Terrain = new TerrainManager(this, Course);
@@ -106,6 +114,7 @@ public partial class Main : Node3D
         Cam = new GameCamera(this);
         Garage = new GarageManager(this);
         Title = new TitleManager(this);
+        Audio = new AudioManager(this);
 
         Terrain.Create();
         PlayerMgr.Create();
@@ -114,11 +123,18 @@ public partial class Main : Node3D
         UI.Create();
         Garage.Create();
         Title.Create();
+        Audio.Create();
 
         // Open outside the garage, not in it.
         Title.Show();
         Title.ResetCamera();
         UI.ShowTitle(this);
+    }
+
+    /// <summary>The audio server outlives the scene tree by less than the beds do. See AudioManager.Shutdown.</summary>
+    public override void _ExitTree()
+    {
+        if (Audio != null) Audio.Shutdown();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -128,6 +144,10 @@ public partial class Main : Node3D
         if (Input.IsActionPressed("move_left")) steer += 1f;
         if (Input.IsActionPressed("move_right")) steer -= 1f;
         bool braking = Input.IsActionPressed("brake");
+
+        // The mix reads the game state rather than being told about it, so it lives outside
+        // the switch and covers every state including the ones that do nothing else.
+        Audio.Update(dt);
 
         switch (State)
         {
@@ -163,10 +183,17 @@ public partial class Main : Node3D
                     PlayerMgr.Speed = 0.1f;
                     Timer = 0f;
                     UI.SetCountdown("", new Color(1, 1, 1));
+                    Audio.Play(AudioManager.Sfx.Go);
                 }
                 else
                 {
                     int count = Mathf.CeilToInt(CountdownTimer);
+                    // Edge-triggered: the label is set every frame, the beep is not.
+                    if (count != _lastCount)
+                    {
+                        _lastCount = count;
+                        Audio.Play(AudioManager.Sfx.Beep);
+                    }
                     UI.SetCountdown(count.ToString(), count == 1 ?
                         new Color(0.2f, 1f, 0.4f) : new Color(1f, 0.88f, 0.23f));
                 }
@@ -183,6 +210,7 @@ public partial class Main : Node3D
                 if (Input.IsActionJustPressed("pause"))
                 {
                     State = GameState.Paused;
+                    Audio.Play(AudioManager.Sfx.Back);
                     UI.SetPause("PAUSED");
                     UI.SetPrompt("Press Esc to resume");
                     break;
@@ -195,11 +223,13 @@ public partial class Main : Node3D
                     if (BestTime <= 0f || FinishTime < BestTime)
                         BestTime = FinishTime;
                     PlayerMgr.SpawnConfetti();
+                    Audio.Play(AudioManager.Sfx.Finish);
                     UI.ShowFinish(this);
                 }
                 else if (PlayerMgr.Crashed)
                 {
                     State = GameState.Finished;
+                    Audio.Play(AudioManager.Sfx.Crash);
                     UI.ShowCrash();
                 }
                 break;
@@ -209,6 +239,7 @@ public partial class Main : Node3D
                 if (Input.IsActionJustPressed("pause"))
                 {
                     State = GameState.Riding;
+                    Audio.Play(AudioManager.Sfx.Confirm);
                     UI.SetPause("");
                     UI.SetPrompt("");
                 }
@@ -301,6 +332,7 @@ public partial class Main : Node3D
         UI.ShowHUD();
         State = GameState.Countdown;
         CountdownTimer = 3f;
+        _lastCount = 0;
         UI.HideAllSelectors();
         PlayerMgr.ApplyBoard();
         PlayerMgr.ApplyCarl();
