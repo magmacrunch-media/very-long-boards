@@ -11,8 +11,9 @@ using System.Collections.Generic;
 public class SceneryManager
 {
     private readonly Node3D _parent;
+    private bool _created;
     private readonly TerrainManager _terrain;
-    private readonly CourseDesign _design;
+    private CourseDesign _design;
 
     /// <summary>
     /// A scrolling prop. <see cref="Absolute"/> pins it to a fixed point on the course
@@ -66,8 +67,43 @@ public class SceneryManager
         _design = design ?? new CourseDesign();
     }
 
+    /// <summary>
+    /// Throw the whole world away and populate a different course.
+    ///
+    /// Terrain can swap a design without rebuilding because it re-derives its ribbons every
+    /// frame. Scenery cannot: every tree, rock and mailbox was placed once from the course's
+    /// own populations and seed, so a new course means new props in new places.
+    /// </summary>
+    public void Rebuild(CourseDesign design)
+    {
+        Clear();
+        _design = design ?? new CourseDesign();
+        Create();
+    }
+
+    /// <summary>Free everything Create() made. Safe to call before anything has been made.</summary>
+    private void Clear()
+    {
+        if (!_created) return;
+
+        foreach (var item in Items) if (item.Node != null) item.Node.QueueFree();
+        foreach (var c in Clouds) if (c.Node != null) c.Node.QueueFree();
+        foreach (var b in Butterflies) if (b.Node != null) b.Node.QueueFree();
+        foreach (var b in Birds) if (b.Node != null) b.Node.QueueFree();
+        foreach (var s in Squirrels) if (s.Node != null) s.Node.QueueFree();
+        if (_finishLine != null) { _finishLine.QueueFree(); _finishLine = null; }
+
+        Items.Clear();
+        Clouds.Clear();
+        Butterflies.Clear();
+        Birds.Clear();
+        Squirrels.Clear();
+        _created = false;
+    }
+
     public void Create()
     {
+        _created = true;
         CreateScenery();
         CreateClouds();
         CreateFinishLine();

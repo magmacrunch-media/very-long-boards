@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://Resources/Design/Board.tres" id="3_board"]
 [ext_resource type="Resource" path="res://Resources/Design/Frogwood.tres" id="4_course"]
 [ext_resource type="Resource" path="res://Resources/Design/Audio.tres" id="5_audio"]
+[ext_resource type="Resource" path="res://Resources/Design/BlockIsland.tres" id="6_island"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat_1"]
 sky_top_color = Color(0.18, 0.38, 0.8, 1)
@@ -34,6 +35,7 @@ script = ExtResource("1")
 CarlLook = ExtResource("2_carl")
 BoardLook = ExtResource("3_board")
 Course = ExtResource("4_course")
+BlockIslandCourse = ExtResource("6_island")
 AudioMix = ExtResource("5_audio")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1104829159]

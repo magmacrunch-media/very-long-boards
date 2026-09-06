@@ -11,7 +11,7 @@ using Godot;
 public class TerrainManager
 {
     private readonly Node3D _parent;
-    private readonly CourseDesign _design;
+    private CourseDesign _design;
 
     private MeshInstance3D _roadMesh;
     private MeshInstance3D _lineCenterMesh;
@@ -29,6 +29,15 @@ public class TerrainManager
     public int Segs { get { return _design.Segments; } }
     public int Back { get { return _design.SegmentsBehind; } }
     public float SegLen { get { return _design.SegmentLength; } }
+
+    /// <summary>
+    /// Ride a different course. Nothing has to be rebuilt: Update() re-derives every ribbon
+    /// from the design each frame anyway, so the next frame is already the new road.
+    /// </summary>
+    public void SetDesign(CourseDesign design)
+    {
+        _design = design ?? new CourseDesign();
+    }
 
     public TerrainManager(Node3D parent, CourseDesign design)
     {

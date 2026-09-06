@@ -8,6 +8,11 @@ using Godot;
 /// Edit <c>Resources/Design/Frogwood.tres</c>, or open <c>Scenes/CoursePreview.tscn</c> and drag
 /// the Distance slider to fly down the road while you tune it.
 ///
+/// A course does not have to be made of sine layers. <see cref="MeasuredCourse"/> overrides
+/// the three methods below with a sampled profile taken off real survey data, which is how
+/// Block Island is built; everything downstream asks this class the same three questions and
+/// never learns the difference.
+///
 /// Two rules survive from the hand-written version and still apply:
 /// <list type="bullet">
 /// <item>Steepness is amplitude x frequency, not amplitude. A 0.9 m roll over a 66 m wavelength
@@ -127,7 +132,7 @@ public partial class CourseDesign : Resource
     /// Road height in metres. Flat start area, then rolling hills on a net downhill grade.
     /// Mirrored by <c>physics_sim.py</c>, which parses this resource rather than copying it.
     /// </summary>
-    public float HillAt(float z)
+    public virtual float HillAt(float z)
     {
         if (z < HillFlatStart) return 0f;
         float adjustedZ = z - HillFlatStart;
@@ -135,7 +140,7 @@ public partial class CourseDesign : Resource
     }
 
     /// <summary>Lateral drift per metre of look-ahead. Flat through the start straight.</summary>
-    public float CurveAt(float z)
+    public virtual float CurveAt(float z)
     {
         if (z < CurveFlatStart) return 0f;
         return Sum(CurveLayers, z - CurveFlatStart);
@@ -157,7 +162,7 @@ public partial class CourseDesign : Resource
     /// Worst-case climb between a trough and the next crest, ignoring the grade. Compare
     /// against v^2/2g (about 22 m at top speed) — over that and the rider bogs down.
     /// </summary>
-    public float TotalRelief()
+    public virtual float TotalRelief()
     {
         if (HillLayers == null) return 0f;
         float sum = 0f;

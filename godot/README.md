@@ -38,9 +38,53 @@ between the three select screens.
 
 | Course | Status |
 |--------|--------|
-| Frogwood, NH | Playable — 2000m of rolling summer hills |
-| Block Island | Locked — coastal cliffs, not built yet |
+| Frogwood, NH | Playable — 2000 m of rolling summer hills, composed from sine layers |
+| Block Island | Playable — 1290 m down Spring Street, measured off the real island |
 | ??? ×2 | Placeholder poster slots |
+
+A poster is unlocked exactly when a course resource is assigned to it in the Inspector.
+`Main.LevelUnlocked` is derived from that in `_Ready` rather than written down a second time.
+
+## Block Island is measured, not composed
+
+Frogwood is four sine layers on a net grade. Block Island is a **sampled profile** taken off
+the real island: heights from USGS 3DEP 1 m LiDAR, centreline from US Census TIGER/Line, both
+public domain, both read out of the [`block-island-simulator`](../../block-island-simulator)
+repo by `build_block_island.py`. Nothing loads that repo at runtime — the profile is baked
+into `Resources/Design/BlockIsland.tres` and the generator is the only thing that needs it.
+
+`MeasuredCourse` subclasses `CourseDesign` and overrides `HillAt`, `CurveAt` and
+`TotalRelief`. Everything downstream asks the same three questions and never learns which
+kind of course it got.
+
+**The route is Spring Street, from the Southeast Light end down toward Old Harbor.** It was
+picked by measuring every road on the island: Spring Street has the longest sustained descent
+there is, 39.9 m over 1595 m. The road divides into three parts and only the middle one is a
+course — 965 m of clifftop plateau at 40-45 m, then the drop, then a climb back to 22 m
+before Old Harbor. That last climb is the entire momentum budget before any exaggeration, so
+the course starts a little way back along the plateau for a run-up and stops at the bottom of
+the descent rather than carrying on into town.
+
+**Two things were done to the measurements, and both are recorded on the resource.**
+
+*Heights are doubled.* The island tops out at 63.7 m and its best grade anywhere is 2.5%,
+against the 8% this game is built around. At the real grade a rider settles at 31 km/h, never
+reaches the 15.8 m/s wobble onset, and the course has no way to end badly. Doubling puts the
+steepest 600 m at 9.6% and the average at 5.9%, which brackets Frogwood.
+
+*Headings are detrended and scaled.* The ribbon draws a point at `CurveAt(z) * lookAhead`, so
+heading only means anything as a small angle — the real road swings 59° off its own baseline,
+which would throw the far end of the road hundreds of metres sideways. And the camera always
+sits behind the rider, so a road's absolute bearing is not observable anyway. Where the bends
+fall and which way they go is measured; how hard they bite is not.
+
+```bash
+python3 build_block_island.py            # regenerate the resource
+python3 build_block_island.py --report   # print the numbers, write nothing
+```
+
+It finds the simulator beside this repo or grouped under `games/`; `BLOCK_ISLAND_SRC=<path>`
+overrides. `pyproj` is needed for the one coordinate conversion that places the lighthouse.
 
 ## Controls
 
@@ -134,8 +178,9 @@ The mix levels live in `Resources/Design/Audio.tres`, not in the manager — see
 ### Scene structure
 
 One shipping scene (`Scenes/Main.tscn`) — everything is built in code, including the garage
-hub and menu screens. `Scenes/CarlPreview.tscn`, `Scenes/CoursePreview.tscn` and
-`Scenes/AudioProbe.tscn` are workbenches; nothing at runtime loads them.
+hub and menu screens. `Scenes/CarlPreview.tscn`, `Scenes/CoursePreview.tscn`,
+`Scenes/AudioProbe.tscn` and `Scenes/CourseProbe.tscn` are workbenches; nothing at runtime
+loads them.
 
 ### Scripts
 
@@ -161,11 +206,13 @@ hub and menu screens. `Scenes/CarlPreview.tscn`, `Scenes/CoursePreview.tscn` and
 | `Design/CarlDesign.cs` | Carl's proportions, palette, outfits, mesh detail and standing pose. |
 | `Design/BoardDesign.cs` | Deck and truck dimensions plus the four colourways. |
 | `Design/CourseDesign.cs` | Hill and curve layers, road widths, draw distance, scenery populations. |
+| `Design/MeasuredCourse.cs` | A course sampled off real survey data instead of composed from sines. |
 | `Design/AudioDesign.cs` | Mix levels in dB and the pitch range each bed rides. |
 | `Design/SineLayer.cs` | One sine term, stored as amplitude + wavelength in metres. |
 | `Tools/CarlPreview.cs` | `[Tool]` script behind `Scenes/CarlPreview.tscn`. Editor only. |
 | `Tools/CoursePreview.cs` | `[Tool]` script behind `Scenes/CoursePreview.tscn`. Editor only. |
 | `Tools/AudioProbe.cs` | Measures what AudioKit generated. Headless only — see [Audio probe](#audio-probe). |
+| `Tools/CourseProbe.cs` | Reads a course back and reports what the ride does on it. Headless only. |
 
 ### Key patterns
 
@@ -205,6 +252,7 @@ from the corresponding `Scripts/Design/*.cs` — which is also where each field 
 | `Carl.tres` | `CarlBuilder` — proportions, palette, the three outfits, mesh detail, standing pose |
 | `Board.tres` | `BoardBuilder` — deck and truck dimensions, the four colourways |
 | `Frogwood.tres` | `TerrainManager` + `SceneryManager` — hills, curves, road widths, prop populations |
+| `BlockIsland.tres` | The same, but a `MeasuredCourse`. **Generated — do not hand-edit.** |
 | `Audio.tres` | `AudioManager` — level and pitch range for every bed, and the sound-effect trim |
 
 All four are assigned to the root node of `Scenes/Main.tscn`, so you can swap a whole look
@@ -267,6 +315,25 @@ speed is settled by quadratic air drag rather than by a hard cap, so the grade n
   wavelength is steeper than a 5.5 m roll over 1257 m.
 - **Total relief has to stay under what a rider can climb on momentum** (`v^2/2g`, about
   22 m at top speed), or he bogs down on every crest and the ride dies.
+
+## Course probe
+
+`Scenes/CourseProbe.tscn` loads every course resource and reports what the ride will actually
+do on it — net drop, average grade, the steepest sustained stretches and the settling speed on
+each, the worst climb, and the peak heading.
+
+```bash
+godot --headless --path godot --scene res://Scenes/CourseProbe.tscn
+```
+
+The two numbers that decide whether a course works are **the steepest sustained grade**, which
+has to put the rider past the 57 km/h wobble onset or nothing can ever go wrong, and **the
+worst climb**, which has to stay under what he can carry momentum through (`v^2/2g`, about
+22 m) or he bogs down and the ride dies.
+
+Frogwood currently reports a worst climb of 24.4 m against that 22 m budget. That figure is a
+worst case — it assumes all four hill layers crest together, which they rarely do — so it is
+a thing to know rather than a thing that is broken.
 
 ## Audio probe
 
