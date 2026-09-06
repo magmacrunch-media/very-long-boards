@@ -25,3 +25,7 @@ garage_*.png
 # AI tool artifacts
 # Claude Code's per-repo state: launch.json, and worktrees/ when a session runs in one.
 .claude/
+
+# Survey data downloaded by build_frogwood.py. Public domain, ~20 MB, and it
+# regenerates on demand - the resource it produces is what belongs in the repo.
+.survey-cache/

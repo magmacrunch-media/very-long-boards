@@ -72,6 +72,29 @@ def pip(pips, at_one, at_five):
     return at_one + (at_five - at_one) * (max(1, min(5, pips)) - 1) / 4.0
 
 
+def read_samples(text):
+    """
+    Pull a sampled profile out of a MeasuredCourse .tres.
+
+    Frogwood is measured now - Windham NH, built by build_frogwood.py - so there
+    are no SineLayers in it at all. Without this the sine parser below finds
+    nothing, falls back to its built-in defaults and reports on a course that has
+    not existed since: every number right, all of them about the wrong road.
+    """
+    heights = re.search(r'^Heights\s*=\s*PackedFloat32Array\((.*?)\)\s*$',
+                        text, re.S | re.M)
+    if not heights:
+        return None
+    vals = [float(v) for v in heights.group(1).split(",") if v.strip()]
+    if len(vals) < 2:
+        return None
+    spacing = re.search(r'^SampleSpacing\s*=\s*([-\d.eE+]+)\s*$', text, re.M)
+    length = re.search(r'^Length\s*=\s*([-\d.eE+]+)\s*$', text, re.M)
+    return (vals,
+            float(spacing.group(1)) if spacing else 10.0,
+            float(length.group(1)) if length else (len(vals) - 1) * 10.0)
+
+
 def read_course(path=COURSE_TRES):
     """
     Pull the hill shape out of a CourseDesign .tres.
@@ -80,6 +103,8 @@ def read_course(path=COURSE_TRES):
     [sub_resource] blocks and the array on [resource] refers to them by id.
     Anything the file does not override keeps the C# default, which is exactly
     how Godot itself loads it.
+
+    A MeasuredCourse has a sampled profile instead, and is handled first.
     """
     layers = list(DEFAULT_HILL_LAYERS)
     grade, flat_start, length = DEFAULT_GRADE, DEFAULT_FLAT_START, DEFAULT_LENGTH
@@ -89,6 +114,14 @@ def read_course(path=COURSE_TRES):
         return layers, grade, flat_start, length, "defaults (%s missing)" % path
 
     text = io.open(path, encoding="utf-8").read()
+
+    sampled = read_samples(text)
+    if sampled:
+        vals, spacing, length = sampled
+        return ("samples", vals, spacing), 0.0, 0.0, length, (
+            "%s (measured, %d samples at %.0f m)"
+            % (os.path.basename(path), len(vals), spacing))
+
     overrides = []
 
     # A .tres is a sequence of [header] blocks, so split on the headers rather
@@ -138,13 +171,30 @@ def read_course(path=COURSE_TRES):
 
 HILL_LAYERS, GRADE, FLAT_START, COURSE_LENGTH, COURSE_SOURCE = read_course()
 
-# (amplitude, angular frequency) — what hill_at actually integrates.
-HILL_TERMS = [(amp, 0.0 if wave <= 0 else 2.0 * math.pi / wave)
-              for amp, wave in HILL_LAYERS]
+# What hill_at actually integrates: either (amplitude, angular frequency) pairs
+# for a composed course, or the sampled profile a measured one carries through
+# read_course untouched.
+if isinstance(HILL_LAYERS, tuple) and HILL_LAYERS and HILL_LAYERS[0] == "samples":
+    HILL_TERMS = HILL_LAYERS
+else:
+    HILL_TERMS = [(amp, 0.0 if wave <= 0 else 2.0 * math.pi / wave)
+                  for amp, wave in HILL_LAYERS]
 
 
 def hill_at(z):
-    """Mirrors CourseDesign.HillAt()."""
+    """Mirrors CourseDesign.HillAt(), for either kind of course."""
+    if isinstance(HILL_TERMS, tuple) and HILL_TERMS and HILL_TERMS[0] == "samples":
+        _, vals, spacing = HILL_TERMS
+        if z <= 0.0:
+            return vals[0]
+        f = z / spacing
+        i = int(f)
+        if i >= len(vals) - 1:
+            # Extend on the closing grade, as MeasuredCourse does.
+            grade = (vals[-1] - vals[-2]) / spacing
+            return vals[-1] + grade * (z - (len(vals) - 1) * spacing)
+        return vals[i] + (vals[i + 1] - vals[i]) * (f - i)
+
     if z < FLAT_START:
         return 0.0
     a = z - FLAT_START
@@ -197,9 +247,16 @@ def push_report():
 
 def report():
     print("source : %s" % COURSE_SOURCE)
-    print("course : %.0f m | %d hill terms | max local slope %.0f%%"
-          % (COURSE_LENGTH, len(HILL_TERMS),
-             100 * (sum(a * f for a, f in HILL_TERMS) + GRADE)))
+    measured = isinstance(HILL_TERMS, tuple) and HILL_TERMS and HILL_TERMS[0] == "samples"
+    if measured:
+        steepest = max(abs(hill_at(z + 10.0) - hill_at(z)) / 10.0
+                       for z in range(0, int(COURSE_LENGTH) - 10, 5))
+        print("course : %.0f m | measured profile | max local slope %.0f%%"
+              % (COURSE_LENGTH, 100 * steepest))
+    else:
+        print("course : %.0f m | %d hill terms | max local slope %.0f%%"
+              % (COURSE_LENGTH, len(HILL_TERMS),
+                 100 * (sum(a * f for a, f in HILL_TERMS) + GRADE)))
 
     # The climb the rider actually makes, walked rather than bounded.
     #

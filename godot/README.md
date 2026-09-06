@@ -38,20 +38,57 @@ between the three select screens.
 
 | Course | Status |
 |--------|--------|
-| Frogwood, NH | Playable — 2000 m of rolling summer hills, composed from sine layers |
+| Frogwood, NH | Playable — 2000 m of rolling summer hills, measured off Windham, NH |
 | Block Island | Playable — 1290 m down Spring Street, measured off the real island |
 | ??? ×2 | Placeholder poster slots |
 
 A poster is unlocked exactly when a course resource is assigned to it in the Inspector.
 `Main.LevelUnlocked` is derived from that in `_Ready` rather than written down a second time.
 
-## Block Island is measured, not composed
+## Both courses are measured
 
-Frogwood is four sine layers on a net grade. Block Island is a **sampled profile** taken off
-the real island: heights from USGS 3DEP 1 m LiDAR, centreline from US Census TIGER/Line, both
-public domain, both read out of the [`block-island-simulator`](../../block-island-simulator)
-repo by `build_block_island.py`. Nothing loads that repo at runtime — the profile is baked
-into `Resources/Design/BlockIsland.tres` and the generator is the only thing that needs it.
+Neither course is composed any more. Both are **sampled profiles** taken off real ground, with
+elevation from USGS 3DEP and centrelines from US Census TIGER/Line — public domain, and the
+same two sources the [`block-island-simulator`](../../block-island-simulator) uses.
+
+| | route | generator | survey |
+|---|---|---|---|
+| Frogwood | Old Mill → **Millstone → Crestwood** → Kendall Pond, Windham NH | `build_frogwood.py` | fetched on demand |
+| Block Island | Spring Street, from the Southeast Light | `build_block_island.py` | read from the simulator repo |
+
+Frogwood fetches its own survey because nothing else in the tree has it, into a gitignored
+`.survey-cache/` beside the script. Block Island's is already tiled in the simulator repo, and
+nothing loads either at runtime — both profiles are baked into their resources and the
+generators are the only things that need the data.
+
+### Frogwood: the shape is measured, the slope is not
+
+Frogwood was always Windham, New Hampshire — the lanes around Foster's Pond, and specifically
+Millstone Road and Crestwood Road, which meet end to end at a crest. It is those roads now.
+
+**The real road is not a descent.** It rolls gently for 600 m, climbs to a crest of 93.5 m at
+the 720 m mark — the Millstone high point — and falls away, finishing 4.9 m *below* where it
+started rather than 160 m below. Ridden as measured it is a hill, and a downhill game cannot
+use it.
+
+So the profile is detrended against its own endpoints and an 8% grade is put underneath. Every
+roll stays exactly where the road puts it; only the descent is invented. That is the reverse of
+the usual compromise — a measured shape on a fictional slope, rather than a plausible shape on
+a real one.
+
+**The roll gain was set by the simulation, not chosen.** Tilting flattens what it tilts, so the
+rolls are scaled back up. 1.5 was the guess, and `physics_sim.py` threw it out:
+
+| rolls | run | avg | floor | wobble | |
+|---|---|---|---|---|---|
+| ×1.5 | 189 s | 38 | 24.9% | 28.0% | too slow, bogs down |
+| **×1.2** | **168 s** | **43** | **9.9%** | **31.5%** | every target met |
+| ×1.0 | 150 s | 48 | 0.0% | 34.9% | also fine, less road left |
+
+At ×1.5 the worst climb is 11.7 m — well inside the 25.3 m a rider can carry — and the ride
+still dies, because the climbs are survivable one at a time and ruinous in a row. ×1.2 keeps
+more of the real road than ×1.0 and lands inside every target, so that is the one that
+survived.
 
 `MeasuredCourse` subclasses `CourseDesign` and overrides `HillAt`, `CurveAt` and
 `TotalRelief`. Everything downstream asks the same three questions and never learns which
@@ -288,7 +325,7 @@ from the corresponding `Scripts/Design/*.cs` — which is also where each field 
 |----------|--------|
 | `Carl.tres` | `CarlBuilder` — proportions, palette, the three outfits, mesh detail, standing pose |
 | `Board.tres` | `BoardBuilder` — deck and truck dimensions, the four colourways |
-| `Frogwood.tres` | `TerrainManager` + `SceneryManager` — hills, curves, road widths, prop populations |
+| `Frogwood.tres` | The same, but a `MeasuredCourse`. **Generated — do not hand-edit.** |
 | `BlockIsland.tres` | The same, but a `MeasuredCourse`. **Generated — do not hand-edit.** |
 | `Audio.tres` | `AudioManager` — level and pitch range for every bed, and the sound-effect trim |
 
@@ -333,7 +370,10 @@ python3 garage_layout.py
 spent bogged down, and how much of the ride sits in the wobble band.
 
 The terrain half is **not** mirrored: it parses `Resources/Design/Frogwood.tres` directly, so
-reshaping the hills in the Inspector and re-running the sim needs no porting step. The report
+reshaping the course and re-running the sim needs no porting step. It reads a measured profile
+as well as sine layers — without that it would find no `HillLayers`, fall back to its built-in
+defaults and report on a course that has not existed since Frogwood was rebuilt: every number
+right, all of them about the wrong road. The report
 opens with a `source:` line naming what it actually read. The rider half still mirrors
 `PlayerManager.Update()` by hand — tune those constants in the script, then port them across,
 same workflow as the garage tool.
