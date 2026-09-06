@@ -372,6 +372,51 @@ Frogwood currently reports a worst climb of 24.4 m against that 22 m budget. Tha
 worst case — it assumes all four hill layers crest together, which they rarely do — so it is
 a thing to know rather than a thing that is broken.
 
+## The headless leak warning
+
+A headless run of the game reports, on most runs:
+
+```
+WARNING: 12 ObjectDB instances were leaked at exit
+```
+
+Twelve is the six audio beds and their six playbacks. **It is a property of the headless audio
+driver, not of the game, and it has been chased once already — please read this before
+chasing it again.**
+
+What it does and does not depend on, measured on one build:
+
+| | |
+|---|---|
+| Windowed, real audio driver | clean, every time |
+| Headless, dummy audio driver | leaks about three runs in four |
+| Frame count | changes how often, not whether |
+| `--quit-after` vs `GetTree().Quit()` | no difference; both do it |
+
+The beds are started once and never stopped, which is what keeps a loop from clicking, so six
+of them are still playing at exit. With a real driver the audio server reclaims them. With the
+dummy driver it does not, reliably.
+
+Ruled out, each tried and each making no difference:
+
+- Stopping the players unconditionally rather than only when `Playing` — they have already left
+  the tree when `Main._ExitTree` runs, so `Playing` is false and a guarded stop skips them.
+  Removing the guard does not help either.
+- Clearing each player's `Stream`.
+- Disposing AudioKit's cached streams, which is what actually releases a Godot C# wrapper.
+  This made it *more* frequent.
+- Nulling AudioKit's static cache and forcing `GC.Collect` plus `WaitForPendingFinalizers`.
+  This made it flakier in both directions, which is what a timing dependency looks like.
+- Giving each player its own `_ExitTree` to stop itself at the one moment it is both in one
+  piece and still owned — the earliest point the game controls. No change.
+
+Nothing accumulates while the game runs. Every path the game actually ships through is clean.
+The next thing worth trying, if it ever matters, is not starting a bed until it first becomes
+audible — five of the six are silent on the title screen where this is measured, so there
+would be almost nothing left to reclaim. That is a change to how the mix behaves, though, and
+it should be made because it is better, not to quiet a warning that only appears without a
+sound card.
+
 ## Course shot
 
 A palette is the one thing no headless number can check, so `Scenes/CourseShot.tscn` starts a
