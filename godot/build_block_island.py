@@ -225,15 +225,71 @@ def build():
     scale = HEADING_PEAK_RAD / peak
     headings = [v * scale for v in residual]
 
+    # Which side the Atlantic is on, asked of the terrain rather than assumed. Sample well
+    # out to each side along the middle of the course: the seaward side runs off the island
+    # into water or off the tiled domain entirely, the landward side does not.
+    sea_votes = 0
+    for i in range(len(raw) // 4, 3 * len(raw) // 4):
+        bx, bz = bearings_for_side(raw, i)
+        for probe in (250.0, 400.0):
+            # x runs east and z runs SOUTH from the north-west origin, so the rider's
+            # right is (-dz, +dx), not (+dz, -dx). Getting this backwards put the
+            # Atlantic inland, which the terrain then cheerfully confirmed.
+            left = hf.at(raw[i][0] + bz * probe, raw[i][1] - bx * probe)
+            right = hf.at(raw[i][0] - bz * probe, raw[i][1] + bx * probe)
+            lo = 1e9 if left is None else left
+            ro = 1e9 if right is None else right
+            if ro < lo:
+                sea_votes += 1
+            elif lo < ro:
+                sea_votes -= 1
+
+    # +X is to the rider's LEFT here: PlayerManager adds to PosX on move_left. So the sea
+    # being on the rider's right is SeaSide -1.
+    sea_side = -1 if sea_votes > 0 else 1
+
+    # How far the water actually is. Probe seaward from each sample until the ground drops
+    # to about sea level or runs off the tiled domain, and take the median -- the road does
+    # not run along the cliff edge, and inventing a distance would put it there.
+    shore = []
+    for i in range(len(raw)):
+        bx, bz = bearings_for_side(raw, i)
+        px, pz = (-bz, bx) if sea_side < 0 else (bz, -bx)
+        for d in range(10, 800, 10):
+            h = hf.at(raw[i][0] + px * d, raw[i][1] + pz * d)
+            if h is None or h < 3.0:
+                shore.append(float(d))
+                break
+    # Clamped only at the far end: past a few hundred metres the water is over the horizon
+    # anyway, and a 770 m strip of ground is geometry nobody sees.
+    shore_series = [min(s, 320.0) for s in shore]
+    while len(shore_series) < count:
+        shore_series.append(shore_series[-1] if shore_series else 320.0)
+    shore = sorted(shore)
+    shore_distance = shore[len(shore) // 2] if shore else 60.0
+
     length = (count - 1) * SPACING
     drop = heights[0] - heights[-1]
     return {
+        "shore_distance": shore_distance,
+        "shore_all": shore,
+        "shore_series": shore_series,
+        "sea_side": sea_side,
+        "sea_level": (0.0 - base_h) * VERTICAL_EXAGGERATION,
         "root": root, "length": length, "heights": heights, "headings": headings,
         "drop": drop, "measured_drop": drop / VERTICAL_EXAGGERATION,
         "curve_scale": scale, "raw_peak": peak,
         "light_ground": hf.at(*light),
         "start_ground": base_h, "end_ground": raw[-1][2],
     }
+
+
+def bearings_for_side(raw, i):
+    """Unit vector along the road at sample i, for probing left and right of it."""
+    j = min(i + 1, len(raw) - 1)
+    dx, dz = raw[j][0] - raw[i][0], raw[j][1] - raw[i][1]
+    n = math.hypot(dx, dz) or 1.0
+    return dx / n, dz / n
 
 
 def relief(heights):
@@ -272,6 +328,12 @@ def report(c):
     print()
     print("heading           real peak %.2f rad (%.0f deg), scaled by %.3f to %.2f rad"
           % (c["raw_peak"], math.degrees(c["raw_peak"]), c["curve_scale"], HEADING_PEAK_RAD))
+    print("sea               on the rider's %s, %.1f m below the start line"
+          % ("right" if c["sea_side"] < 0 else "left", -c["sea_level"]))
+    s = c["shore_all"]
+    print("shore             %.0f m from the road (median, measured)" % c["shore_distance"])
+    print("                  closest %.0f m, 25th pct %.0f m, farthest %.0f m over %d samples"
+          % (s[0], s[len(s) // 4], s[-1], len(s)))
 
 
 TEMPLATE = '''[gd_resource type="Resource" script_class="MeasuredCourse" load_steps=2 format=3]
@@ -290,6 +352,46 @@ Length = {length}
 HillFlatStart = 0.0
 CurveFlatStart = 0.0
 Grade = 0.0
+RoadWidth = 6.5
+ShoulderWidth = 1.4
+GroundWidth = 300.0
+Density = 0.8
+ScenerySeed = 1661
+ClosePines = 10
+FarPines = 16
+Deciduous = 8
+Rocks = 70
+Stumps = 0
+Wildflowers = 150
+Ferns = 0
+Bushes = 95
+Logs = 0
+RoadSigns = 6
+Houses = 5
+Streams = 0
+StoneWalls = 48
+MarkerSpacing = 250.0
+GroundLo = Color({ground_lo})
+GroundHi = Color({ground_hi})
+FoliageLo = Color({foliage_lo})
+FoliageHi = Color({foliage_hi})
+FlowerColors = PackedColorArray({flowers})
+SunEnergy = 1.95
+SunColor = Color(1, 0.97, 0.9, 1)
+AmbientEnergy = 0.72
+AmbientColor = Color(0.78, 0.82, 0.86, 1)
+FogColor = Color(0.76, 0.83, 0.88, 1)
+FogDensity = 0.0075
+SkyTop = Color(0.22, 0.45, 0.8, 1)
+SkyHorizon = Color(0.62, 0.75, 0.88, 1)
+SkyGroundHorizon = Color(0.46, 0.49, 0.29, 1)
+SkyGroundBottom = Color(0.30, 0.34, 0.18, 1)
+HasSea = true
+SeaLevel = {sea_level}
+SeaSide = {sea_side}
+ShoreDistance = {shore_distance}
+ShoreSamples = PackedFloat32Array({shore_samples})
+SeaColor = Color(0.13, 0.31, 0.44, 1)
 '''
 
 
@@ -310,6 +412,22 @@ def write(c):
         curve_scale=round(c["curve_scale"], 5),
         note=note,
         length=round(c["length"], 1),
+        sea_level=round(c["sea_level"], 2),
+        sea_side=c["sea_side"],
+        shore_distance=round(c["shore_distance"], 1),
+        shore_samples=", ".join("%.1f" % v for v in c["shore_series"]),
+        # Summer on the moraine: olive and tawny where Frogwood is forest green, because the
+        # island is open grassland and low scrub and almost no tall trees at all.
+        ground_lo="0.33, 0.38, 0.19, 1",
+        ground_hi="0.52, 0.54, 0.30, 1",
+        # Bayberry and shadbush - grey-green, wind-shorn.
+        foliage_lo="0.19, 0.30, 0.17, 1",
+        foliage_hi="0.36, 0.46, 0.28, 1",
+        # Beach rose, goldenrod, Queen Anne's lace.
+        # PackedColorArray takes bare floats, four per colour - not nested Color()
+        # constructors, which parse as "expected float" and fail the whole resource.
+        flowers=("0.86, 0.42, 0.55, 1, 0.95, 0.83, 0.25, 1, "
+                 "0.94, 0.95, 0.92, 1, 0.78, 0.55, 0.72, 1"),
     )
     out = os.path.join(HERE, "Resources", "Design", "BlockIsland.tres")
     with open(out, "wb") as f:

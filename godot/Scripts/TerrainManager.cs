@@ -19,7 +19,7 @@ public class TerrainManager
     private MeshInstance3D _lineEdgeRMesh;
     private MeshInstance3D _shoulderLMesh;
     private MeshInstance3D _shoulderRMesh;
-    private MeshInstance3D _groundMesh;
+    private MeshInstance3D _groundMesh, _groundSeaMesh;
 
     public float ScrollOffset = 0f;
 
@@ -37,6 +37,19 @@ public class TerrainManager
     public void SetDesign(CourseDesign design)
     {
         _design = design ?? new CourseDesign();
+        if (_groundMesh != null) ApplyGroundMaterial();
+    }
+
+    /// <summary>
+    /// The ground in this course's own colours. Frogwood's New Hampshire green and Block
+    /// Island's dry moraine are the same noise at different tints.
+    /// </summary>
+    private void ApplyGroundMaterial()
+    {
+        var mat = MeshKit.Mat(
+            Colors.White, texture: TextureKit.GroundFor(_design.GroundLo, _design.GroundHi));
+        _groundMesh.MaterialOverride = mat;
+        _groundSeaMesh.MaterialOverride = mat;
     }
 
     public TerrainManager(Node3D parent, CourseDesign design)
@@ -97,10 +110,9 @@ public class TerrainManager
         _shoulderRMesh = new MeshInstance3D();
         _shoulderRMesh.MaterialOverride = shoulderMat;
 
-        // Summer grass
-        var grassMat = MeshKit.Mat(Colors.White, texture: TextureKit.Grass);
         _groundMesh = new MeshInstance3D();
-        _groundMesh.MaterialOverride = grassMat;
+        _groundSeaMesh = new MeshInstance3D();
+        ApplyGroundMaterial();
 
         _parent.AddChild(_roadMesh);
         _parent.AddChild(_lineCenterMesh);
@@ -109,6 +121,7 @@ public class TerrainManager
         _parent.AddChild(_shoulderLMesh);
         _parent.AddChild(_shoulderRMesh);
         _parent.AddChild(_groundMesh);
+        _parent.AddChild(_groundSeaMesh);
 
         Update(0f);
     }
@@ -128,7 +141,29 @@ public class TerrainManager
         _lineEdgeRMesh.Mesh = BuildRibbon(_design.EdgeLineWidth, 0.015f, lineX);
         _shoulderLMesh.Mesh = BuildRibbon(_design.ShoulderWidth, -0.05f, -shoulderX, uTile: 1f, vMetres: 3f);
         _shoulderRMesh.Mesh = BuildRibbon(_design.ShoulderWidth, -0.05f, shoulderX, uTile: 1f, vMetres: 3f);
-        _groundMesh.Mesh = BuildRibbon(_design.GroundWidth, -0.4f, uTile: 60f, vMetres: 5f);
+        // Ground. Inland it is one ribbon centred on the road, the full width either side.
+        //
+        // On a coast it has to be two, because the land does not go on forever in both
+        // directions: it runs out at the shore. One centred ribbon 300 m wide put the water's
+        // edge 150 m away and 26 m down, which from a camera five metres off the road is
+        // simply not visible over the grass - the sea was there the whole time and could not
+        // be seen from the road it runs beside.
+        if (_design.HasSea)
+        {
+            _groundSeaMesh.Visible = true;
+            // 5 m per repeat, which is what the landward ribbon's 60 repeats over 300 m
+            // comes to - so the two halves of the same field match across the road.
+            _groundSeaMesh.Mesh = BuildRibbon(0f, -0.4f, 0f, uTile: 5f, vMetres: 5f,
+                outerAt: wz => _design.SeaSide * _design.ShoreAt(wz));
+            _groundMesh.Mesh = BuildRibbon(_design.GroundWidth, -0.4f,
+                                           -_design.SeaSide * _design.GroundWidth / 2f,
+                                           uTile: 60f, vMetres: 5f);
+        }
+        else
+        {
+            _groundSeaMesh.Visible = false;
+            _groundMesh.Mesh = BuildRibbon(_design.GroundWidth, -0.4f, uTile: 60f, vMetres: 5f);
+        }
     }
 
     public void SetMeshesVisible(bool visible)
@@ -140,6 +175,7 @@ public class TerrainManager
         _shoulderLMesh.Visible = visible;
         _shoulderRMesh.Visible = visible;
         _groundMesh.Visible = visible;
+        _groundSeaMesh.Visible = visible && _design.HasSea;
     }
 
     /// <summary>
@@ -149,8 +185,19 @@ public class TerrainManager
     /// the texture would slide along the tarmac as the world scrolls instead of staying stuck
     /// to it, which is glaring at speed.
     /// </summary>
+    /// <summary>
+    /// One scrolling ribbon. <paramref name="outerAt"/> turns it into a strip running from the
+    /// road centreline out to a distance that varies along the course, which is what a shore
+    /// is: the sea arrives and recedes, and a fixed-width strip cannot do that.
+    ///
+    /// In that mode <paramref name="uTile"/> changes meaning from "repeats across the width"
+    /// to "metres per repeat", because the width is no longer fixed. A constant repeat count
+    /// over a strip that runs from 40 m wide to 320 m wide stretches the texture by eight
+    /// times along its length, and against the neighbouring ground at its own fixed density
+    /// the seam reads as two different materials rather than as one field.
+    /// </summary>
     private Mesh BuildRibbon(float width, float yOffset, float xOffset = 0f,
-        float uTile = 1f, float vMetres = 4f)
+        float uTile = 1f, float vMetres = 4f, System.Func<float, float> outerAt = null)
     {
         int segs = _design.Segments;
         int back = _design.SegmentsBehind;
@@ -168,16 +215,27 @@ public class TerrainManager
             float cy0 = HillAt(wz0) + yOffset;
             float cx1 = CurveAt(wz1) * lz1 + xOffset;
             float cy1 = HillAt(wz1) + yOffset;
-            float hw = width / 2f;
             float v0 = wz0 / vMetres;
             float v1 = wz1 / vMetres;
 
-            st.SetUV(new Vector2(0f, v0));    st.AddVertex(new Vector3(cx0 - hw, cy0, lz0));
-            st.SetUV(new Vector2(uTile, v0)); st.AddVertex(new Vector3(cx0 + hw, cy0, lz0));
-            st.SetUV(new Vector2(0f, v1));    st.AddVertex(new Vector3(cx1 - hw, cy1, lz1));
-            st.SetUV(new Vector2(uTile, v0)); st.AddVertex(new Vector3(cx0 + hw, cy0, lz0));
-            st.SetUV(new Vector2(uTile, v1)); st.AddVertex(new Vector3(cx1 + hw, cy1, lz1));
-            st.SetUV(new Vector2(0f, v1));    st.AddVertex(new Vector3(cx1 - hw, cy1, lz1));
+            // Inner and outer edge for each end of the segment. A plain ribbon is symmetric
+            // about its offset; a shore strip runs from the centreline to wherever the water
+            // currently is.
+            float span0 = outerAt != null ? outerAt(wz0) : width;
+            float span1 = outerAt != null ? outerAt(wz1) : width;
+            float in0 = outerAt != null ? cx0 : cx0 - width / 2f;
+            float out0 = outerAt != null ? cx0 + span0 : cx0 + width / 2f;
+            float in1 = outerAt != null ? cx1 : cx1 - width / 2f;
+            float out1 = outerAt != null ? cx1 + span1 : cx1 + width / 2f;
+            float u0 = outerAt != null ? Mathf.Abs(span0) / uTile : uTile;
+            float u1 = outerAt != null ? Mathf.Abs(span1) / uTile : uTile;
+
+            st.SetUV(new Vector2(0f, v0));  st.AddVertex(new Vector3(in0, cy0, lz0));
+            st.SetUV(new Vector2(u0, v0));  st.AddVertex(new Vector3(out0, cy0, lz0));
+            st.SetUV(new Vector2(0f, v1));  st.AddVertex(new Vector3(in1, cy1, lz1));
+            st.SetUV(new Vector2(u0, v0));  st.AddVertex(new Vector3(out0, cy0, lz0));
+            st.SetUV(new Vector2(u1, v1));  st.AddVertex(new Vector3(out1, cy1, lz1));
+            st.SetUV(new Vector2(0f, v1));  st.AddVertex(new Vector3(in1, cy1, lz1));
         }
         st.GenerateNormals();
         return st.Commit();

@@ -117,6 +117,98 @@ public partial class CourseDesign : Resource
     /// <summary>How far apart the roadside distance markers stand, in metres.</summary>
     [Export(PropertyHint.Range, "50,2000,50")] public float MarkerSpacing { get; set; } = 500f;
 
+    /// <summary>
+    /// Stone walls along the verge. Block Island is glacial moraine and the field walls are
+    /// the first thing anyone notices about it; Frogwood has none and leaves this at zero.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,200,1")] public int StoneWalls { get; set; } = 0;
+
+    // ── Palette ──────────────────────────────────
+    // What the course is made of, rather than how it is shaped. Two courses can share every
+    // number above and still be nothing alike: Frogwood is a New Hampshire pine forest and
+    // Block Island is open moraine over the Atlantic, and both of them are summer.
+    [ExportGroup("Palette")]
+
+    /// <summary>The two colours the ground texture is mottled between.</summary>
+    [Export] public Color GroundLo { get; set; } = new Color(0.14f, 0.34f, 0.09f);
+    [Export] public Color GroundHi { get; set; } = new Color(0.24f, 0.48f, 0.16f);
+
+    /// <summary>The two colours the broadleaf canopy and the roadside scrub are mottled between.</summary>
+    [Export] public Color FoliageLo { get; set; } = new Color(0.14f, 0.38f, 0.09f);
+    [Export] public Color FoliageHi { get; set; } = new Color(0.30f, 0.58f, 0.18f);
+
+    /// <summary>Roadside flowers. Frogwood's meadow mix; Block Island's beach rose and goldenrod.</summary>
+    [Export] public Color[] FlowerColors { get; set; } = {
+        new Color(0.95f, 0.85f, 0.30f),
+        new Color(0.90f, 0.45f, 0.65f),
+        new Color(0.85f, 0.90f, 0.95f),
+        new Color(0.70f, 0.45f, 0.85f)
+    };
+
+    // ── Light ────────────────────────────────────
+    [ExportGroup("Light")]
+
+    [Export(PropertyHint.Range, "0,4,0.05")] public float SunEnergy { get; set; } = 1.75f;
+    [Export] public Color SunColor { get; set; } = new Color(1f, 0.98f, 0.95f);
+
+    /// <summary>
+    /// Kept weak and near-neutral on purpose. A strong blue ambient turns the grass teal and
+    /// the asphalt purple, which reads as dusk rather than as an afternoon.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,2,0.05")] public float AmbientEnergy { get; set; } = 0.55f;
+    [Export] public Color AmbientColor { get; set; } = new Color(0.74f, 0.76f, 0.78f);
+
+    [Export] public Color FogColor { get; set; } = new Color(0.66f, 0.76f, 0.86f);
+    [Export(PropertyHint.Range, "0,0.05,0.0005")] public float FogDensity { get; set; } = 0.010f;
+
+    [Export] public Color SkyTop { get; set; } = new Color(0.18f, 0.38f, 0.8f);
+    [Export] public Color SkyHorizon { get; set; } = new Color(0.48f, 0.65f, 0.88f);
+
+    /// <summary>
+    /// The sky's own ground hemisphere — what fills the view past where the ground ribbons
+    /// stop, which is most of the middle distance.
+    ///
+    /// It has to match this course's ground or the horizon becomes a visible seam between two
+    /// different-coloured fields. Frogwood never had to think about it because the stock sky
+    /// is New Hampshire green and so is Frogwood; drop a tawnier moor in front of the same sky
+    /// and the join is the first thing you see.
+    /// </summary>
+    [Export] public Color SkyGroundHorizon { get; set; } = new Color(0.32f, 0.48f, 0.30f);
+    [Export] public Color SkyGroundBottom { get; set; } = new Color(0.06f, 0.12f, 0.04f);
+
+    // ── The sea ──────────────────────────────────
+    [ExportGroup("The sea")]
+
+    /// <summary>
+    /// Whether this course runs beside open water. Off for an inland course, and everything
+    /// below is ignored when it is.
+    /// </summary>
+    [Export] public bool HasSea { get; set; } = false;
+
+    /// <summary>
+    /// Sea level, in the course's own height units — so it is negative for a road that starts
+    /// above it. Written by the generator for a measured course, which knows the real height
+    /// the start line sits at and applies the same exaggeration to the drop down to the water.
+    /// </summary>
+    [Export] public float SeaLevel { get; set; } = -100f;
+
+    /// <summary>Which side the water is on: -1 for the rider's left, +1 for the right.</summary>
+    [Export(PropertyHint.Range, "-1,1,2")] public int SeaSide { get; set; } = 1;
+
+    /// <summary>How far out from the road edge the cliff falls away to the water.</summary>
+    [Export(PropertyHint.Range, "10,400,5")] public float ShoreDistance { get; set; } = 90f;
+
+    [Export] public Color SeaColor { get; set; } = new Color(0.16f, 0.34f, 0.46f);
+
+    /// <summary>
+    /// How far the water is at <paramref name="z"/>. Constant for a composed course; a
+    /// measured one overrides it, because a real road wanders toward the coast and away again.
+    /// </summary>
+    public virtual float ShoreAt(float z)
+    {
+        return ShoreDistance;
+    }
+
     // ── Derived ──────────────────────────────────
 
     /// <summary>The visible window, and the length of the band the scenery wraps inside.</summary>

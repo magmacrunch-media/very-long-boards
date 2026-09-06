@@ -72,6 +72,14 @@ public partial class MeasuredCourse : CourseDesign
     /// </summary>
     [Export] public float CurveScale { get; set; } = 1f;
 
+    /// <summary>
+    /// Distance to open water at each sample, in metres. Spring Street is 40 m from the
+    /// Atlantic where it leaves the Southeast Light and 770 m from it further down, so a
+    /// single number would either put the sea out of sight for the whole run or drag it
+    /// inland to somewhere it is not.
+    /// </summary>
+    [Export] public float[] ShoreSamples { get; set; } = System.Array.Empty<float>();
+
     /// <summary>Where the profile came from, in one line. Written by the generator.</summary>
     [Export(PropertyHint.MultilineText)] public string SourceNote { get; set; } = "";
 
@@ -101,6 +109,18 @@ public partial class MeasuredCourse : CourseDesign
             return Heights[last] + grade * (z - last * SampleSpacing);
         }
         return Mathf.Lerp(Heights[i], Heights[i + 1], f - i);
+    }
+
+    /// <summary>How far the water is at <paramref name="z"/>, interpolated between samples.</summary>
+    public override float ShoreAt(float z)
+    {
+        if (ShoreSamples == null || ShoreSamples.Length == 0) return base.ShoreAt(z);
+        if (z <= 0f) return ShoreSamples[0];
+
+        float f = z / SampleSpacing;
+        int i = (int)f;
+        if (i >= ShoreSamples.Length - 1) return ShoreSamples[ShoreSamples.Length - 1];
+        return Mathf.Lerp(ShoreSamples[i], ShoreSamples[i + 1], f - i);
     }
 
     /// <summary>Heading at <paramref name="z"/>. Straight before the start and after the end.</summary>

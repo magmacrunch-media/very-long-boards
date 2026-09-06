@@ -63,7 +63,7 @@ public partial class Main : Node3D
     // Frogwood's entry is overwritten in _Ready from the CourseDesign, so the level-select
     // screen and the finish trigger can never disagree about how long the ride is.
     public static float[] LevelLengths = { 2000f, 0f, 0f, 0f };
-    public static readonly string[] LevelSeasons = { "Summer", "Fall", "", "" };
+    public static readonly string[] LevelSeasons = { "Summer", "Summer", "", "" };
     /// <summary>
     /// Which posters can be ridden. Derived in _Ready from whether a course resource is
     /// actually assigned, rather than written down twice — a poster is unlocked exactly when
@@ -304,11 +304,29 @@ public partial class Main : Node3D
     /// </summary>
     public void ApplyRideLighting()
     {
-        GetNode<DirectionalLight3D>("Sun").LightEnergy = 1.75f;
+        var c = CourseFor(Level) ?? Course ?? new CourseDesign();
+
+        var sun = GetNode<DirectionalLight3D>("Sun");
+        sun.LightEnergy = c.SunEnergy;
+        sun.LightColor = c.SunColor;
+
         var env = GetNode<WorldEnvironment>("WorldEnvironment").Environment;
-        env.AmbientLightEnergy = 0.55f;
-        env.AmbientLightColor = new Color(0.74f, 0.76f, 0.78f);
+        env.AmbientLightEnergy = c.AmbientEnergy;
+        env.AmbientLightColor = c.AmbientColor;
         env.FogEnabled = true;
+        env.FogLightColor = c.FogColor;
+        env.FogDensity = c.FogDensity;
+
+        // The sky is a shared resource on the environment, so it has to be re-tinted per
+        // course rather than swapped: an island under the Atlantic sits under a paler, hazier
+        // sky than a hill inland, and the horizon is where you read that.
+        if (env.Sky != null && env.Sky.SkyMaterial is ProceduralSkyMaterial sky)
+        {
+            sky.SkyTopColor = c.SkyTop;
+            sky.SkyHorizonColor = c.SkyHorizon;
+            sky.GroundHorizonColor = c.SkyGroundHorizon;
+            sky.GroundBottomColor = c.SkyGroundBottom;
+        }
     }
 
     // Each transition resets the camera of the world being entered. Without that the camera
@@ -367,6 +385,11 @@ public partial class Main : Node3D
             _builtCourse = chosen;
         }
 
+        // Both hub worlds go away, not just the garage. Every route to a ride currently
+        // passes through the garage, which hides the title on the way - so the title's own
+        // ground plane has never been left standing in the middle of a course. It would be,
+        // the first time anything started a ride without going through the menus.
+        Title.Hide();
         Garage.Hide();
         SetRideWorldVisible(true);
         ApplyRideLighting();

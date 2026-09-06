@@ -20,6 +20,41 @@ public static class TextureKit
 
     private static ImageTexture _asphalt, _grass, _dirt, _bark, _pine, _leaf, _rock, _plank;
 
+    /// <summary>
+    /// Ground and foliage in a course's own colours, built on first use and shared thereafter.
+    ///
+    /// The named textures below are Frogwood's, and they are what an unconfigured course still
+    /// gets. A course that carries a palette asks for its own pair instead — Block Island's
+    /// moraine is tawnier and drier than New Hampshire's forest floor, and neither of them
+    /// should have to be the other. Keyed on the colours themselves, so two courses that
+    /// happen to agree share one texture rather than generating it twice.
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<string, ImageTexture> _tinted =
+        new System.Collections.Generic.Dictionary<string, ImageTexture>();
+
+    private static ImageTexture Tinted(string kind, Color lo, Color hi, int period, int octaves, int seed)
+    {
+        string key = kind + lo.ToHtml() + hi.ToHtml();
+        if (!_tinted.TryGetValue(key, out var tex))
+        {
+            tex = Fbm(lo, hi, period, octaves, seed);
+            _tinted[key] = tex;
+        }
+        return tex;
+    }
+
+    /// <summary>Ground cover in a course's own colours. Same noise as <see cref="Grass"/>.</summary>
+    public static ImageTexture GroundFor(Color lo, Color hi)
+    {
+        return Tinted("g", lo, hi, 6, 3, 23);
+    }
+
+    /// <summary>Broadleaf canopy and roadside scrub in a course's own colours.</summary>
+    public static ImageTexture FoliageFor(Color lo, Color hi)
+    {
+        return Tinted("f", lo, hi, 4, 2, 83);
+    }
+
     /// <summary>Worn tarmac — the road surface.</summary>
     public static ImageTexture Asphalt => _asphalt ??= Fbm(
         new Color(0.24f, 0.24f, 0.26f), new Color(0.33f, 0.33f, 0.35f), 8, 3, 11);

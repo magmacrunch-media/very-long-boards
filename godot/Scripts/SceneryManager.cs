@@ -41,6 +41,9 @@ public class SceneryManager
     public List<Squirrel> Squirrels = new List<Squirrel>();
 
     private Node3D _finishLine;
+    private Node3D _sea;
+    private Node3D _cliff;
+    private Node3D _cliffFace;
 
     // ── The travelling band ──────────────────────
     // Props live in a fixed-length band that moves with the player and wrap around inside it,
@@ -92,6 +95,8 @@ public class SceneryManager
         foreach (var b in Birds) if (b.Node != null) b.Node.QueueFree();
         foreach (var s in Squirrels) if (s.Node != null) s.Node.QueueFree();
         if (_finishLine != null) { _finishLine.QueueFree(); _finishLine = null; }
+        if (_sea != null) { _sea.QueueFree(); _sea = null; }
+        if (_cliff != null) { _cliff.QueueFree(); _cliff = null; _cliffFace = null; }
 
         Items.Clear();
         Clouds.Clear();
@@ -105,6 +110,8 @@ public class SceneryManager
     {
         _created = true;
         CreateScenery();
+        CreateStoneWalls();
+        CreateSea();
         CreateClouds();
         CreateFinishLine();
         CreateSunDisc();
@@ -526,6 +533,132 @@ public class SceneryManager
         Items.Add(new SceneryItem { Node = marker, WorldZ = z, OffsetX = _design.RoadWidth / 2f + 0.5f, Absolute = true });
     }
 
+    /// <summary>
+    /// Field walls along the verge.
+    ///
+    /// Block Island is glacial moraine: the stone came out of the fields and went into the
+    /// walls, and there are hundreds of miles of them. They are the first thing anyone
+    /// notices about the island and the cheapest way to make a road read as that road rather
+    /// than as a road. Frogwood leaves StoneWalls at zero and builds none.
+    ///
+    /// Each wall is one run of a few metres, built from stacked flattened spheres rather than
+    /// a box, because a dry stone wall's whole character is that its edge is lumpy.
+    /// </summary>
+    private void CreateStoneWalls()
+    {
+        if (_design.StoneWalls <= 0) return;
+
+        var rng = new RandomNumberGenerator();
+        rng.Seed = (ulong)(_design.ScenerySeed + 977);
+
+        for (int i = 0; i < _design.StoneWalls; i++)
+        {
+            float z = rng.RandfRange(0f, Band);
+            float side = rng.Randf() > 0.5f ? 1f : -1f;
+            float offset = side * (5.5f + rng.RandfRange(0f, 3.5f));
+            float runLength = 6f + rng.RandfRange(0f, 14f);
+            float height = 0.55f + rng.RandfRange(0f, 0.35f);
+
+            var wall = new Node3D();
+            // Stones along the run, in two courses, each one sitting a little proud of its
+            // neighbours. Six segments and four rings keeps a whole wall cheap.
+            for (float d = 0f; d < runLength; d += 0.42f)
+            {
+                int courses = height > 0.75f ? 2 : 1;
+                for (int c = 0; c < courses; c++)
+                {
+                    float size = 0.20f + rng.RandfRange(0f, 0.10f);
+                    var mat = new StandardMaterial3D();
+                    float g = 0.62f + rng.RandfRange(0f, 0.16f);
+                    mat.AlbedoColor = new Color(g, g * 0.99f, g * 0.95f);
+                    mat.AlbedoTexture = TextureKit.Rock;
+                    mat.Uv1Scale = new Vector3(2f, 2f, 1f);
+                    mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+                    var stone = MeshKit.Sphere(null, size, mat, segments: 6, rings: 4);
+                    stone.Scale = new Vector3(1.15f, 0.72f, 1f);
+                    stone.Position = new Vector3(
+                        rng.RandfRange(-0.06f, 0.06f),
+                        size * 0.6f + c * (height * 0.5f),
+                        d + rng.RandfRange(-0.05f, 0.05f));
+                    stone.Rotation = new Vector3(0f, rng.RandfRange(0f, 3.14f), 0f);
+                    wall.AddChild(stone);
+                }
+            }
+            AddItem(z, offset, wall);
+        }
+    }
+
+    /// <summary>
+    /// Open water beside the road, and the cliff that falls away to it.
+    ///
+    /// Both are single quads that follow the rider rather than props that recycle: the sea has
+    /// no features to pass, so the only thing that would betray a fixed plane is its edge, and
+    /// the edge is over the horizon. They are held apart from Items for that reason — nothing
+    /// scrolls them, UpdateSea just keeps them under the rider.
+    ///
+    /// The cliff is deliberately not the Mohegan Bluffs in miniature. It is the ground ending,
+    /// which is what you actually see from a road on top of them.
+    /// </summary>
+    private void CreateSea()
+    {
+        if (!_design.HasSea) return;
+
+        var seaMat = new StandardMaterial3D();
+        seaMat.AlbedoColor = _design.SeaColor;
+        seaMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+        seaMat.Metallic = 0.1f;
+
+        _sea = new Node3D();
+        var water = MeshKit.Box(null, new Vector3(4000f, 0.1f, 4000f), seaMat);
+        water.Position = new Vector3(_design.SeaSide * 2000f, 0f, 0f);
+        _sea.AddChild(water);
+        _parent.AddChild(_sea);
+
+        var cliffMat = new StandardMaterial3D();
+        // The bluffs are clay, not granite - they are the reason the light had to be moved
+        // back from them in 1993.
+        cliffMat.AlbedoColor = new Color(0.52f, 0.42f, 0.33f);
+        cliffMat.AlbedoTexture = TextureKit.Dirt;
+        cliffMat.Uv1Scale = new Vector3(20f, 20f, 1f);
+        cliffMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+
+        // The skirt stands at the GROUND's edge, not somewhere short of it. Put it inside the
+        // ground ribbon and it is simply buried in grass, with 40 cm of grey lip showing
+        // along the verge where the land was supposed to fall away.
+        // Built one unit tall and scaled each frame to exactly the drop, rather than made
+        // enormous and left to poke out of things. A fixed 400 m face is a wall beside the
+        // road, not a coast: the land is only 14 m above the water by the finish and 89 m at
+        // the start, and the face has to be whichever of those it currently is.
+        _cliff = new Node3D();
+        _cliffFace = MeshKit.Box(null, new Vector3(0.6f, 1f, 4000f), cliffMat);
+        _cliffFace.Position = new Vector3(_design.SeaSide * _design.ShoreDistance, 0f, 0f);
+        _cliff.AddChild(_cliffFace);
+        _parent.AddChild(_cliff);
+    }
+
+    /// <summary>
+    /// Keep the water and the cliff under the rider. The sea sits at the course's own sea
+    /// level, which for a measured course is where the real water is once the same vertical
+    /// exaggeration has been applied to the drop.
+    /// </summary>
+    private void UpdateSea()
+    {
+        if (_sea == null) return;
+        float z = _terrain.ScrollOffset;
+        _sea.Position = new Vector3(0f, _design.SeaLevel, 0f);
+        if (_cliffFace != null)
+        {
+            // Span exactly ground to water, wherever the road currently is.
+            float top = _terrain.HillAt(z) - 0.4f;
+            float drop = Mathf.Max(1f, top - _design.SeaLevel);
+            _cliffFace.Scale = new Vector3(1f, drop, 1f);
+            // Follows the shore in and out with the ground it edges.
+            _cliffFace.Position = new Vector3(
+                _design.SeaSide * _design.ShoreAt(z), top - drop / 2f, 0f);
+        }
+    }
+
     private void CreateClouds()
     {
         var rng = new RandomNumberGenerator();
@@ -761,6 +894,7 @@ public class SceneryManager
         UpdatePositions(_terrain.ScrollOffset);
         UpdateClouds(dt);
         UpdateFinishLine();
+        UpdateSea();
         UpdateButterflies(dt);
         UpdateBirds(dt);
         UpdateSquirrels(dt);

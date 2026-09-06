@@ -78,6 +78,42 @@ which would throw the far end of the road hundreds of metres sideways. And the c
 sits behind the rider, so a road's absolute bearing is not observable anyway. Where the bends
 fall and which way they go is measured; how hard they bite is not.
 
+### What it looks like
+
+Both courses are summer. They are still nothing alike, because Block Island is not a forest:
+it is glacial moraine, open grassland and low windshorn scrub, with almost no tall trees and
+several hundred miles of dry stone field wall. The palette and the prop populations carry all
+of that, and both live on the course resource rather than in the code.
+
+| | Frogwood | Block Island |
+|---|---|---|
+| Ground | New Hampshire green | olive and tawny moor |
+| Trees | 210 pines and broadleaves | 34, sparse and wind-shorn |
+| Scrub | 40 bushes | 95 |
+| Walls | none | 48 runs of dry stone |
+| Sea | none | the Atlantic, on the rider's right |
+
+**The sea is measured too.** Its level is where real sea level falls once the same 2x
+exaggeration is applied to the drop, and the distance to it is sampled per-point from the same
+LiDAR: Spring Street is 40 m from the water where it leaves the Southeast Light and 770 m from
+it further down, so the Atlantic arrives at the bluffs and recedes as the road runs inland.
+Which side it is on is derived by probing the terrain either side of the road rather than
+asserted.
+
+Three things the palette work turned up, all of which had been invisible because Frogwood is
+the colour of the things it sits in front of:
+
+- **The sky has a ground hemisphere**, and it fills most of the middle distance past where the
+  ground ribbons stop. It is New Hampshire green by default, which is why nobody noticed until
+  a tawnier course put a seam across the horizon. It is part of the palette now.
+- **A coastal course needs two ground ribbons**, not one centred on the road, because the land
+  runs out at the shore. A single 300 m ribbon put the water's edge 150 m away and 26 m down,
+  which from a camera five metres up is not visible at all — the sea was there the whole time
+  and could not be seen from the road it runs beside.
+- **`StartRide` hid the garage but not the title screen.** Every route to a ride goes through
+  the garage, which hides the title on the way, so the title world's own grass plane had never
+  been left standing in the middle of a course. It hides both now.
+
 ```bash
 python3 build_block_island.py            # regenerate the resource
 python3 build_block_island.py --report   # print the numbers, write nothing
@@ -179,8 +215,8 @@ The mix levels live in `Resources/Design/Audio.tres`, not in the manager — see
 
 One shipping scene (`Scenes/Main.tscn`) — everything is built in code, including the garage
 hub and menu screens. `Scenes/CarlPreview.tscn`, `Scenes/CoursePreview.tscn`,
-`Scenes/AudioProbe.tscn` and `Scenes/CourseProbe.tscn` are workbenches; nothing at runtime
-loads them.
+`Scenes/AudioProbe.tscn`, `Scenes/CourseProbe.tscn` and `Scenes/CourseShot.tscn` are
+workbenches; nothing at runtime loads them.
 
 ### Scripts
 
@@ -213,6 +249,7 @@ loads them.
 | `Tools/CoursePreview.cs` | `[Tool]` script behind `Scenes/CoursePreview.tscn`. Editor only. |
 | `Tools/AudioProbe.cs` | Measures what AudioKit generated. Headless only — see [Audio probe](#audio-probe). |
 | `Tools/CourseProbe.cs` | Reads a course back and reports what the ride does on it. Headless only. |
+| `Tools/CourseShot.cs` | Stands the camera on a course and saves a frame. The palette's only real check. |
 
 ### Key patterns
 
@@ -334,6 +371,19 @@ worst climb**, which has to stay under what he can carry momentum through (`v^2/
 Frogwood currently reports a worst climb of 24.4 m against that 22 m budget. That figure is a
 worst case — it assumes all four hill layers crest together, which they rarely do — so it is
 a thing to know rather than a thing that is broken.
+
+## Course shot
+
+A palette is the one thing no headless number can check, so `Scenes/CourseShot.tscn` starts a
+ride at a given distance and saves a frame to `user://`.
+
+```bash
+godot --path godot --scene res://Scenes/CourseShot.tscn -- --course=BlockIsland --at=950
+```
+
+It needs a real window — the point is what the thing looks like — so no `--headless`. It also
+runs the course-switch path from a standing start, which is how it caught `StartRide` leaving
+the title world visible.
 
 ## Audio probe
 
