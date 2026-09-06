@@ -134,24 +134,4 @@ public partial class MeasuredCourse : CourseDesign
         if (i >= Headings.Length - 1) return Headings[Headings.Length - 1];
         return Mathf.Lerp(Headings[i], Headings[i + 1], f - i);
     }
-
-    /// <summary>
-    /// The worst climb the rider actually has to carry momentum through: the largest rise from
-    /// a trough to a later crest anywhere on the profile.
-    ///
-    /// The sine version can sum its amplitudes and be done. A measured profile has to be
-    /// walked, because a real road's climbs are wherever the island put them.
-    /// </summary>
-    public override float TotalRelief()
-    {
-        if (Heights == null || Heights.Length == 0) return base.TotalRelief();
-        float worst = 0f;
-        float trough = Heights[0];
-        foreach (float h in Heights)
-        {
-            if (h < trough) trough = h;
-            if (h - trough > worst) worst = h - trough;
-        }
-        return worst;
-    }
 }

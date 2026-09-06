@@ -251,15 +251,33 @@ public partial class CourseDesign : Resource
     }
 
     /// <summary>
-    /// Worst-case climb between a trough and the next crest, ignoring the grade. Compare
-    /// against v^2/2g (about 22 m at top speed) — over that and the rider bogs down.
+    /// The worst climb the rider actually has to carry momentum through: the largest rise from
+    /// a trough to a later crest anywhere on the course. Compare against <c>v^2/2g</c> at that
+    /// rider's top speed — over that and he bogs down.
+    ///
+    /// This used to sum the hill layers' amplitudes and double them, which is a bound rather
+    /// than a measurement and IGNORES THE GRADE — the single largest term in the height. On
+    /// Frogwood it reported 24.4 m against a stated budget of 22 and had done for as long as
+    /// anyone had looked. The sines really do rise 20.9 m across one long roll, but the road is
+    /// descending at 8% underneath them the whole way, and what the rider climbs is what is
+    /// left: 4.7 m, over 46 m, once. The course was never near its budget.
+    ///
+    /// Walking the curve costs a few thousand evaluations and answers the question that was
+    /// being asked. It also works for any course shape, which is why <see cref="MeasuredCourse"/>
+    /// no longer needs its own copy.
     /// </summary>
     public virtual float TotalRelief()
     {
-        if (HillLayers == null) return 0f;
-        float sum = 0f;
-        foreach (var layer in HillLayers)
-            if (layer != null) sum += layer.Amplitude;
-        return sum * 2f;
+        float worst = 0f;
+        float trough = HillAt(0f);
+        // Quarter-metre steps: the shortest hill layer here is a 66 m wavelength, so this is
+        // two orders of magnitude finer than anything it can be asked to resolve.
+        for (float z = 0f; z <= Length; z += 0.25f)
+        {
+            float h = HillAt(z);
+            if (h < trough) trough = h;
+            if (h - trough > worst) worst = h - trough;
+        }
+        return worst;
     }
 }

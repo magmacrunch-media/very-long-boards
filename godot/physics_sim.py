@@ -197,13 +197,28 @@ def push_report():
 
 def report():
     print("source : %s" % COURSE_SOURCE)
-    print("course : %.0f m | %d hill terms | max local slope %.0f%% | relief %.0f m"
+    print("course : %.0f m | %d hill terms | max local slope %.0f%%"
           % (COURSE_LENGTH, len(HILL_TERMS),
-             100 * (sum(a * f for a, f in HILL_TERMS) + GRADE),
-             2 * sum(a for a, _ in HILL_TERMS)))
-    climbable = BASE_MAX_SPEED ** 2 / (2 * GRAVITY)
-    print("         a rider at top speed can climb %.0f m — relief must stay under that"
-          % climbable)
+             100 * (sum(a * f for a, f in HILL_TERMS) + GRADE)))
+
+    # The climb the rider actually makes, walked rather than bounded.
+    #
+    # This used to print 2 * sum(amplitudes), which ignores the grade - and the grade is the
+    # largest term in the height. It reported 24 m against a 22 m budget and had done for as
+    # long as anyone had looked. The sines do rise 21 m across one long roll, but the road
+    # descends at 8% underneath them the whole way and what is left is 5 m.
+    worst, trough = 0.0, hill_at(0.0)
+    z = 0.0
+    while z <= COURSE_LENGTH:
+        h = hill_at(z)
+        if h < trough:
+            trough = h
+        if h - trough > worst:
+            worst = h - trough
+        z += 0.25
+    print("         worst climb %.1f m, and the tightest rider can carry %.0f m"
+          % (worst, (BASE_MAX_SPEED * pip(min(c[1] for c in CARLS), 0.88, 1.12)) ** 2
+             / (2 * GRAVITY)))
     print()
     hdr = ("rider", "run s", "avg", "peak", "min", "floor%", "wobble%", "sf avg")
     print("%-13s %6s %7s %7s %7s %7s %8s %7s" % hdr)

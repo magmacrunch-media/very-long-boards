@@ -29,7 +29,13 @@ public partial class CourseProbe : Node
         GD.Print($"  end height    {c.HillAt(c.Length):F2} m");
         GD.Print($"  net drop      {c.HillAt(0f) - c.HillAt(c.Length):F1} m");
         GD.Print($"  average grade {(c.HillAt(0f) - c.HillAt(c.Length)) / c.Length * 100f:F2}%");
-        GD.Print($"  worst climb   {c.TotalRelief():F1} m   (budget ~22 m)");
+        // The budget is the slowest rider's, not a round number: it is v^2/2g at HIS top
+        // speed, and the three Carls do not share one. 22 m was the figure for a 3-pip
+        // baseline rider who does not exist - every Carl in the game has SPD 4 or 5.
+        int slowest = 5;
+        foreach (var s in Main.CarlStats) slowest = Mathf.Min(slowest, s.Speed);
+        float top = 21f * Mathf.Lerp(0.88f, 1.12f, (slowest - 1) / 4f);
+        GD.Print($"  worst climb   {c.TotalRelief():F1} m   (tightest rider carries {top * top / (2f * 9.81f):F1} m)");
 
         float maxCurve = 0f;
         for (float z = 0; z <= c.Length; z += 5f) maxCurve = Mathf.Max(maxCurve, Mathf.Abs(c.CurveAt(z)));

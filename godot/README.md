@@ -350,8 +350,10 @@ speed is settled by quadratic air drag rather than by a hard cap, so the grade n
 
 - **Steepness is amplitude x frequency, not amplitude.** A 0.9 m roll over a 66 m
   wavelength is steeper than a 5.5 m roll over 1257 m.
-- **Total relief has to stay under what a rider can climb on momentum** (`v^2/2g`, about
-  22 m at top speed), or he bogs down on every crest and the ride dies.
+- **The climb has to stay under what a rider can carry momentum through** (`v^2/2g` at his
+  own top speed — 25.3 m for the slowest Carl), or he bogs down on every crest and the ride
+  dies. What counts is the climb he actually makes, which is the rise left in the height after
+  the grade, not the rise in the hill layers.
 
 ## Course probe
 
@@ -365,12 +367,30 @@ godot --headless --path godot --scene res://Scenes/CourseProbe.tscn
 
 The two numbers that decide whether a course works are **the steepest sustained grade**, which
 has to put the rider past the 57 km/h wobble onset or nothing can ever go wrong, and **the
-worst climb**, which has to stay under what he can carry momentum through (`v^2/2g`, about
-22 m) or he bogs down and the ride dies.
+worst climb**, which has to stay under `v^2/2g` at the slowest rider's top speed or he bogs
+down and the ride dies.
 
-Frogwood currently reports a worst climb of 24.4 m against that 22 m budget. That figure is a
-worst case — it assumes all four hill layers crest together, which they rarely do — so it is
-a thing to know rather than a thing that is broken.
+| | Frogwood | Block Island |
+|---|---|---|
+| Worst climb | 4.7 m | 8.4 m |
+| Budget (slowest Carl) | 25.3 m | 25.3 m |
+
+Both are comfortably inside it, and the real road has the bigger climbs of the two.
+
+**That worst climb used to be reported as 24.4 m, and it was wrong twice over.** It summed the
+hill layers' amplitudes and doubled them, which bounds the rise in the *sines* rather than
+measuring the climb the rider makes — and it ignored the grade, which is the largest term in
+the height. The sines really do rise 20.9 m across one long roll, but the road is descending at
+8% underneath them the whole way, and what is left for the rider to climb is 4.7 m, over 46 m,
+once in 2 km.
+
+The budget was wrong too. 22 m is `v^2/2g` for a 3-pip baseline rider who does not exist: every
+Carl in the game has SPD 4 or 5, so the tightest real budget is 25.3 m. Frogwood was never near
+it, and `physics_sim.py` had been agreeing the whole time — 152 s, 47 km/h average, 11.4% of
+the run bogged down, all inside their targets. The alarm was the only thing broken.
+
+Both figures are measured now, by walking `HillAt` over the course, which is why
+`MeasuredCourse` no longer needs its own copy of the calculation.
 
 ## The headless leak warning
 
