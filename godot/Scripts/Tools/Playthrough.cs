@@ -30,6 +30,8 @@ public partial class Playthrough : Node3D
     private float _timeTo30 = -1f, _distTo30 = -1f;
     private int _frame;
     private int _shotIndex;
+    private string _release = "";
+    private int _releaseIn;
 
     // What the run is doing, sampled as it goes.
     private float _peak;
@@ -86,6 +88,12 @@ public partial class Playthrough : Node3D
     /// <summary>The rider. Kick off, hold the crown, carve the wobble off.</summary>
     private void Ride()
     {
+        if (_release != "" && --_releaseIn <= 0)
+        {
+            Input.ActionRelease(_release);
+            _release = "";
+        }
+
         var p = _main.PlayerMgr;
         _ridden++;
         _peak = Mathf.Max(_peak, p.Speed);
@@ -142,10 +150,20 @@ public partial class Playthrough : Node3D
         if (_shots && _ridden % 900 == 0) Shot();
     }
 
+    /// <summary>
+    /// Hold an action for a number of PHYSICS frames, not seconds.
+    ///
+    /// A SceneTree timer releases on wall-clock time, so in a windowed run the number of
+    /// physics frames a press covers drifts with frame pacing - and the whole ride drifts with
+    /// it. Three runs of one identical build came out 108, 116 and 117 seconds, with the time
+    /// bogged down ranging 7% to 14%: noise wider than the differences it was being used to
+    /// measure. Counting frames makes a run repeatable.
+    /// </summary>
     private void Press(string action, int frames)
     {
         Input.ActionPress(action);
-        GetTree().CreateTimer(frames / 60.0).Timeout += () => Input.ActionRelease(action);
+        _release = action;
+        _releaseIn = frames;
     }
 
     private void Shot()

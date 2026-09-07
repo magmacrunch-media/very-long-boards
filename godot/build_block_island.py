@@ -69,7 +69,22 @@ SPACING = 10.0       # metres between samples in the baked profile
 FLAT_START = 20.0
 
 
-VERTICAL_EXAGGERATION = 2.0
+# How much the real relief is multiplied by, and 2.2 rather than 2.0 because 2.0
+# left the course with nothing to go wrong on. Ridden end to end by
+# Scripts/Tools/Playthrough.cs:
+#
+#   exag   time     wobble  carves
+#   2.0    123.5 s     1%      1     no danger; one carve in the whole run
+#   2.1    123.2 s     2%      2
+#   2.2    122.9 s     3%      3     the bite arrives, and stops arriving
+#   2.3    120.5 s     3%      3     no further gain, further from the island
+#
+# The effect saturates at 2.2, so 2.3 buys nothing but a larger fiction. Time
+# spent bogged down is 12-13% at every setting - that is the island's own climb
+# at 1136 m, not something the exaggeration causes, and raising it does not fix
+# it. Frogwood sits at 4% wobble and 6 carves for comparison, so this is still
+# the gentler of the two by design.
+VERTICAL_EXAGGERATION = 2.2
 
 # Heading is detrended against this window before being scaled -- see the note
 # on MeasuredCourse.CurveScale for why absolute bearing is not observable here.
