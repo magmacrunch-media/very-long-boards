@@ -16,19 +16,31 @@ Two public-domain sources, the same two the block-island-simulator uses:
     elevation   USGS 3DEP, via the National Map's ImageServer, 7.4 m posts
     centreline  US Census TIGER/Line 2024, Rockingham County NH, FIPS 33015
 
-THE ROUTE is Old Mill Rd -> Millstone Rd -> Crestwood Rd -> Kendall Pond Rd,
-which join at gaps of a metre or less, cut at 2000 m to keep Frogwood the length
-it has always been. Millstone and Crestwood are the middle 1550 m of it and the
-reason it is this route rather than a better one -- the network nearby has a
-steeper descent (Carr Hill to Kendall Pond, 1128 m at 6.0%), and it is not these
-roads.
+THE ROUTE is Kendall Pond Rd -> Crestwood Rd -> Millstone Rd -> Old Mill Rd,
+which join at 0.0 m, cut at 2000 m to keep Frogwood the length it has always
+been. Millstone and Crestwood are the middle 1550 m of it and the reason it is
+this route rather than a better one -- the network nearby has a steeper descent
+(Carr Hill to Kendall Pond, 1128 m at 6.0%), and it is not these roads.
+
+WHICH WAY ROUND MATTERS, and it is not obvious until it is ridden. The Millstone
+crest is a real feature and it has to go somewhere. Run the other way -- Old Mill
+first -- and it lands at the 450 m mark: 200 m of road between -1% and +3%,
+arrived at before the rider has any speed to carry over it. Drag needs about 4%
+of grade merely to HOLD 40 km/h, so he grinds down to 9 km/h a fifth of the way
+into the course. Every target still passed, because a 2.69 m climb is nothing
+against a 25.3 m budget and floor% is an average over 2 km that one long stall
+barely moves.
+
+This way round the crest lands at 1190 m instead, by which point he is doing 60
+and carries straight over it. Same roads, same profile, read the other way: the
+worst climb falls from 3.3 m to 0.8 m, the longest stretch he cannot hold speed
+on falls from 200 m to 50 m, and time bogged down goes to nothing.
 
 WHAT IS EMBELLISHED, and it is the whole of the fiction here.
 
-The real road is not a descent. It rolls gently for 600 m, climbs to a crest of
-93 m at the 1017 m mark -- the Millstone high point -- and falls away to 69 m,
-finishing 0.5 m BELOW where it started. Ridden as measured it is a hill, and a
-downhill game cannot use it.
+The real road is not a descent. It climbs to the Millstone crest and falls away
+again, finishing within a few metres of where it started rather than 178 m
+below. Ridden as measured it is a hill, and a downhill game cannot use it.
 
 So the profile is detrended against its own endpoints and a net grade is put
 underneath. Every roll stays exactly where the road puts it, at its real size
@@ -36,31 +48,28 @@ times ROLL_GAIN; the descent is invented. That is the opposite of the usual
 compromise: the shape is measured and the slope is fiction, rather than a
 plausible shape on a real slope.
 
-ROLL_GAIN exists because tilting flattens what it is tilting, and 1.2 is where
-physics_sim.py put it rather than where this file wanted it. 1.5 was the guess:
-it gives a worst climb of 11.7 m, comfortably inside the 25.3 m a rider can
-carry, and every other number it produces is wrong -- 189 s against a 120-170 s
-target, 38 km/h against 40-55, and a quarter of the run spent bogged down at
-the speed floor against a limit of 15%. The climbs are inside the budget one at
-a time and ruinous in a row.
+ROLL_GAIN exists because tilting flattens what it is tilting. Ridden this way
+round the rolls barely climb at all, which leaves room to put them back:
 
-    rolls   run    avg   floor  wobble        (with FLAT_START at 20 m)
-    x1.5    189 s  38     24.9%   28.0%   too slow, bogs down
-    x1.2    174 s  41     13.6%   29.7%   over the 170 s target
-    x1.1    168 s  43     10.0%   30.7%   every target met
-    x1.0    156 s  46      2.0%   33.0%   also fine, less of the road left
+    rolls   run    avg   peak  floor  wobble      (at GRADE 9%)
+    x1.1    145 s  50     65    5.1%   21.4%   too gentle: peak and wobble both short
+    x1.5    149 s  48     67    8.3%   20.9%
+    x1.9    142 s  51     72    9.6%   25.8%   every target met
+    x2.3    143 s  50     74   10.6%   24.9%   no better, larger fiction
 
-At 1.5 the worst climb is 11.7 m, well inside the 25.3 m a rider can carry, and
-the ride dies anyway - the climbs are survivable one at a time and ruinous in a
-row, which is the sort of thing only a simulation says.
+GRADE is 9% rather than 8% for the same reason. At 8% this direction is smooth
+and slow - it never spends enough of the run above the 15.8 m/s wobble onset to
+reach the 25% the targets want, whatever ROLL_GAIN does, because the descent is
+spread too evenly to build a fast stretch. A steeper invented slope is what buys
+the speed back.
 
-1.2 passed until FLAT_START went in and cost six seconds, which is the sort of
-thing only re-running it says. 1.1 keeps more of the real road than 1.0 and
-lands inside every target. Change either constant and re-run physics_sim.py;
-that is what it is for.
+Both numbers are larger fictions than the other direction needed, and that is
+the trade: x1.1 and 8% the other way round is closer to the survey and has a
+200 m hole in the middle of it. Change either and re-run physics_sim.py; that is
+what it is for.
 
-The sim does not push off, so those are no-push times. A ridden run is about
-twenty seconds quicker -- Scripts/Tools/Playthrough.cs does the riding.
+The sim does not push off, so those are no-push times. A ridden run is about ten
+seconds quicker -- Scripts/Tools/Playthrough.cs does the riding.
 """
 import argparse
 import io
@@ -89,7 +98,7 @@ DEM = ("https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/"
            "interpolation": "RSP_BilinearInterpolation"}))
 
 # ── The route ────────────────────────────────────
-ROADS = ("Old Mill Rd", "Millstone Rd", "Crestwood Rd", "Kendall Pond Rd")
+ROADS = ("Kendall Pond Rd", "Crestwood Rd", "Millstone Rd", "Old Mill Rd")
 # There are roads of these names elsewhere in the county; this box is Windham.
 AREA = (42.79, 42.86, -71.37, -71.30)
 LENGTH = 2000.0
@@ -110,8 +119,8 @@ SPACING = 10.0
 FLAT_START = 20.0
 
 
-GRADE = 0.08          # the invented descent, and Frogwood's own from the start
-ROLL_GAIN = 1.1       # how much of the real rolls survives the tilt
+GRADE = 0.09          # the invented descent, and Frogwood's own from the start
+ROLL_GAIN = 1.9       # how much of the real rolls survives the tilt
 
 HEADING_BASELINE_M = 300.0
 HEADING_PEAK_RAD = 0.34    # what the ribbon can draw; the old sine Frogwood peaked here
@@ -186,9 +195,11 @@ def chain(picked):
     # The first road is split at its closest approach to the second, exactly like
     # every join below, and the longer half of it leads into that point.
     #
-    # It cannot just be oriented: Old Mill Rd passes within a metre of Millstone
-    # Rd's end through its INTERIOR, not an endpoint, so choosing between its two
-    # ends leaves the course starting 175 m from the junction whichever one wins.
+    # It cannot just be oriented. Every join on this route is interior to one of
+    # the two roads rather than end to end: Kendall Pond Rd meets Crestwood 4.2 km
+    # from its own far end, and Millstone Rd meets Old Mill through Old Mill's
+    # middle. Choosing between a segment's two ENDS instead of splitting it at the
+    # nearest vertex left joins 175 m and 1.9 km out.
     best = None
     for seg in picked[ROADS[0]]:
         for i, v in enumerate(seg):

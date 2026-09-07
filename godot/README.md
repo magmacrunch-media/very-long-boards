@@ -53,7 +53,7 @@ same two sources the [`block-island-simulator`](../../block-island-simulator) us
 
 | | route | generator | survey |
 |---|---|---|---|
-| Frogwood | Old Mill → **Millstone → Crestwood** → Kendall Pond, Windham NH | `build_frogwood.py` | fetched on demand |
+| Frogwood | Kendall Pond → **Crestwood → Millstone** → Old Mill, Windham NH | `build_frogwood.py` | fetched on demand |
 | Block Island | Spring Street, from the Southeast Light | `build_block_island.py` | read from the simulator repo |
 
 Frogwood fetches its own survey because nothing else in the tree has it, into a gitignored
@@ -66,30 +66,57 @@ generators are the only things that need the data.
 Frogwood was always Windham, New Hampshire — the lanes around Foster's Pond, and specifically
 Millstone Road and Crestwood Road, which meet end to end at a crest. It is those roads now.
 
-**The real road is not a descent.** It rolls gently for 600 m, climbs to a crest of 93.5 m at
-the 720 m mark — the Millstone high point — and falls away, finishing 4.9 m *below* where it
-started rather than 160 m below. Ridden as measured it is a hill, and a downhill game cannot
-use it.
+**The real road is not a descent.** It climbs to the Millstone crest at 73.4 m and falls away
+again, finishing 0.1 m *below* where it started rather than 178 m below. Ridden as measured it
+is a hill, and a downhill game cannot use it.
 
-So the profile is detrended against its own endpoints and an 8% grade is put underneath. Every
+So the profile is detrended against its own endpoints and a 9% grade is put underneath. Every
 roll stays exactly where the road puts it; only the descent is invented. That is the reverse of
 the usual compromise — a measured shape on a fictional slope, rather than a plausible shape on
 a real one.
 
-**The roll gain was set by the simulation, not chosen.** Tilting flattens what it tilts, so the
-rolls are scaled back up. 1.5 was the guess, and `physics_sim.py` threw it out:
+### Which way round it is ridden
 
-| rolls | run | avg | floor | wobble | |
-|---|---|---|---|---|---|
-| ×1.5 | 189 s | 38 | 24.9% | 28.0% | too slow, bogs down |
-| ×1.2 | 174 s | 41 | 13.6% | 29.7% | over the 170 s target |
-| **×1.1** | **168 s** | **43** | **10.0%** | **30.7%** | every target met |
-| ×1.0 | 156 s | 46 | 2.0% | 33.0% | also fine, less road left |
+The Millstone crest is a real feature and it has to go somewhere. Run the roads the other way
+— Old Mill first — and it lands at the **450 m mark**, where the rider has no speed to carry
+over it: 200 m of road between −1% and +3%, and drag needs about 4% of grade merely to *hold*
+40 km/h. He grinds down to 9 km/h a fifth of the way into the course.
 
-At ×1.5 the worst climb is 11.7 m — well inside the 25.3 m a rider can carry — and the ride
-still dies, because the climbs are survivable one at a time and ruinous in a row. ×1.2 passed
-until the flat start line went in and cost six seconds. ×1.1 keeps more of the real road than
-×1.0 and lands inside every target.
+Every simulation target still passed. A 2.69 m climb is nothing against a 25.3 m budget, and
+floor% averages over 2 km, so one long stall barely moves it. It took riding the course to see
+it, and then `CourseProbe`'s drag-stall metric to name it — the longest run of road whose grade
+is under the ~4% needed to hold 40 km/h.
+
+Reversed, the crest lands at **1190 m**, by which point he is doing 60 and carries straight
+over. Same roads, same survey, read the other way:
+
+Each direction ridden at its own best tuning, headless:
+
+| | Old Mill first, ×1.1 at 8% | **Kendall Pond first, ×1.9 at 9%** | old sine Frogwood |
+|---|---|---|---|
+| ridden time | 163.8 s | **130.8 s** | — |
+| bogged down | 6% | **0%** | — |
+| cannot hold 40 km/h | 200 m, from 450 m | **50 m** (the apron) | 60 m, from 1180 m |
+| worst climb | 3.3 m | **0.8 m** | 4.7 m |
+
+**The roll gain and the grade were set by the simulation, not chosen.** Tilting flattens what
+it tilts, so the rolls are scaled back up. Ridden this way round they barely climb at all,
+which leaves room to put more of them back than the other direction could take:
+
+| rolls | run | avg | peak | floor | wobble | |
+|---|---|---|---|---|---|---|
+| ×1.1 | 145 s | 50 | 65 | 5.1% | 21.4% | too gentle — peak and wobble both short |
+| ×1.5 | 149 s | 48 | 67 | 8.3% | 20.9% | |
+| **×1.9** | **142 s** | **51** | **72** | **9.6%** | **25.8%** | every target met |
+| ×2.3 | 143 s | 50 | 74 | 10.6% | 24.9% | no better, larger fiction |
+
+The grade is 9% rather than 8% for the same reason. At 8% this direction is smooth and slow: it
+never spends enough of the run above the 15.8 m/s wobble onset to reach the 25% the targets
+want, whatever the roll gain does, because the descent is spread too evenly to build a fast
+stretch. A steeper invented slope is what buys the speed back.
+
+Both are larger fictions than the other direction needed, and that is the trade — ×1.1 at 8%
+the other way round is closer to the survey and has a 200 m hole in the middle of it.
 
 ### The flat start line
 
@@ -107,15 +134,14 @@ What it is worth, ridden:
 
 | | time | bogged | reached 30 km/h |
 |---|---|---|---|
-| pushing off | **148.4 s** | 0% | 4.7 s, 30 m |
-| not pushing | 172.1 s | 10% | 15.9 s, 64 m |
+| pushing off | **130.8 s** | 0% | 10.3 s, 70 m |
+| not pushing | 146.9 s | 9% | 25.9 s, 87 m |
 
 Note `physics_sim.py` does not push, so its numbers are always the no-push case — which is why
-its 168 s and a ridden 148 s are not in disagreement.
+its 142 s and a ridden 131 s are not in disagreement.
 
-`MeasuredCourse` subclasses `CourseDesign` and overrides `HillAt`, `CurveAt` and
-`TotalRelief`. Everything downstream asks the same three questions and never learns which
-kind of course it got.
+`MeasuredCourse` subclasses `CourseDesign` and overrides `HillAt`, `CurveAt` and `ShoreAt`.
+Everything downstream asks the same questions and never learns which kind of course it got.
 
 **The route is Spring Street, from the Southeast Light end down toward Old Harbor.** It was
 picked by measuring every road on the island: Spring Street has the longest sustained descent
@@ -127,10 +153,11 @@ the descent rather than carrying on into town.
 
 **Two things were done to the measurements, and both are recorded on the resource.**
 
-*Heights are doubled.* The island tops out at 63.7 m and its best grade anywhere is 2.5%,
-against the 8% this game is built around. At the real grade a rider settles at 31 km/h, never
-reaches the 15.8 m/s wobble onset, and the course has no way to end badly. Doubling puts the
-steepest 600 m at 9.6% and the average at 5.9%, which brackets Frogwood.
+*Heights are exaggerated ×2.2.* The island tops out at 63.7 m and its best grade anywhere is
+2.5%, against the 8-9% this game is built around. At the real grade a rider settles at 31 km/h,
+never reaches the 15.8 m/s wobble onset, and the course has no way to end badly. ×2.2 puts the
+steepest 600 m at 10.5% and the average at 6.4%, a little gentler than Frogwood and still fast
+enough to get into trouble.
 
 *Headings are detrended and scaled.* The ribbon draws a point at `CurveAt(z) * lookAhead`, so
 heading only means anything as a small angle — the real road swings 59° off its own baseline,
@@ -423,7 +450,7 @@ speed is settled by quadratic air drag rather than by a hard cap, so the grade n
 
 `Scenes/CourseProbe.tscn` loads every course resource and reports what the ride will actually
 do on it — net drop, average grade, the steepest sustained stretches and the settling speed on
-each, the worst climb, and the peak heading.
+each, the worst climb, the longest stretch that cannot hold speed, and the peak heading.
 
 ```bash
 godot --headless --path godot --scene res://Scenes/CourseProbe.tscn
@@ -436,10 +463,26 @@ down and the ride dies.
 
 | | Frogwood | Block Island |
 |---|---|---|
-| Worst climb | 4.7 m | 8.4 m |
+| Worst climb | 0.8 m | 9.3 m |
 | Budget (slowest Carl) | 25.3 m | 25.3 m |
 
-Both are comfortably inside it, and the real road has the bigger climbs of the two.
+Both are comfortably inside it.
+
+**A third number was added after a course passed both and still rode badly.** A climb is not
+the only way to lose a rider: quadratic drag alone takes about **4% of grade merely to hold
+40 km/h**, so a long stretch of nearly level road bleeds him down to nothing without ever
+climbing. `cannot hold 40` reports the longest run of road under that grade, and where it
+starts.
+
+| | longest | starts at |
+|---|---|---|
+| Frogwood | 50 m | 0 m — the flat start apron, which is meant to be there |
+| Block Island | 180 m | 990 m |
+
+Block Island's is real and it is left alone: it is the last stretch before the finish, arrived
+at near top speed, and the rider carries through it. It is worth watching if that course is
+ever retuned. Frogwood's was 200 m in the middle of the course until the route was reversed,
+and that is what the metric was written to catch.
 
 **That worst climb used to be reported as 24.4 m, and it was wrong twice over.** It summed the
 hill layers' amplitudes and doubled them, which bounds the rise in the *sines* rather than
@@ -517,6 +560,14 @@ godot --path godot --scene res://Scenes/Playthrough.tscn -- --course=BlockIsland
 `--nopush` rides without ever kicking off. Differencing the two runs is the only honest way to
 value the push: gravity is acting the whole time, and there is no way to split one stroke's
 contribution from it inside a single run.
+
+**Presses are held for a count of physics frames, not for a time.** A `SceneTree` timer
+releases on the wall clock, so how many physics frames a press covers drifts with frame pacing
+and the whole ride drifts with it: three runs of one identical build came out 108, 116 and 117
+seconds, with time bogged down ranging 7% to 14% — noise wider than the differences the tool
+was being used to measure. Two numbers reported here were wrong because of it, and were
+withdrawn. Counting frames makes a run repeatable, and it now is: the same build gives the same
+second every time.
 
 ## Course shot
 

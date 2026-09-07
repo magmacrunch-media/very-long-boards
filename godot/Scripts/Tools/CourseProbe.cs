@@ -37,6 +37,31 @@ public partial class CourseProbe : Node
         float top = 21f * Mathf.Lerp(0.88f, 1.12f, (slowest - 1) / 4f);
         GD.Print($"  worst climb   {c.TotalRelief():F1} m   (tightest rider carries {top * top / (2f * 9.81f):F1} m)");
 
+        // The longest stretch the rider cannot hold speed on.
+        //
+        // The climb budget above is necessary and not sufficient, and Frogwood is the proof:
+        // ridden the other way round its worst climb was 3.3 m against a 25.3 m budget, every
+        // simulation target passed, and a ridden run still ground down to the 9 km/h floor a
+        // fifth of the way in. What did that is not a climb at all - it is 200 m of road
+        // between -1% and +3% starting at the 450 m mark, and drag needs about 4% of grade
+        // just to HOLD 40 km/h. A course can clear every climb it has and stall on the flat
+        // between them. That is what reversing the route fixed, and this is what named it.
+        const float hold = 40f / 3.6f;                     // the speed worth holding, m/s
+        float need = hold * hold * 0.0032f / 9.81f;        // grade that balances drag there
+        float worstRun = 0f, runStart = 0f, runAt = 0f;
+        bool inRun = false;
+        for (float z = 0; z + 10f <= c.Length; z += 10f)
+        {
+            float grade = (c.HillAt(z) - c.HillAt(z + 10f)) / 10f;
+            if (grade < need)
+            {
+                if (!inRun) { inRun = true; runStart = z; }
+                if (z + 10f - runStart > worstRun) { worstRun = z + 10f - runStart; runAt = runStart; }
+            }
+            else inRun = false;
+        }
+        GD.Print($"  cannot hold 40 {worstRun:F0} m from {runAt:F0} m   (needs {need * 100f:F1}% to hold it)");
+
         float maxCurve = 0f;
         for (float z = 0; z <= c.Length; z += 5f) maxCurve = Mathf.Max(maxCurve, Mathf.Abs(c.CurveAt(z)));
         GD.Print($"  peak heading  {maxCurve:F2} rad");
