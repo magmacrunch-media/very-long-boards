@@ -52,6 +52,12 @@ public static class MeshKit
         mat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaScissor;
         mat.AlphaScissorThreshold = 0.5f;
         mat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+        // Clamp, or the silhouette wraps. Repeat is the default, the cutouts carry no mipmaps,
+        // and linear filtering at the top edge blends row 0 with the LAST row - so the wide
+        // solid base of a conifer bled back over its tip and every pine in the game wore a
+        // horizontal bar as wide as its own trunk. Broadleaves were clean because their mask
+        // is transparent at both the top and the bottom, which is what named the cause.
+        mat.TextureRepeat = false;
         return mat;
     }
 
