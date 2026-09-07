@@ -82,13 +82,36 @@ rolls are scaled back up. 1.5 was the guess, and `physics_sim.py` threw it out:
 | rolls | run | avg | floor | wobble | |
 |---|---|---|---|---|---|
 | ×1.5 | 189 s | 38 | 24.9% | 28.0% | too slow, bogs down |
-| **×1.2** | **168 s** | **43** | **9.9%** | **31.5%** | every target met |
-| ×1.0 | 150 s | 48 | 0.0% | 34.9% | also fine, less road left |
+| ×1.2 | 174 s | 41 | 13.6% | 29.7% | over the 170 s target |
+| **×1.1** | **168 s** | **43** | **10.0%** | **30.7%** | every target met |
+| ×1.0 | 156 s | 46 | 2.0% | 33.0% | also fine, less road left |
 
 At ×1.5 the worst climb is 11.7 m — well inside the 25.3 m a rider can carry — and the ride
-still dies, because the climbs are survivable one at a time and ruinous in a row. ×1.2 keeps
-more of the real road than ×1.0 and lands inside every target, so that is the one that
-survived.
+still dies, because the climbs are survivable one at a time and ruinous in a row. ×1.2 passed
+until the flat start line went in and cost six seconds. ×1.1 keeps more of the real road than
+×1.0 and lands inside every target.
+
+### The flat start line
+
+`FLAT_START` is 20 m of level, straight road before the measured profile begins, and it is
+where the push-off lives — somewhere to get a foot down before gravity takes over.
+
+The sine courses had it as `CourseDesign.HillFlatStart`. A `MeasuredCourse` ignores that field
+entirely — its `HillAt` reads the samples and nothing else — so when Frogwood became measured
+the apron silently went with it. The course began on a **7.4% grade at metre zero**, a rider
+was past `PushTopSpeed` before a second kick could land, and kicking off did nothing you could
+feel. Block Island had the same hole. Both bake an apron now, taken out of the measured span
+rather than added to it, so each course is the length it always was.
+
+What it is worth, ridden:
+
+| | time | bogged | reached 30 km/h |
+|---|---|---|---|
+| pushing off | **148.4 s** | 0% | 4.7 s, 30 m |
+| not pushing | 172.1 s | 10% | 15.9 s, 64 m |
+
+Note `physics_sim.py` does not push, so its numbers are always the no-push case — which is why
+its 168 s and a ridden 148 s are not in disagreement.
 
 `MeasuredCourse` subclasses `CourseDesign` and overrides `HillAt`, `CurveAt` and
 `TotalRelief`. Everything downstream asks the same three questions and never learns which
@@ -252,8 +275,8 @@ The mix levels live in `Resources/Design/Audio.tres`, not in the manager — see
 
 One shipping scene (`Scenes/Main.tscn`) — everything is built in code, including the garage
 hub and menu screens. `Scenes/CarlPreview.tscn`, `Scenes/CoursePreview.tscn`,
-`Scenes/AudioProbe.tscn`, `Scenes/CourseProbe.tscn` and `Scenes/CourseShot.tscn` are
-workbenches; nothing at runtime loads them.
+`Scenes/AudioProbe.tscn`, `Scenes/CourseProbe.tscn`, `Scenes/CourseShot.tscn` and
+`Scenes/Playthrough.tscn` are workbenches; nothing at runtime loads them.
 
 ### Scripts
 
@@ -287,6 +310,7 @@ workbenches; nothing at runtime loads them.
 | `Tools/AudioProbe.cs` | Measures what AudioKit generated. Headless only — see [Audio probe](#audio-probe). |
 | `Tools/CourseProbe.cs` | Reads a course back and reports what the ride does on it. Headless only. |
 | `Tools/CourseShot.cs` | Stands the camera on a course and saves a frame. The palette's only real check. |
+| `Tools/Playthrough.cs` | Rides a course through the real input system and reports what happened. |
 
 ### Key patterns
 
@@ -476,6 +500,23 @@ audible — five of the six are silent on the title screen where this is measure
 would be almost nothing left to reclaim. That is a change to how the mix behaves, though, and
 it should be made because it is better, not to quiet a warning that only appears without a
 sound card.
+
+## Playthrough
+
+`Scenes/Playthrough.tscn` rides a course. Not the way `physics_sim.py` does — that mirrors
+`PlayerManager`'s arithmetic and answers whether the numbers work. This boots the actual game,
+presses actual input actions through Godot's own input system, and lets the real managers do
+it. The rider is competent rather than perfect: it holds the crown of the road and carves when
+wobble climbs, which is the loop the game is built around.
+
+```bash
+godot --path godot --scene res://Scenes/Playthrough.tscn -- --course=Frogwood
+godot --path godot --scene res://Scenes/Playthrough.tscn -- --course=BlockIsland --shots
+```
+
+`--nopush` rides without ever kicking off. Differencing the two runs is the only honest way to
+value the push: gravity is acting the whole time, and there is no way to split one stroke's
+contribution from it inside a single run.
 
 ## Course shot
 

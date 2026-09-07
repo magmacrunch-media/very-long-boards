@@ -44,14 +44,23 @@ target, 38 km/h against 40-55, and a quarter of the run spent bogged down at
 the speed floor against a limit of 15%. The climbs are inside the budget one at
 a time and ruinous in a row.
 
-    rolls   run    avg   floor  wobble
+    rolls   run    avg   floor  wobble        (with FLAT_START at 20 m)
     x1.5    189 s  38     24.9%   28.0%   too slow, bogs down
-    x1.2    168 s  43      9.9%   31.5%   every target met
-    x1.0    150 s  48      0.0%   34.9%   also fine, less of the road left
+    x1.2    174 s  41     13.6%   29.7%   over the 170 s target
+    x1.1    168 s  43     10.0%   30.7%   every target met
+    x1.0    156 s  46      2.0%   33.0%   also fine, less of the road left
 
-1.2 keeps more of the real road than 1.0 does and still lands inside every
-target, so it is the one that survives. Change it and re-run physics_sim.py;
+At 1.5 the worst climb is 11.7 m, well inside the 25.3 m a rider can carry, and
+the ride dies anyway - the climbs are survivable one at a time and ruinous in a
+row, which is the sort of thing only a simulation says.
+
+1.2 passed until FLAT_START went in and cost six seconds, which is the sort of
+thing only re-running it says. 1.1 keeps more of the real road than 1.0 and
+lands inside every target. Change either constant and re-run physics_sim.py;
 that is what it is for.
+
+The sim does not push off, so those are no-push times. A ridden run is about
+twenty seconds quicker -- Scripts/Tools/Playthrough.cs does the riding.
 """
 import argparse
 import io
@@ -86,8 +95,23 @@ AREA = (42.79, 42.86, -71.37, -71.30)
 LENGTH = 2000.0
 SPACING = 10.0
 
+# Dead-flat road before the measured profile starts, in metres.
+#
+# The sine courses had this as CourseDesign.HillFlatStart and it is where the
+# whole push-off exists: somewhere level to get a foot down before gravity takes
+# over. A MeasuredCourse ignores HillFlatStart -- its HillAt reads the samples
+# and nothing else -- so when Frogwood became measured the apron silently went
+# with it, the course began on a 7.4% grade at metre zero, and a rider was past
+# PushTopSpeed before a second kick could land. Kicking off did nothing you could
+# feel, which is exactly what it looked like.
+#
+# It comes out of the measured span rather than being added to it, so the course
+# stays the length it has always been.
+FLAT_START = 20.0
+
+
 GRADE = 0.08          # the invented descent, and Frogwood's own from the start
-ROLL_GAIN = 1.2       # how much of the real rolls survives the tilt
+ROLL_GAIN = 1.1       # how much of the real rolls survives the tilt
 
 HEADING_BASELINE_M = 300.0
 HEADING_PEAK_RAD = 0.34    # what the ribbon can draw; the old sine Frogwood peaked here
@@ -240,14 +264,16 @@ def build():
                 return tuple(a[j] + (b[j] - a[j]) * f for j in range(1, 4))
         return track[-1][1:4]
 
-    count = int(LENGTH // SPACING) + 1
+    apron = int(FLAT_START // SPACING)
+    count = int((LENGTH - FLAT_START) // SPACING) + 1
     raw = [at(i * SPACING) for i in range(count)]
     span = (count - 1) * SPACING
 
     # Detrend against the endpoints, keep the rolls, put a grade underneath.
     h0, h1 = raw[0][2], raw[-1][2]
     rolls = [p[2] - (h0 + (h1 - h0) * (i * SPACING) / span) for i, p in enumerate(raw)]
-    heights = [rolls[i] * ROLL_GAIN - i * SPACING * GRADE for i in range(count)]
+    heights = [0.0] * apron + [rolls[i] * ROLL_GAIN - i * SPACING * GRADE
+                               for i in range(count)]
 
     bearings = [math.atan2(raw[i + 1][0] - raw[i][0], raw[i + 1][1] - raw[i][1])
                 for i in range(count - 1)]
@@ -264,10 +290,12 @@ def build():
         residual.append(d)
     peak = max(abs(v) for v in residual) or 1.0
     scale = HEADING_PEAK_RAD / peak
-    headings = [v * scale for v in residual]
+    # The apron is straight as well as level - it is a start line, not a corner.
+    headings = [0.0] * apron + [v * scale for v in residual]
 
     return {"heights": heights, "headings": headings, "rolls": rolls, "raw": raw,
-            "length": span, "joins": joins, "curve_scale": scale, "raw_peak": peak,
+            "length": span + FLAT_START, "apron": FLAT_START,
+            "joins": joins, "curve_scale": scale, "raw_peak": peak,
             "real_lo": min(p[2] for p in raw), "real_hi": max(p[2] for p in raw)}
 
 
@@ -283,7 +311,8 @@ def report(c):
     h = c["heights"]
     print("route             " + " -> ".join(ROADS))
     print("joins             " + ", ".join("%s at %.1f m" % (n, g) for n, g in c["joins"]))
-    print("length            %.0f m" % c["length"])
+    print("length            %.0f m, of which %.0f m is flat start line"
+          % (c["length"], c["apron"]))
     print()
     print("as measured       %.1f m to %.1f m, finishing %+.1f m against the start"
           % (c["real_lo"], c["real_hi"], c["raw"][-1][2] - c["raw"][0][2]))

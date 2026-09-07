@@ -54,6 +54,21 @@ START_M = 800.0      # a little back along the clifftop, for a run-up
 END_M = 2095.0       # the bottom of the descent, before the climb into town
 SPACING = 10.0       # metres between samples in the baked profile
 
+# Dead-flat road before the measured profile starts, in metres.
+#
+# The sine courses had this as CourseDesign.HillFlatStart and it is where the
+# whole push-off exists: somewhere level to get a foot down before gravity takes
+# over. A MeasuredCourse ignores HillFlatStart -- its HillAt reads the samples
+# and nothing else -- so when Frogwood became measured the apron silently went
+# with it, the course began on a 2.4% grade at metre zero, and a rider was past
+# PushTopSpeed before a second kick could land. Kicking off did nothing you could
+# feel, which is exactly what it looked like.
+#
+# It comes out of the measured span rather than being added to it, so the course
+# stays the length it has always been.
+FLAT_START = 20.0
+
+
 VERTICAL_EXAGGERATION = 2.0
 
 # Heading is detrended against this window before being scaled -- see the note
@@ -197,11 +212,12 @@ def build():
                 return tuple(a[j] + (b[j] - a[j]) * f for j in range(1, 4))
         return track[-1][1:4]
 
-    count = int((END_M - START_M) // SPACING) + 1
+    apron = int(FLAT_START // SPACING)
+    count = int((END_M - START_M - FLAT_START) // SPACING) + 1
     raw = [sample(START_M + i * SPACING) for i in range(count)]
     base_h = raw[0][2]
 
-    heights = [(p[2] - base_h) * VERTICAL_EXAGGERATION for p in raw]
+    heights = [0.0] * apron + [(p[2] - base_h) * VERTICAL_EXAGGERATION for p in raw]
 
     # Heading, as a bearing, then detrended and scaled.
     bearings = []
@@ -223,7 +239,8 @@ def build():
 
     peak = max(abs(v) for v in residual) or 1.0
     scale = HEADING_PEAK_RAD / peak
-    headings = [v * scale for v in residual]
+    # The apron is straight as well as level - it is a start line, not a corner.
+    headings = [0.0] * apron + [v * scale for v in residual]
 
     # Which side the Atlantic is on, asked of the terrain rather than assumed. Sample well
     # out to each side along the middle of the course: the seaward side runs off the island
@@ -262,13 +279,13 @@ def build():
                 break
     # Clamped only at the far end: past a few hundred metres the water is over the horizon
     # anyway, and a 770 m strip of ground is geometry nobody sees.
-    shore_series = [min(s, 320.0) for s in shore]
-    while len(shore_series) < count:
+    shore_series = [shore[0] if shore else 320.0] * apron + [min(s, 320.0) for s in shore]
+    while len(shore_series) < count + apron:
         shore_series.append(shore_series[-1] if shore_series else 320.0)
     shore = sorted(shore)
     shore_distance = shore[len(shore) // 2] if shore else 60.0
 
-    length = (count - 1) * SPACING
+    length = (count - 1) * SPACING + FLAT_START
     drop = heights[0] - heights[-1]
     return {
         "shore_distance": shore_distance,
