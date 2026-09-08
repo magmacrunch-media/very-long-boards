@@ -209,6 +209,59 @@ public partial class CourseDesign : Resource
         return ShoreDistance;
     }
 
+    // ── The horizon ──────────────────────────
+    [ExportGroup("The horizon")]
+
+    /// <summary>
+    /// Distant landform behind the drawn world. Without it the skyline is a ruler-straight
+    /// line - the sky material's ground hemisphere meeting its sky colour, with nothing
+    /// standing against it - and a road that drops 178 m through hill country looks flat from
+    /// inside it.
+    ///
+    /// The bands sit at a FIXED altitude while the rider descends past them, which is the
+    /// whole point: the drop is invisible from the road itself, and the only place it can be
+    /// read is against something that is not falling with you.
+    ///
+    /// Off for an island. Block Island really does have a flat horizon in most directions,
+    /// and inventing hills over the Atlantic would be worse than the ruler.
+    /// </summary>
+    [Export] public bool HasRidge { get; set; } = true;
+
+    /// <summary>How many silhouette bands, near to far. Each is fainter than the last.</summary>
+    [Export(PropertyHint.Range, "1,4,1")] public int RidgeBands { get; set; } = 3;
+
+    /// <summary>
+    /// Distance to the nearest band. Beyond the terrain window (Segments x SegmentLength, 1000 m
+    /// by default) on purpose, so a ridge can never cut in front of the road.
+    /// </summary>
+    [Export(PropertyHint.Range, "600,4000,50")] public float RidgeNear { get; set; } = 1250f;
+
+    /// <summary>Each band sits this many times farther out than the one before it.</summary>
+    [Export(PropertyHint.Range, "1.1,3,0.05")] public float RidgeStep { get; set; } = 1.7f;
+
+    /// <summary>Height of the nearest band's peaks above its foot, in metres.</summary>
+    [Export(PropertyHint.Range, "10,400,5")] public float RidgeHeight { get; set; } = 90f;
+
+    /// <summary>
+    /// Altitude of the ridge foot, in the course's own height units - so 0 is the height of
+    /// the start line. Negative sinks the whole skyline.
+    /// </summary>
+    [Export(PropertyHint.Range, "-200,200,5")] public float RidgeFoot { get; set; } = -25f;
+
+    /// <summary>
+    /// Near band first. Haze is painted in rather than fogged in: at the distances these sit
+    /// at, the environment fog would take any colour to flat grey, so the material ignores it
+    /// and the recession lives entirely in these.
+    /// </summary>
+    [Export] public Color[] RidgeColors { get; set; } = {
+        new Color(0.29f, 0.42f, 0.38f),
+        new Color(0.44f, 0.56f, 0.60f),
+        new Color(0.57f, 0.67f, 0.77f)
+    };
+
+    /// <summary>Which skyline you get. Any integer; nothing is better than any other.</summary>
+    [Export] public int RidgeSeed { get; set; } = 9;
+
     // ── Derived ──────────────────────────────────
 
     /// <summary>The visible window, and the length of the band the scenery wraps inside.</summary>

@@ -179,6 +179,45 @@ of that, and both live on the course resource rather than in the code.
 | Scrub | 40 bushes | 95 |
 | Walls | none | 48 runs of dry stone |
 | Sea | none | the Atlantic, on the rider's right |
+| Skyline | three ridge bands | flat — it is an island |
+
+### The horizon
+
+The skyline used to be a ruler-straight line: the sky material's ground hemisphere meeting its
+sky colour, with nothing standing against it. A road that drops **178 m through hill country**
+therefore looked flat from inside it, because from the road there is nothing to read the drop
+against — the ground goes down with you, the trees go down with you, and the horizon is a
+constant.
+
+`CreateRidges` puts three silhouette bands out at 1250, 2125 and 3612 m, and their whole point
+is that they **do not move**. The world's heights are absolute and the camera descends through
+them, so bands pinned at a fixed altitude are the one thing on screen that registers the fall.
+By the finish the nearest band has risen most of the way up the frame.
+
+Four things it needed, none of them obvious from the idea:
+
+- **They sit beyond the terrain window**, not inside it, so a band can never cut across the
+  road. The nearest is 1250 m out and the ribbon is 1000 m long.
+- **The camera's far plane was 600 m** and had to go to 6000, or the bands were clipped away
+  entirely. Nothing else changed visually: at `FogDensity` 0.010 everything past about 450 m is
+  already solid fog colour, which is exactly why a 600 m clip had never been noticed.
+- **The material ignores fog** (`DisableFog`), for the same reason — at 1250 m the fog takes any
+  colour to flat grey. The recession is painted into `RidgeColors` instead of computed, which is
+  how backdrops were done anyway.
+- **Haze hangs from the skyline, not up from the foot.** Anchored to the foot it works at the
+  start line and then disappears: 178 m lower down the course the foot is off the bottom of the
+  screen and every band is a flat slab again.
+
+The bands are drawn with vertex colours so the crest can be solid and the flank hazy, and that
+brought its own trap: **vertex colours are linear unless the material says otherwise**, while
+`AlbedoColor` is sRGB. Moving the tint from one to the other silently brightened every band
+— 0.29 linear reads back as 0.57 — and turned three silhouettes into three washes.
+`VertexColorIsSrgb` is what puts them back.
+
+**Block Island has `HasRidge = false`, and that is not an oversight.** It really does have a
+flat horizon in most directions, it is 63 m tall, and the rider is already standing on the
+highest ground there is. Inventing a mountain range over the Atlantic would be worse than the
+ruler.
 
 **The sea is measured too.** Its level is where real sea level falls once the same 2x
 exaggeration is applied to the drop, and the distance to it is sampled per-point from the same
@@ -566,8 +605,10 @@ releases on the wall clock, so how many physics frames a press covers drifts wit
 and the whole ride drifts with it: three runs of one identical build came out 108, 116 and 117
 seconds, with time bogged down ranging 7% to 14% — noise wider than the differences the tool
 was being used to measure. Two numbers reported here were wrong because of it, and were
-withdrawn. Counting frames makes a run repeatable, and it now is: the same build gives the same
-second every time.
+withdrawn. Counting frames closed most of that: repeated runs of one build now come out within
+about two tenths of a second, against the nine-second spread the wall clock gave. It is not
+bit-exact — don't read a 0.2 s difference between two builds as a real one — but it is well
+inside the differences the tool is used to measure.
 
 ## Course shot
 

@@ -41,6 +41,7 @@ public class SceneryManager
     public List<Squirrel> Squirrels = new List<Squirrel>();
 
     private Node3D _finishLine;
+    private readonly List<Node3D> _ridges = new List<Node3D>();
     private Node3D _sea;
     private Node3D _cliff;
     private Node3D _cliffFace;
@@ -95,6 +96,8 @@ public class SceneryManager
         foreach (var b in Birds) if (b.Node != null) b.Node.QueueFree();
         foreach (var s in Squirrels) if (s.Node != null) s.Node.QueueFree();
         if (_finishLine != null) { _finishLine.QueueFree(); _finishLine = null; }
+        foreach (var r in _ridges) if (r != null) r.QueueFree();
+        _ridges.Clear();
         if (_sea != null) { _sea.QueueFree(); _sea = null; }
         if (_cliff != null) { _cliff.QueueFree(); _cliff = null; _cliffFace = null; }
 
@@ -111,6 +114,7 @@ public class SceneryManager
         _created = true;
         CreateScenery();
         CreateStoneWalls();
+        CreateRidges();
         CreateSea();
         CreateClouds();
         CreateFinishLine();
@@ -600,6 +604,151 @@ public class SceneryManager
     /// The cliff is deliberately not the Mohegan Bluffs in miniature. It is the ground ending,
     /// which is what you actually see from a road on top of them.
     /// </summary>
+    /// <summary>
+    /// The skyline. Two or three silhouette bands standing well beyond the drawn world, each
+    /// fainter than the one in front of it.
+    ///
+    /// They are placed past the terrain window rather than inside it, so a band can never cut
+    /// across the road, and their material ignores the environment fog - at 1250 m the fog
+    /// would take any colour to flat grey, so the recession is painted into CourseDesign's
+    /// RidgeColors instead of being computed. That is how the era did backdrops, and it is
+    /// also the only way to have one at these distances without turning the fog down.
+    /// </summary>
+    private void CreateRidges()
+    {
+        if (!_design.HasRidge || _design.RidgeColors == null || _design.RidgeColors.Length == 0)
+            return;
+
+        int bands = Mathf.Min(_design.RidgeBands, _design.RidgeColors.Length);
+        for (int i = 0; i < bands; i++)
+        {
+            float dist = _design.RidgeNear * Mathf.Pow(_design.RidgeStep, i);
+
+            var mat = new StandardMaterial3D();
+            mat.AlbedoColor = Colors.White;
+            mat.VertexColorUseAsAlbedo = true;
+            // Vertex colours are taken as linear unless this says otherwise, while AlbedoColor
+            // is taken as sRGB - so moving the ridge tint from one to the other silently
+            // brightened every band (0.29 linear reads back as 0.57) and turned three
+            // silhouettes into three washes.
+            mat.VertexColorIsSrgb = true;
+            mat.ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded;
+            mat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
+            mat.DisableFog = true;
+            mat.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+
+            // Peaks grow with distance so every band subtends about the same angle - a far
+            // band scaled like the near one is a bump on the horizon and reads as nothing.
+            float height = _design.RidgeHeight * Mathf.Pow(_design.RidgeStep, i);
+
+            // Haze pools in the valleys, so each band is washed toward the sky at its foot
+            // and full strength at its peaks. Flat bands read as a green curtain once the
+            // nearest one has risen far enough to hide the two behind it, which is what a
+            // 178 m descent does to it by the finish.
+            Color top = _design.RidgeColors[i];
+            Color foot = top.Lerp(_design.SkyHorizon, 0.35f);
+
+            var band = new MeshInstance3D();
+            band.Mesh = BuildRidge(dist, height, _design.RidgeSeed + i * 17, top, foot);
+            band.MaterialOverride = mat;
+            _parent.AddChild(band);
+            _ridges.Add(band);
+        }
+    }
+
+    /// <summary>
+    /// One band: a wall whose top edge is four sines summed, skirted far enough below its own
+    /// foot that the bottom is never in shot whatever the road does.
+    /// </summary>
+    private static Mesh BuildRidge(float dist, float height, int seed, Color top, Color foot)
+    {
+        // Three times the distance covers the widest curve throw the ribbon can produce and
+        // still leaves the ends off-screen.
+        float half = dist * 1.5f;
+        const int cols = 192;
+        float wave = dist * 0.55f;
+
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        for (int i = 0; i < cols; i++)
+        {
+            float x0 = Mathf.Lerp(-half, half, i / (float)cols);
+            float x1 = Mathf.Lerp(-half, half, (i + 1) / (float)cols);
+            float y0 = RidgeTop(x0, wave, seed) * height;
+            float y1 = RidgeTop(x1, wave, seed) * height;
+            const float floor = -900f;
+
+            // Three rows, and the haze hangs from the SKYLINE rather than standing up from the
+            // band's foot. Anchored to the foot it works at the start line and then vanishes:
+            // by the finish the rider is 178 m lower, the foot is off the bottom of the screen,
+            // and every band is a flat slab again. Hung from the ridge it is always in shot,
+            // which is also how haze actually reads - thickest under the crest.
+            float wash = height * 0.5f;
+
+            Strip(st, x0, x1, floor, floor, foot, foot, y0 - wash, y1 - wash, foot, foot);
+            Strip(st, x0, x1, y0 - wash, y1 - wash, foot, foot, y0, y1, top, top);
+        }
+        st.GenerateNormals();
+        return st.Commit();
+    }
+
+    /// <summary>One quad of a ridge column, coloured per corner.</summary>
+    private static void Strip(SurfaceTool st, float x0, float x1,
+        float yl0, float yr0, Color cl0, Color cr0,
+        float yl1, float yr1, Color cl1, Color cr1)
+    {
+        st.SetColor(cl0); st.AddVertex(new Vector3(x0, yl0, 0f));
+        st.SetColor(cr0); st.AddVertex(new Vector3(x1, yr0, 0f));
+        st.SetColor(cl1); st.AddVertex(new Vector3(x0, yl1, 0f));
+        st.SetColor(cr0); st.AddVertex(new Vector3(x1, yr0, 0f));
+        st.SetColor(cr1); st.AddVertex(new Vector3(x1, yr1, 0f));
+        st.SetColor(cl1); st.AddVertex(new Vector3(x0, yl1, 0f));
+    }
+
+    /// <summary>Height of the skyline at <paramref name="x"/>, 0 to 1.</summary>
+    private static float RidgeTop(float x, float wave, int seed)
+    {
+        float h = 0f, norm = 0f, amp = 1f, w = wave;
+        for (int o = 0; o < 4; o++)
+        {
+            h += amp * Mathf.Sin(x / w * Mathf.Tau + RidgePhase(seed, o));
+            norm += amp;
+            amp *= 0.55f;
+            w *= 0.43f;
+        }
+        float t = (h / norm + 1f) * 0.5f;
+        return t * t * (3f - 2f * t);   // broad valleys, rounded tops
+    }
+
+    private static float RidgePhase(int seed, int octave)
+    {
+        uint h = (uint)(seed * 374761393 + octave * 668265263);
+        h = (h ^ (h >> 13)) * 1274126177u;
+        return ((h ^ (h >> 16)) & 0xFFFFFFu) / (float)0x1000000 * Mathf.Tau;
+    }
+
+    /// <summary>
+    /// Hold the skyline still while the rider falls past it.
+    ///
+    /// The Y is the course's own RidgeFoot and never moves, which is the entire reason the
+    /// bands exist: the world's heights are absolute and the camera descends through them, so
+    /// hills that stay put are the only thing on screen that registers a 178 m drop. The X
+    /// tracks the road's heading at the band's own distance, exactly as the ribbon and the
+    /// props do, so the skyline swings across when the road turns and sits still when it
+    /// does not.
+    /// </summary>
+    private void UpdateRidges()
+    {
+        if (_ridges.Count == 0) return;
+        float z = _terrain.ScrollOffset;
+        for (int i = 0; i < _ridges.Count; i++)
+        {
+            float dist = _design.RidgeNear * Mathf.Pow(_design.RidgeStep, i);
+            float cx = _terrain.CurveAt(z + dist) * dist;
+            _ridges[i].Position = new Vector3(cx, _design.RidgeFoot, dist);
+        }
+    }
+
     private void CreateSea()
     {
         if (!_design.HasSea) return;
@@ -894,6 +1043,7 @@ public class SceneryManager
         UpdatePositions(_terrain.ScrollOffset);
         UpdateClouds(dt);
         UpdateFinishLine();
+        UpdateRidges();
         UpdateSea();
         UpdateButterflies(dt);
         UpdateBirds(dt);
@@ -912,6 +1062,8 @@ public class SceneryManager
             bird.Node.Visible = visible;
         foreach (var sq in Squirrels)
             sq.Node.Visible = visible;
+        foreach (var r in _ridges)
+            r.Visible = visible;
         _finishLine.Visible = visible;
     }
 

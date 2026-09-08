@@ -424,6 +424,7 @@ SeaSide = {sea_side}
 ShoreDistance = {shore_distance}
 ShoreSamples = PackedFloat32Array({shore_samples})
 SeaColor = Color(0.13, 0.31, 0.44, 1)
+HasRidge = false
 '''
 
 
