@@ -526,16 +526,10 @@ public class GameUI
             _speedLabel.Modulate = new Color(1f, 1f, 1f);
 
         _distLabel.Text = $"{player.Distance:F0} m";
-        int mins = (int)(main.Timer / 60f);
-        float secs = main.Timer % 60f;
-        _timerLabel.Text = $"{mins}:{secs:00.0}";
+        _timerLabel.Text = Clock(main.Timer);
 
         if (main.BestTime > 0f)
-        {
-            int bMins = (int)(main.BestTime / 60f);
-            float bSecs = main.BestTime % 60f;
-            _bestLabel.Text = $"Best: {bMins}:{bSecs:00.0}";
-        }
+            _bestLabel.Text = "Best: " + Clock(main.BestTime);
 
         float progress = Mathf.Clamp(player.Distance / main.CourseLength, 0f, 1f);
         _progressFill.AnchorRight = progress;
@@ -559,18 +553,24 @@ public class GameUI
 
     public void ShowFinish(Main main)
     {
-        int mins = (int)(main.FinishTime / 60f);
-        float secs = main.FinishTime % 60f;
-        string bestText = "";
-        if (main.BestTime > 0f)
-        {
-            int bMins = (int)(main.BestTime / 60f);
-            float bSecs = main.BestTime % 60f;
-            bestText = $"  BEST {bMins}:{bSecs:00.0}";
-        }
+        string bestText = main.BestTime > 0f ? "  BEST " + Clock(main.BestTime) : "";
         _promptLabel.Modulate = new Color(0.22f, 1f, 0.43f);
-        _promptLabel.Text = $"FINISH! {mins}:{secs:00.0}{bestText}  |  \u2191 RIDE AGAIN";
+        _promptLabel.Text = $"FINISH! {Clock(main.FinishTime)}{bestText}  |  \u2191 RIDE AGAIN";
         _progressFill.AnchorRight = 1f;
+    }
+
+    /// <summary>
+    /// m:ss.t, rounded once and then split.
+    ///
+    /// Splitting first prints times that do not exist. At 119.98 s the minutes come out 1 and
+    /// the seconds 59.98, and "00.0" rounds that to 60.0 - so the clock read 1:60.0, and 0:60.0
+    /// a minute before it. Rounding to tenths up front puts the carry before the formatting,
+    /// which is the only place it can happen correctly.
+    /// </summary>
+    private static string Clock(float seconds)
+    {
+        int tenths = Mathf.RoundToInt(Mathf.Max(0f, seconds) * 10f);
+        return $"{tenths / 600}:{tenths % 600 / 10:00}.{tenths % 10}";
     }
 
     public void ShowCrash()

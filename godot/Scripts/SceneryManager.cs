@@ -139,7 +139,6 @@ public class SceneryManager
         CreateSea();
         CreateClouds();
         CreateFinishLine();
-        CreateSunDisc();
         CreateButterflies();
         CreateBirds();
         CreateSquirrels();
@@ -1104,23 +1103,13 @@ public class SceneryManager
         }
     }
 
-    private void CreateSunDisc()
-    {
-        var sunMat = new StandardMaterial3D();
-        sunMat.AlbedoColor = new Color(1f, 1f, 1f);
-        sunMat.EmissionEnabled = true;
-        sunMat.Emission = new Color(1f, 0.95f, 0.8f);
-        sunMat.EmissionEnergyMultiplier = 4f;
-
-        var sun = new MeshInstance3D();
-        var sunMesh = new SphereMesh();
-        sunMesh.Radius = 6f;
-        sunMesh.Height = 12f;
-        sun.Mesh = sunMesh;
-        sun.MaterialOverride = sunMat;
-        sun.Position = new Vector3(40f, 75f, 180f);
-        _parent.AddChild(sun);
-    }
+    // There was a second sun here: a 6 m emissive sphere pinned at (40, 75, 180) and never
+    // moved. The sky already draws one, from the direction of the DirectionalLight that lights
+    // everything else, so the two could only ever agree by coincidence and they did not - the
+    // mesh sat high and centre, the real one low and left. Being a prop rather than a sky
+    // object, it was also 180 m away in fog dense enough to wash it out, and a tree could pass
+    // in front of it. Deleted rather than realigned: the light is the one authority for where
+    // the sun is, and a copy of it can only drift again.
 
     private void CreateButterflies()
     {

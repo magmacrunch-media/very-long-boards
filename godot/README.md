@@ -244,6 +244,22 @@ flat horizon in most directions, it is 63 m tall, and the rider is already stand
 highest ground there is. Inventing a mountain range over the Atlantic would be worse than the
 ruler.
 
+### One sun
+
+There were two, and they did not agree. The sky material draws a sun from the direction of the
+`DirectionalLight` that lights everything else; `CreateSunDisc` also hung a 6 m emissive sphere
+at a fixed `(40, 75, 180)` and never moved it. The mesh sat high and near the centre of the
+frame, the real one low and to the left, and nothing tied them together, so agreement was never
+possible.
+
+Being a prop rather than a sky object, the mesh sat 180 m away inside the fog and behind the
+scenery: emissive enough at energy 4 to punch through the haze as a hard little disc, but still
+something a tree could pass in front of.
+
+It is deleted rather than realigned. The light is the one authority for where the sun is, and a
+copy of it can only drift again. Which of the two was which was settled by commenting the mesh
+out and taking the shot — the hard disc vanished and the bloom stayed.
+
 **The sea is measured too.** Its level is where real sea level falls once the same 2x
 exaggeration is applied to the drop, and the distance to it is sampled per-point from the same
 LiDAR: Spring Street is 40 m from the water where it leaves the Southeast Light and 770 m from
@@ -272,6 +288,14 @@ python3 build_block_island.py --report   # print the numbers, write nothing
 
 It finds the simulator beside this repo or grouped under `games/`; `BLOCK_ISLAND_SRC=<path>`
 overrides. `pyproj` is needed for the one coordinate conversion that places the lighthouse.
+
+## The clock
+
+`GameUI.Clock` formats `m:ss.t`, and it rounds **once, before splitting**. The HUD used to
+divide first and format after, which prints times that do not exist: at 119.98 s the minutes
+come out 1 and the seconds 59.98, and `00.0` rounds that to `60.0`, so the clock read
+**`1:60.0`** — and `0:60.0` a minute before it. Four places did it, the running clock, the best
+time, and both halves of the finish banner. One helper now does all four.
 
 ## Controls
 
