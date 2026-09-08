@@ -214,6 +214,31 @@ brought its own trap: **vertex colours are linear unless the material says other
 — 0.29 linear reads back as 0.57 — and turned three silhouettes into three washes.
 `VertexColorIsSrgb` is what puts them back.
 
+### The bridge
+
+Every other prop here is a metre wide, so a single height and a single lateral offset taken at
+its anchor are right for all of it. The bridge is 6 m of rigid structure, and over 6 m of
+Frogwood the road drops 54 cm and swings about a metre sideways. Given one anchor point it had
+to be wrong at one end or the other, and it was wrong at both: buried in the asphalt where it
+started and standing clear of the road on the diagonal where it ended, with the handrails
+crossing the verge. At the wrapped position it read as a plank slab hanging at chest height
+that the rider passed straight through.
+
+It is not a rigid prop any more. The deck is rebuilt every frame from `HillAt` and `CurveAt`,
+exactly the way `TerrainManager` builds the road — which is the only way to get a trapezoid
+that matches a trapezoid, since every quad of the ribbon is one and a box can never be. The
+posts are placed one at a time by their own z, and each handrail is stretched and aimed between
+the ribbon points at its two ends.
+
+One deliberate change came with it: **the deck now sits 2 cm above the asphalt rather than 10 cm
+below it**, so you ride across the planks. Under the road its colour never mattered; on top, at
+full brightness, raw plank was the loudest thing on screen after Carl's shirt, so the material
+is tinted to weathered timber.
+
+Still true and still odd: the bridge is placed unconditionally at `z = 800` on every course and
+recycles through the prop band like a tree, and `AddStream` puts its streams somewhere else
+entirely — so it crosses nothing. That is a design question, not a bug, and it is untouched.
+
 **Block Island has `HasRidge = false`, and that is not an oversight.** It really does have a
 flat horizon in most directions, it is 63 m tall, and the rider is already standing on the
 highest ground there is. Inventing a mountain range over the Atlantic would be worse than the

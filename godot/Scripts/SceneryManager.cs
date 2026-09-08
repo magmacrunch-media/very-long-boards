@@ -41,6 +41,24 @@ public class SceneryManager
     public List<Squirrel> Squirrels = new List<Squirrel>();
 
     private Node3D _finishLine;
+
+    // The bridge is placed piece by piece rather than as one rigid prop; see AddBridge.
+    private const float BridgeLength = 6f;
+    private const int BridgeBays = 4;
+    private const float BridgeBay = BridgeLength / BridgeBays;
+
+    /// <summary>A bridge piece, placed on the ribbon by its own z rather than the bridge's.</summary>
+    private struct BridgePart { public Node3D Node; public float Z; public float X; public float Y; }
+
+    /// <summary>A handrail run, stretched and aimed between the ribbon points at its ends.</summary>
+    private struct BridgeRail { public Node3D Node; public float Z0; public float Z1; public float X; public float Y; }
+
+    private Node3D _bridge;
+    private MeshInstance3D _bridgeDeck;
+    private float _bridgeZ;
+    private readonly List<BridgePart> _bridgeParts = new List<BridgePart>();
+    private readonly List<BridgeRail> _bridgeRails = new List<BridgeRail>();
+
     private readonly List<Node3D> _ridges = new List<Node3D>();
     private Node3D _sea;
     private Node3D _cliff;
@@ -98,6 +116,9 @@ public class SceneryManager
         if (_finishLine != null) { _finishLine.QueueFree(); _finishLine = null; }
         foreach (var r in _ridges) if (r != null) r.QueueFree();
         _ridges.Clear();
+        if (_bridge != null) { _bridge.QueueFree(); _bridge = null; _bridgeDeck = null; }
+        _bridgeParts.Clear();
+        _bridgeRails.Clear();
         if (_sea != null) { _sea.QueueFree(); _sea = null; }
         if (_cliff != null) { _cliff.QueueFree(); _cliff = null; _cliffFace = null; }
 
@@ -449,38 +470,143 @@ public class SceneryManager
         Items.Add(new SceneryItem { Node = house, WorldZ = z, OffsetX = offset });
     }
 
+    /// <summary>
+    /// The bridge, which is the one prop long enough for the road to move underneath it.
+    ///
+    /// Everything else here is a tree or a post: a metre wide, so a single height and a single
+    /// lateral offset taken at its anchor are right for all of it. A bridge is 6 m of straight,
+    /// flat, rigid structure, and over 6 m of Frogwood the road drops 54 cm and swings a metre
+    /// sideways. Given one anchor point it therefore had to be wrong at one end or the other,
+    /// and it was wrong at both: buried in the asphalt where it starts, and standing clear of
+    /// the road on the diagonal where it ends. That is what was showing.
+    ///
+    /// So it is not a rigid prop any more. The deck is rebuilt every frame from HillAt and
+    /// CurveAt exactly the way TerrainManager builds the road, which is the only way to get a
+    /// trapezoid that matches a trapezoid, and the posts and handrails are placed one at a
+    /// time by their own z rather than by the bridge's.
+    /// </summary>
     private void AddBridge(float z)
     {
-        var bridge = new Node3D();
-        var woodMat = MeshKit.Mat(Colors.White, texture: TextureKit.Plank, uvScale: 4f);
+        _bridgeZ = z;
+        _bridge = new Node3D();
+        _parent.AddChild(_bridge);
 
+        // Weathered rather than fresh-sawn. The deck used to sit UNDER the asphalt, where its
+        // colour never mattered; on top of it, at full brightness, raw plank was the loudest
+        // thing on screen after Carl's shirt.
+        var woodMat = MeshKit.Mat(new Color(0.72f, 0.66f, 0.60f), texture: TextureKit.Plank, uvScale: 4f);
         var railMat = new StandardMaterial3D();
         railMat.AlbedoColor = new Color(0.65f, 0.65f, 0.68f);
+        railMat.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
 
-        // Bridge deck (wooden planks)
-        MeshKit.Box(bridge, new Vector3(_design.RoadWidth + 1f, 0.12f, 6f), woodMat, new Vector3(0, -0.1f, 3f));
-        // Plank lines
-        for (int i = 0; i < 6; i++)
-        {
-            float zOff = i * 1f;
-            MeshKit.Box(bridge, new Vector3(_design.RoadWidth + 0.8f, 0.01f, 0.04f), woodMat, new Vector3(0, -0.04f, zOff));
-        }
+        _bridgeDeck = new MeshInstance3D();
+        _bridgeDeck.MaterialOverride = woodMat;
+        _bridge.AddChild(_bridgeDeck);
 
-        // Rails on both sides
+        // Posts every 1.5 m down both kerbs, and a handrail between each pair.
+        float rail = _design.RoadWidth / 2f + 0.3f;
         for (float side = -1f; side <= 1f; side += 2f)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i <= BridgeBays; i++)
             {
                 var post = MeshKit.Cylinder(null, 0.03f, 1f, railMat, segments: 6);
-                post.Position = new Vector3(side * (_design.RoadWidth / 2f + 0.3f), 0.5f, i * 1.5f);
-                bridge.AddChild(post);
+                _bridge.AddChild(post);
+                _bridgeParts.Add(new BridgePart {
+                    Node = post, Z = i * BridgeBay, X = side * rail, Y = 0.5f });
             }
-            var bar = MeshKit.Box(null, new Vector3(0.04f, 0.04f, 5.5f), railMat, new Vector3(side * (_design.RoadWidth / 2f + 0.3f), 0.8f, 2.5f));
-            bridge.AddChild(bar);
+            for (int i = 0; i < BridgeBays; i++)
+            {
+                var bar = MeshKit.Box(null, new Vector3(0.04f, 0.04f, 1f), railMat);
+                _bridge.AddChild(bar);
+                _bridgeRails.Add(new BridgeRail {
+                    Node = bar, Z0 = i * BridgeBay, Z1 = (i + 1) * BridgeBay, X = side * rail, Y = 0.85f });
+            }
         }
+    }
 
-        _parent.AddChild(bridge);
-        Items.Add(new SceneryItem { Node = bridge, WorldZ = z, OffsetX = 0f });
+    /// <summary>Where the ribbon puts a point: the same arithmetic the road is drawn with.</summary>
+    private Vector3 OnRibbon(float scroll, float lz, float xOff, float yOff)
+    {
+        float wz = scroll + lz;
+        return new Vector3(_terrain.CurveAt(wz) * lz + xOff, _terrain.HillAt(wz) + yOff, lz);
+    }
+
+    /// <summary>
+    /// Lay the bridge on the road wherever the road currently is.
+    ///
+    /// The deck is a mesh rather than a box because a box cannot be a trapezoid, and every
+    /// quad of the road is one - the ribbon's edges converge and diverge as the heading
+    /// changes. A box deck built to the road's width therefore sits on the road at one end
+    /// and beside it at the other however carefully it is placed.
+    /// </summary>
+    private void UpdateBridge()
+    {
+        if (_bridge == null) return;
+
+        float scroll = _terrain.ScrollOffset;
+        float rel = WrapRel(_bridgeZ, scroll);
+
+        _bridgeDeck.Mesh = BuildDeck(scroll, rel);
+
+        foreach (var p in _bridgeParts)
+            p.Node.Position = OnRibbon(scroll, rel + p.Z, p.X, p.Y);
+
+        foreach (var r in _bridgeRails)
+        {
+            Vector3 a = OnRibbon(scroll, rel + r.Z0, r.X, r.Y);
+            Vector3 b = OnRibbon(scroll, rel + r.Z1, r.X, r.Y);
+            Vector3 dir = b - a;
+            float len = dir.Length();
+            if (len < 0.001f) continue;
+            dir /= len;
+            Vector3 right = Vector3.Up.Cross(dir).Normalized();
+            var basis = new Basis(right, dir.Cross(right), dir).Scaled(new Vector3(1f, 1f, len));
+            r.Node.Transform = new Transform3D(basis, (a + b) * 0.5f);
+        }
+    }
+
+    /// <summary>Deck planking: a short ribbon on the road, with a beam down each side.</summary>
+    private Mesh BuildDeck(float scroll, float rel)
+    {
+        float half = (_design.RoadWidth + 1f) / 2f;
+        const float top = 0.02f;        // just proud of the asphalt: you ride across it
+        const float thick = 0.16f;
+        const int steps = 12;
+
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        for (int i = 0; i < steps; i++)
+        {
+            float lz0 = rel + BridgeLength * i / steps;
+            float lz1 = rel + BridgeLength * (i + 1) / steps;
+            Vector3 a = OnRibbon(scroll, lz0, 0f, top);
+            Vector3 b = OnRibbon(scroll, lz1, 0f, top);
+            float v0 = (BridgeLength * i / steps) / 1.2f;
+            float v1 = (BridgeLength * (i + 1) / steps) / 1.2f;
+
+            Face(st, new Vector3(a.X - half, a.Y, lz0), new Vector3(a.X + half, a.Y, lz0),
+                     new Vector3(b.X - half, b.Y, lz1), new Vector3(b.X + half, b.Y, lz1), v0, v1);
+            for (float side = -1f; side <= 1f; side += 2f)
+            {
+                float ax = a.X + side * half, bx = b.X + side * half;
+                Face(st, new Vector3(ax, a.Y, lz0), new Vector3(ax, a.Y - thick, lz0),
+                         new Vector3(bx, b.Y, lz1), new Vector3(bx, b.Y - thick, lz1), v0, v1);
+            }
+        }
+        st.GenerateNormals();
+        return st.Commit();
+    }
+
+    /// <summary>One quad of the deck, as two triangles.</summary>
+    private static void Face(SurfaceTool st, Vector3 a0, Vector3 a1, Vector3 b0, Vector3 b1,
+                             float v0, float v1)
+    {
+        st.SetUV(new Vector2(0f, v0)); st.AddVertex(a0);
+        st.SetUV(new Vector2(1f, v0)); st.AddVertex(a1);
+        st.SetUV(new Vector2(0f, v1)); st.AddVertex(b0);
+        st.SetUV(new Vector2(1f, v0)); st.AddVertex(a1);
+        st.SetUV(new Vector2(1f, v1)); st.AddVertex(b1);
+        st.SetUV(new Vector2(0f, v1)); st.AddVertex(b0);
     }
 
     private void AddStream(float z, float offset, RandomNumberGenerator rng)
@@ -593,17 +719,6 @@ public class SceneryManager
         }
     }
 
-    /// <summary>
-    /// Open water beside the road, and the cliff that falls away to it.
-    ///
-    /// Both are single quads that follow the rider rather than props that recycle: the sea has
-    /// no features to pass, so the only thing that would betray a fixed plane is its edge, and
-    /// the edge is over the horizon. They are held apart from Items for that reason — nothing
-    /// scrolls them, UpdateSea just keeps them under the rider.
-    ///
-    /// The cliff is deliberately not the Mohegan Bluffs in miniature. It is the ground ending,
-    /// which is what you actually see from a road on top of them.
-    /// </summary>
     /// <summary>
     /// The skyline. Two or three silhouette bands standing well beyond the drawn world, each
     /// fainter than the one in front of it.
@@ -749,6 +864,17 @@ public class SceneryManager
         }
     }
 
+    /// <summary>
+    /// Open water beside the road, and the cliff that falls away to it.
+    ///
+    /// Both are single quads that follow the rider rather than props that recycle: the sea has
+    /// no features to pass, so the only thing that would betray a fixed plane is its edge, and
+    /// the edge is over the horizon. They are held apart from Items for that reason — nothing
+    /// scrolls them, UpdateSea just keeps them under the rider.
+    ///
+    /// The cliff is deliberately not the Mohegan Bluffs in miniature. It is the ground ending,
+    /// which is what you actually see from a road on top of them.
+    /// </summary>
     private void CreateSea()
     {
         if (!_design.HasSea) return;
@@ -1044,6 +1170,7 @@ public class SceneryManager
         UpdateClouds(dt);
         UpdateFinishLine();
         UpdateRidges();
+        UpdateBridge();
         UpdateSea();
         UpdateButterflies(dt);
         UpdateBirds(dt);
@@ -1064,6 +1191,7 @@ public class SceneryManager
             sq.Node.Visible = visible;
         foreach (var r in _ridges)
             r.Visible = visible;
+        if (_bridge != null) _bridge.Visible = visible;
         _finishLine.Visible = visible;
     }
 
