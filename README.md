@@ -58,6 +58,12 @@ Both versions steer with ← →, and both use Esc to pause.
 `web/` also takes touch: the left and right thirds of the screen steer, and a tap in the
 middle is a trick or a confirm.
 
+
+## Support This Project
+
+If you find this useful, consider supporting its development:
+
+[![Sponsor](https://img.shields.io/badge/%E2%9D%A4_Sponsor-pink)](https://github.com/sponsors/magmacrunch-media)
 ## License
 
 Private project — not for distribution.
