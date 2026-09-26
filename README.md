@@ -67,4 +67,6 @@ If you find this useful, consider supporting its development:
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-blue)](https://www.paypal.biz/magmacrunchmedia)
 ## License
 
-Private project — not for distribution.
+PolyForm Noncommercial 1.0.0 -- see `LICENSE`. Any noncommercial purpose is
+permitted, including personal projects, teaching and research. Commercial use
+is not.
